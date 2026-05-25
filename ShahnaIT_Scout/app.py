@@ -170,6 +170,7 @@ def parse_resume():
 def get_clients():
     return jsonify([])
 
+# ============= THIS IS THE IMPORTANT PART - AT THE BOTTOM =============
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))  # ← Changed to 8080
+    port = int(os.environ.get('PORT', 8080))
     app.run(debug=False, host='0.0.0.0', port=port)
