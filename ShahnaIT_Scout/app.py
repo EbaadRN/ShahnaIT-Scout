@@ -504,3 +504,541 @@ def get_clients():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
+# Add these imports at the top (if not already there)
+from difflib import SequenceMatcher
+
+# ============= ENHANCED CANDIDATE SCORING =============
+
+def calculate_weighted_match_score(job_skills, candidate_skills):
+    """Advanced skill matching with partial matches"""
+    if not job_skills or not candidate_skills:
+        return 0, {}
+    
+    # Parse skills
+    job_list = [s.strip().lower() for s in job_skills.split(',') if s.strip()]
+    cand_list = [s.strip().lower() for s in candidate_skills.split(',') if s.strip()]
+    
+    if not job_list:
+        return 0, {}
+    
+    match_details = {
+        'exact_matches': [],
+        'partial_matches': [],
+        'missing_skills': []
+    }
+    
+    total_score = 0
+    for job_skill in job_list:
+        best_match = 0
+        best_match_name = None
+        
+        for cand_skill in cand_list:
+            # Check exact match
+            if job_skill == cand_skill:
+                best_match = 100
+                best_match_name = cand_skill
+                match_details['exact_matches'].append(job_skill)
+                break
+            # Check partial match (e.g., "Python" vs "Python Django")
+            elif job_skill in cand_skill or cand_skill in job_skill:
+                best_match = 70
+                best_match_name = cand_skill
+                if job_skill not in match_details['partial_matches']:
+                    match_details['partial_matches'].append(job_skill)
+                break
+            # Check similarity
+            else:
+                similarity = SequenceMatcher(None, job_skill, cand_skill).ratio() * 100
+                if similarity > best_match and similarity > 50:
+                    best_match = similarity
+                    best_match_name = cand_skill
+        
+        if best_match == 0:
+            match_details['missing_skills'].append(job_skill)
+        
+        total_score += best_match
+    
+    final_score = round(total_score / len(job_list), 2)
+    
+    return final_score, match_details
+
+# ============= NOTES & COMMENTS =============
+
+# Store notes in memory (will persist during session)
+candidate_notes = {}
+application_notes = {}
+
+@app.route('/api/candidates/<int:candidate_id>/notes', methods=['GET', 'POST'])
+def candidate_notes_api(candidate_id):
+    """Get or add notes for a candidate"""
+    if request.method == 'POST':
+        data = request.json
+        note = {
+            'id': len(candidate_notes.get(candidate_id, [])) + 1,
+            'text': data.get('text'),
+            'author': data.get('author', 'Recruiter'),
+            'created_at': datetime.now().isoformat()
+        }
+        if candidate_id not in candidate_notes:
+            candidate_notes[candidate_id] = []
+        candidate_notes[candidate_id].append(note)
+        return jsonify({'success': True, 'note': note})
+    else:
+        return jsonify({'notes': candidate_notes.get(candidate_id, [])})
+
+@app.route('/api/applications/<int:app_id>/notes', methods=['GET', 'POST'])
+def application_notes_api(app_id):
+    """Get or add notes for an application"""
+    if request.method == 'POST':
+        data = request.json
+        note = {
+            'id': len(application_notes.get(app_id, [])) + 1,
+            'text': data.get('text'),
+            'author': data.get('author', 'Recruiter'),
+            'created_at': datetime.now().isoformat()
+        }
+        if app_id not in application_notes:
+            application_notes[app_id] = []
+        application_notes[app_id].append(note)
+        return jsonify({'success': True, 'note': note})
+    else:
+        return jsonify({'notes': application_notes.get(app_id, [])})
+
+# ============= INTERVIEW SCHEDULING =============
+
+# Store interviews in memory
+interviews = []
+
+@app.route('/api/interviews', methods=['GET', 'POST'])
+def manage_interviews():
+    """Schedule and manage interviews"""
+    if request.method == 'POST':
+        data = request.json
+        
+        interview = {
+            'id': len(interviews) + 1,
+            'application_id': data.get('application_id'),
+            'candidate_name': data.get('candidate_name'),
+            'job_title': data.get('job_title'),
+            'interviewer': data.get('interviewer'),
+            'interviewer_email': data.get('interviewer_email'),
+            'scheduled_time': data.get('scheduled_time'),
+            'duration_minutes': data.get('duration_minutes', 60),
+            'meeting_link': data.get('meeting_link'),
+            'round_type': data.get('round_type', 'Technical'),
+            'status': 'scheduled',
+            'created_at': datetime.now().isoformat()
+        }
+        interviews.append(interview)
+        
+        # Update application status
+        for app in applications:
+            if app['id'] == data.get('application_id'):
+                app['status'] = 'interview-scheduled'
+                break
+        
+        return jsonify({'success': True, 'interview_id': interview['id']})
+    else:
+        # Return upcoming interviews
+        now = datetime.now().isoformat()
+        upcoming = [i for i in interviews if i.get('status') == 'scheduled']
+        return jsonify(upcoming)
+
+@app.route('/api/interviews/<int:interview_id>/complete', methods=['PUT'])
+def complete_interview(interview_id):
+    """Mark interview as completed with feedback"""
+    data = request.json
+    
+    for interview in interviews:
+        if interview['id'] == interview_id:
+            interview['status'] = 'completed'
+            interview['feedback'] = data.get('feedback')
+            interview['rating'] = data.get('rating')
+            interview['result'] = data.get('result')
+            
+            # Update application based on interview result
+            if interview.get('application_id'):
+                for app in applications:
+                    if app['id'] == interview['application_id']:
+                        if data.get('result') == 'pass':
+                            app['status'] = 'interviewed'
+                        else:
+                            app['status'] = 'rejected'
+                        break
+            break
+    
+    return jsonify({'success': True})
+
+# ============= OFFER LETTER GENERATOR =============
+
+# Store offers in memory
+offers = []
+
+@app.route('/api/offers', methods=['GET', 'POST'])
+def manage_offers():
+    """Generate and manage offer letters"""
+    if request.method == 'POST':
+        data = request.json
+        
+        offer = {
+            'id': len(offers) + 1,
+            'application_id': data.get('application_id'),
+            'candidate_name': data.get('candidate_name'),
+            'candidate_email': data.get('candidate_email'),
+            'job_title': data.get('job_title'),
+            'base_salary': data.get('base_salary'),
+            'joining_bonus': data.get('joining_bonus', 0),
+            'joining_date': data.get('joining_date'),
+            'status': 'draft',
+            'created_at': datetime.now().isoformat(),
+            'offer_letter_html': generate_offer_letter_html(data)
+        }
+        offers.append(offer)
+        
+        # Update application status
+        for app in applications:
+            if app['id'] == data.get('application_id'):
+                app['status'] = 'offered'
+                break
+        
+        return jsonify({'success': True, 'offer_id': offer['id'], 'offer_html': offer['offer_letter_html']})
+    else:
+        return jsonify(offers)
+
+def generate_offer_letter_html(data):
+    """Generate HTML for offer letter"""
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Offer Letter - {data.get('candidate_name')}</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 50px; }}
+            .container {{ max-width: 800px; margin: auto; }}
+            .header {{ text-align: center; border-bottom: 2px solid #4CAF50; padding-bottom: 20px; }}
+            .content {{ margin: 30px 0; }}
+            .signature {{ margin-top: 50px; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+            td {{ padding: 10px; border: 1px solid #ddd; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>ShahnaIT Scout</h1>
+                <h2>Offer of Employment</h2>
+            </div>
+            <div class="content">
+                <p>Dear <strong>{data.get('candidate_name')}</strong>,</p>
+                <p>We are pleased to offer you the position of <strong>{data.get('job_title')}</strong> at ShahnaIT Scout.</p>
+                
+                <h3>Offer Details</h3>
+                <table>
+                    <tr><td><strong>Position</strong></td><td>{data.get('job_title')}</td></tr>
+                    <tr><td><strong>Base Salary</strong></td><td>${data.get('base_salary', 0):,.2f} per year</td></tr>
+                    <tr><td><strong>Joining Bonus</strong></td><td>${data.get('joining_bonus', 0):,.2f}</td></tr>
+                    <tr><td><strong>Expected Joining Date</strong></td><td>{data.get('joining_date')}</td></tr>
+                </table>
+                
+                <h3>Terms & Conditions</h3>
+                <p>This offer is valid for 15 days from the date of issuance. Please review the attached terms and conditions.</p>
+                
+                <p>We look forward to having you on our team!</p>
+            </div>
+            <div class="signature">
+                <p>Sincerely,<br><strong>ShahnaIT Recruitment Team</strong></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+
+# ============= REPORTS & ANALYTICS =============
+
+@app.route('/api/reports/hiring-metrics', methods=['GET'])
+def hiring_metrics():
+    """Generate hiring analytics"""
+    
+    # Calculate time-to-hire
+    time_to_hire = []
+    for app in applications:
+        if app.get('status') == 'joined' and app.get('created_at'):
+            try:
+                created = datetime.fromisoformat(app['created_at'])
+                joined = datetime.fromisoformat(app.get('joined_at', app['created_at']))
+                days = (joined - created).days
+                time_to_hire.append(days)
+            except:
+                pass
+    
+    avg_time_to_hire = sum(time_to_hire) / len(time_to_hire) if time_to_hire else 0
+    
+    # Pipeline conversion rates
+    total_apps = len(applications)
+    if total_apps > 0:
+        screening_rate = len([a for a in applications if a.get('status') in ['screening', 'shortlisted']]) / total_apps * 100
+        interview_rate = len([a for a in applications if a.get('status') in ['interview-scheduled', 'interviewed']]) / total_apps * 100
+        offer_rate = len([a for a in applications if a.get('status') in ['offered', 'offer-accepted']]) / total_apps * 100
+        hire_rate = len([a for a in applications if a.get('status') == 'joined']) / total_apps * 100
+    else:
+        screening_rate = interview_rate = offer_rate = hire_rate = 0
+    
+    # Source effectiveness
+    source_stats = {}
+    for candidate in candidates:
+        source = candidate.get('source', 'unknown')
+        if source not in source_stats:
+            source_stats[source] = {'total': 0, 'hired': 0}
+        source_stats[source]['total'] += 1
+    
+    for app in applications:
+        if app.get('status') == 'joined':
+            candidate = next((c for c in candidates if c['id'] == app.get('candidate_id')), None)
+            if candidate:
+                source = candidate.get('source', 'unknown')
+                if source in source_stats:
+                    source_stats[source]['hired'] += 1
+    
+    source_effectiveness = []
+    for source, stats in source_stats.items():
+        conversion = round((stats['hired'] / stats['total']) * 100, 2) if stats['total'] > 0 else 0
+        source_effectiveness.append({
+            'source': source,
+            'total': stats['total'],
+            'hired': stats['hired'],
+            'conversion_rate': conversion
+        })
+    
+    return jsonify({
+        'total_applications': total_apps,
+        'average_time_to_hire_days': round(avg_time_to_hire, 1),
+        'conversion_rates': {
+            'screening': round(screening_rate, 1),
+            'interview': round(interview_rate, 1),
+            'offer': round(offer_rate, 1),
+            'hire': round(hire_rate, 1)
+        },
+        'source_effectiveness': source_effectiveness,
+        'applications_by_stage': {
+            'new': len([a for a in applications if a.get('status') == 'new']),
+            'screening': len([a for a in applications if a.get('status') in ['screening', 'shortlisted']]),
+            'interview': len([a for a in applications if a.get('status') in ['interview-scheduled', 'interviewed']]),
+            'offer': len([a for a in applications if a.get('status') in ['offered', 'offer-accepted']]),
+            'hired': len([a for a in applications if a.get('status') == 'joined'])
+        }
+    })
+
+# ============= RESUME UPLOAD & PARSING =============
+
+@app.route('/api/candidates/parse-resume-enhanced', methods=['POST'])
+def parse_resume_enhanced():
+    """Enhanced resume parsing with better extraction"""
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    
+    file = request.files['file']
+    filename = file.filename.lower()
+    
+    text = ''
+    
+    # Extract text based on file type
+    if filename.endswith('.pdf'):
+        try:
+            import PyPDF2
+            reader = PyPDF2.PdfReader(file)
+            for page in reader.pages:
+                text += page.extract_text() or ''
+        except:
+            text = ''
+    elif filename.endswith('.docx'):
+        try:
+            import docx
+            doc = docx.Document(file)
+            text = '\n'.join([para.text for para in doc.paragraphs])
+        except:
+            text = ''
+    else:
+        try:
+            text = file.read().decode('utf-8')
+        except:
+            text = ''
+    
+    # Enhanced extraction
+    parsed_data = {
+        'first_name': extract_name_enhanced(text)['first'],
+        'last_name': extract_name_enhanced(text)['last'],
+        'email': extract_email_enhanced(text),
+        'phone': extract_phone_enhanced(text),
+        'skills': extract_skills_enhanced(text),
+        'total_experience': extract_experience_enhanced(text),
+        'current_company': extract_company_enhanced(text),
+        'current_designation': extract_designation_enhanced(text),
+        'current_location': extract_location_enhanced(text),
+        'qualifications': extract_qualifications_enhanced(text),
+        'languages': extract_languages(text),
+        'certifications': extract_certifications(text)
+    }
+    
+    return jsonify({
+        'success': True,
+        'data': parsed_data,
+        'resume_text_preview': text[:500] + '...' if len(text) > 500 else text
+    })
+
+def extract_name_enhanced(text):
+    """Enhanced name extraction"""
+    lines = text.split('\n')[:15]
+    for line in lines:
+        line = line.strip()
+        if len(line.split()) == 2 and not any(x in line.lower() for x in ['resume', 'curriculum', 'vitae', 'email', 'phone']):
+            parts = line.split()
+            if len(parts) == 2:
+                return {'first': parts[0], 'last': parts[1]}
+    return {'first': None, 'last': None}
+
+def extract_email_enhanced(text):
+    """Enhanced email extraction"""
+    import re
+    pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+    match = re.search(pattern, text)
+    return match.group(0) if match else None
+
+def extract_phone_enhanced(text):
+    """Enhanced phone extraction"""
+    import re
+    patterns = [
+        r'\b\d{10}\b',
+        r'\+\d{1,2}[-.\s]?\d{10}\b',
+        r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(0)
+    return None
+
+def extract_skills_enhanced(text):
+    """Enhanced skill extraction with broader skill database"""
+    skill_database = [
+        'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Ruby', 'PHP', 'Swift', 'Kotlin',
+        'React', 'Angular', 'Vue', 'Node.js', 'Django', 'Flask', 'Spring', 'Express', 'Rails', 'Laravel',
+        'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'SQL Server', 'Cassandra', 'DynamoDB',
+        'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'Git', 'CI/CD',
+        'TensorFlow', 'PyTorch', 'Scikit-learn', 'Pandas', 'NumPy', 'Machine Learning', 'Data Science',
+        'Leadership', 'Project Management', 'Agile', 'Scrum', 'Communication', 'Teamwork'
+    ]
+    
+    found = []
+    text_lower = text.lower()
+    for skill in skill_database:
+        if skill.lower() in text_lower:
+            found.append(skill)
+    
+    return found
+
+def extract_experience_enhanced(text):
+    """Enhanced experience extraction"""
+    import re
+    patterns = [
+        r'(\d+)\s*\+\s*years?',
+        r'(\d+)\s*years?\s+of\s+experience',
+        r'total\s+experience\s*:?\s*(\d+)',
+        r'experience\s*:?\s*(\d+)\s*years?'
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return float(match.group(1))
+    return 0
+
+def extract_company_enhanced(text):
+    """Enhanced company extraction"""
+    import re
+    patterns = [
+        r'Current\s+Company\s*:?\s*(.+?)(?:\n|$)',
+        r'Employer\s*:?\s*(.+?)(?:\n|$)',
+        r'Work\s+Experience.*?\n(?:.*?\n){1,3}?(.+?)(?:\n|$)'
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            company = match.group(1).strip()
+            if len(company) < 50:
+                return company
+    return None
+
+def extract_designation_enhanced(text):
+    """Enhanced designation extraction"""
+    import re
+    patterns = [
+        r'Designation\s*:?\s*(.+?)(?:\n|$)',
+        r'Title\s*:?\s*(.+?)(?:\n|$)',
+        r'Position\s*:?\s*(.+?)(?:\n|$)'
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    
+    # Look for common titles
+    titles = ['Developer', 'Engineer', 'Manager', 'Lead', 'Architect', 'Consultant', 'Analyst', 'Specialist']
+    for title in titles:
+        if title.lower() in text.lower():
+            context = re.search(f'.{{0,30}}{title}.{{0,30}}', text, re.IGNORECASE)
+            if context:
+                return context.group().strip()
+    return None
+
+def extract_location_enhanced(text):
+    """Enhanced location extraction"""
+    import re
+    cities = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 'Ahmedabad', 'Remote']
+    for city in cities:
+        if city.lower() in text.lower():
+            return city
+    
+    pattern = r'Location\s*:?\s*(.+?)(?:\n|$)'
+    match = re.search(pattern, text, re.IGNORECASE)
+    return match.group(1).strip() if match else None
+
+def extract_qualifications_enhanced(text):
+    """Enhanced qualification extraction"""
+    import re
+    degrees = ['Bachelor', 'Master', 'B.Tech', 'M.Tech', 'BCA', 'MCA', 'MBA', 'PhD', 'B.Sc', 'M.Sc', 'Diploma', 'B.Com', 'M.Com']
+    found = []
+    for degree in degrees:
+        if degree.lower() in text.lower():
+            context = re.search(f'.{{0,50}}{degree}.{{0,50}}', text, re.IGNORECASE)
+            if context:
+                found.append(context.group().strip())
+    return '\n'.join(found[:3]) if found else None
+
+def extract_languages(text):
+    """Extract languages from resume"""
+    languages = ['English', 'Hindi', 'Spanish', 'French', 'German', 'Chinese', 'Japanese', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Bengali']
+    found = []
+    text_lower = text.lower()
+    for lang in languages:
+        if lang.lower() in text_lower:
+            found.append(lang)
+    return found
+
+def extract_certifications(text):
+    """Extract certifications from resume"""
+    import re
+    cert_patterns = [
+        r'AWS\s+Certified',
+        r'Azure\s+Certified',
+        r'Google\s+Cloud',
+        r'PMP',
+        r'Scrum\s+Master',
+        r'TOGAF',
+        r'CISSP',
+        r'CISM',
+        r'CEH'
+    ]
+    found = []
+    for pattern in cert_patterns:
+        if re.search(pattern, text, re.IGNORECASE):
+            found.append(pattern)
+    return found
