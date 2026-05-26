@@ -19,659 +19,116 @@ DASHBOARD_TEMPLATE = '''
     <style>
         body { background: #f4f6f9; }
         .navbar-brand { font-weight: bold; }
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
+        .stat-card { background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .stat-card:hover { transform: translateY(-5px); }
         .stat-value { font-size: 2rem; font-weight: bold; }
         .stat-label { color: #666; font-size: 0.85rem; }
-        .kanban-column {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
-            min-width: 320px;
-            max-width: 350px;
-        }
-        .kanban-cards {
-            min-height: 400px;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-        .kanban-card {
-            background: white;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: grab;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .kanban-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
+        .kanban-column { background: #f8f9fa; border-radius: 10px; padding: 15px; min-width: 320px; max-width: 350px; }
+        .kanban-cards { min-height: 400px; max-height: 70vh; overflow-y: auto; }
+        .kanban-card { background: white; border-radius: 8px; padding: 12px; margin-bottom: 10px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
         .kanban-card:active { cursor: grabbing; }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
-            <span class="navbar-brand">
-                <i class="bi bi-robot"></i> ShahnaIT Scout - Professional Recruitment
-            </span>
-        </div>
-    </nav>
-    
+    <nav class="navbar navbar-dark bg-dark"><div class="container-fluid"><span class="navbar-brand"><i class="bi bi-robot"></i> ShahnaIT Scout - Professional Recruitment</span></div></nav>
     <div class="container mt-4">
-        <!-- Stats Row -->
         <div class="row" id="statsRow">
-            <div class="col-md-3">
-                <div class="stat-card text-center">
-                    <div class="stat-value" id="openPositions">0</div>
-                    <div class="stat-label">Open Positions</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card text-center">
-                    <div class="stat-value" id="totalCandidates">0</div>
-                    <div class="stat-label">Total Candidates</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card text-center">
-                    <div class="stat-value" id="totalApplications">0</div>
-                    <div class="stat-label">Applications</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card text-center">
-                    <div class="stat-value" id="matchRate">0%</div>
-                    <div class="stat-label">Avg Match Rate</div>
-                </div>
-            </div>
+            <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value" id="openPositions">0</div><div class="stat-label">Open Positions</div></div></div>
+            <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value" id="totalCandidates">0</div><div class="stat-label">Total Candidates</div></div></div>
+            <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value" id="totalApplications">0</div><div class="stat-label">Applications</div></div></div>
+            <div class="col-md-3"><div class="stat-card text-center"><div class="stat-value" id="matchRate">0%</div><div class="stat-label">Avg Match Rate</div></div></div>
         </div>
-        
-        <!-- Buttons Row -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <button class="btn btn-info" onclick="showKanbanBoard()">
-                    <i class="bi bi-kanban"></i> Kanban Pipeline
-                </button>
-                <button class="btn btn-warning" onclick="showReportsModal()">
-                    <i class="bi bi-graph-up"></i> Reports
-                </button>
-            </div>
-        </div>
-        
-        <!-- Tabs -->
+        <div class="row mb-3"><div class="col-12"><button class="btn btn-info" onclick="showKanbanBoard()"><i class="bi bi-kanban"></i> Kanban Pipeline</button><button class="btn btn-warning" onclick="showReportsModal()"><i class="bi bi-graph-up"></i> Reports</button></div></div>
         <ul class="nav nav-tabs" id="myTab" role="tablist">
-            <li class="nav-item">
-                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#jobs">📋 Job Descriptions</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#candidates">👥 Candidates</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#applications">📄 Applications</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#interviews">🎯 Interviews</button>
-            </li>
-            <li class="nav-item">
-                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#offers">📜 Offers</button>
-            </li>
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#jobs">📋 Job Descriptions</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#candidates">👥 Candidates</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#applications">📄 Applications</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#interviews">🎯 Interviews</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#offers">📜 Offers</button></li>
         </ul>
-        
         <div class="tab-content mt-3">
-            <!-- Jobs Tab -->
-            <div class="tab-pane fade show active" id="jobs">
-                <button class="btn btn-primary mb-3" onclick="showJobModal()">+ Create Job Description</button>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light"><tr><th>Code</th><th>Title</th><th>Location</th><th>Status</th><th>Applications</th><th>Actions</th></tr></thead>
-                        <tbody id="jobsTable"></tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Candidates Tab -->
-            <div class="tab-pane fade" id="candidates">
-                <button class="btn btn-success mb-3" onclick="showCandidateModal()">+ Add Candidate</button>
-                <button class="btn btn-outline-success mb-3" onclick="showResumeUploadModal()">📄 Upload Resume</button>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light"><tr><th>Code</th><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
-                        <tbody id="candidatesTable"></tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Applications Tab -->
-            <div class="tab-pane fade" id="applications">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light"><tr><th>ID</th><th>Candidate</th><th>Job</th><th>Match Score</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="applicationsTable"></tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Interviews Tab -->
-            <div class="tab-pane fade" id="interviews">
-                <button class="btn btn-primary mb-3" onclick="showInterviewModal()">+ Schedule Interview</button>
-                <div id="interviewsList"></div>
-            </div>
-            
-            <!-- Offers Tab -->
-            <div class="tab-pane fade" id="offers">
-                <button class="btn btn-primary mb-3" onclick="showOfferModal()">+ Generate Offer</button>
-                <div id="offersList"></div>
-            </div>
+            <div class="tab-pane fade show active" id="jobs"><button class="btn btn-primary mb-3" onclick="showJobModal()">+ Create Job Description</button><div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>Code</th><th>Title</th><th>Location</th><th>Status</th><th>Applications</th><th>Actions</th></tr></thead><tbody id="jobsTable"></tbody></table></div></div>
+            <div class="tab-pane fade" id="candidates"><button class="btn btn-success mb-3" onclick="showCandidateModal()">+ Add Candidate</button><button class="btn btn-outline-success mb-3" onclick="showResumeUploadModal()">📄 Upload Resume</button><div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>Code</th><th>Name</th><th>Email</th><th>Actions</th></tr></thead><tbody id="candidatesTable"></tbody></table></div></div>
+            <div class="tab-pane fade" id="applications"><div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>ID</th><th>Candidate</th><th>Job</th><th>Match Score</th><th>Status</th><th>Actions</th></tr></thead><tbody id="applicationsTable"></tbody></table></div></div>
+            <div class="tab-pane fade" id="interviews"><button class="btn btn-primary mb-3" onclick="showInterviewModal()">+ Schedule Interview</button><div id="interviewsList"></div></div>
+            <div class="tab-pane fade" id="offers"><button class="btn btn-primary mb-3" onclick="showOfferModal()">+ Generate Offer</button><div id="offersList"></div></div>
         </div>
     </div>
-    
+
     <!-- Job Modal -->
-    <div class="modal fade" id="jobModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Create Job Description</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-2" id="jobTitle" placeholder="Job Title" required>
-                    <input type="text" class="form-control mb-2" id="jobLocation" placeholder="Location">
-                    <input type="text" class="form-control mb-2" id="jobSkills" placeholder="Required Skills (comma separated)">
-                    <select class="form-control mb-2" id="jobStatus">
-                        <option value="open">Open</option>
-                        <option value="draft">Draft</option>
-                        <option value="closed">Closed</option>
-                    </select>
-                    <button class="btn btn-primary w-100" onclick="createJob()">Create Job</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <div class="modal fade" id="jobModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Create Job Description</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="text" class="form-control mb-2" id="jobTitle" placeholder="Job Title" required><input type="text" class="form-control mb-2" id="jobLocation" placeholder="Location"><input type="text" class="form-control mb-2" id="jobSkills" placeholder="Required Skills (comma separated)"><select class="form-control mb-2" id="jobStatus"><option value="open">Open</option><option value="draft">Draft</option><option value="closed">Closed</option></select><button class="btn btn-primary w-100" onclick="createJob()">Create Job</button></div></div></div></div>
+
     <!-- Enhanced Candidate Modal -->
-    <div class="modal fade" id="candidateModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title"><i class="bi bi-person-badge"></i> Add/Edit Candidate - Complete Profile</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
-                    <form id="candidateForm">
-                        <!-- Personal Information -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-primary text-white">Personal Information</div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-4 mb-2"><label>First Name *</label><input type="text" class="form-control" id="candFirstName" required></div>
-                                    <div class="col-md-4 mb-2"><label>Last Name</label><input type="text" class="form-control" id="candLastName"></div>
-                                    <div class="col-md-4 mb-2"><label>Email *</label><input type="email" class="form-control" id="candEmail" required></div>
-                                    <div class="col-md-3 mb-2"><label>Mobile Number</label><input type="tel" class="form-control" id="candPhone"></div>
-                                    <div class="col-md-3 mb-2"><label>Alternate Number</label><input type="tel" class="form-control" id="candAltPhone"></div>
-                                    <div class="col-md-3 mb-2"><label>LinkedIn ID</label><input type="text" class="form-control" id="candLinkedin" placeholder="linkedin.com/in/username"></div>
-                                    <div class="col-md-3 mb-2"><label>GitHub</label><input type="text" class="form-control" id="candGithub"></div>
-                                    <div class="col-md-6 mb-2"><label>Address</label><textarea class="form-control" id="candAddress" rows="2"></textarea></div>
-                                    <div class="col-md-6 mb-2"><label>Current Location</label><input type="text" class="form-control" id="candLocation"></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Professional Summary -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-info text-white">Professional Summary</div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-4 mb-2"><label>Primary Role</label><input type="text" class="form-control" id="candPrimaryRole" placeholder="e.g., Java Developer"></div>
-                                    <div class="col-md-4 mb-2"><label>Total Experience (Years)</label><input type="number" step="0.5" class="form-control" id="candTotalExp" value="0"></div>
-                                    <div class="col-md-4 mb-2"><label>Relevant Experience</label><input type="number" step="0.5" class="form-control" id="candRelevantExp" value="0"></div>
-                                    <div class="col-md-12 mb-2"><label>Professional Summary</label><textarea class="form-control" id="candSummary" rows="2"></textarea></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Skills -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-warning text-dark">Skills</div>
-                            <div class="card-body">
-                                <div id="skillsContainer"></div>
-                                <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="addSkillEntry()">+ Add Skill</button>
-                            </div>
-                        </div>
-                        
-                        <!-- Work Experience -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-secondary text-white">Work Experience</div>
-                            <div class="card-body">
-                                <div id="experienceContainer"></div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addExperienceEntry()">+ Add Company</button>
-                            </div>
-                        </div>
-                        
-                        <!-- Education -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-dark text-white">Education</div>
-                            <div class="card-body">
-                                <div id="educationContainer"></div>
-                                <button type="button" class="btn btn-sm btn-outline-dark mt-1" onclick="addEducationEntry()">+ Add Education</button>
-                            </div>
-                        </div>
-                        
-                        <!-- Salary -->
-                        <div class="card mb-3">
-                            <div class="card-header bg-dark text-white">Salary & Notice Period</div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3 mb-2"><label>Current Salary (₹)</label><input type="number" class="form-control" id="candCurrentSalary"></div>
-                                    <div class="col-md-3 mb-2"><label>Expected Salary (₹)</label><input type="number" class="form-control" id="candExpectedSalary"></div>
-                                    <div class="col-md-3 mb-2"><label>Notice Period (days)</label><input type="number" class="form-control" id="candNoticePeriod"></div>
-                                    <div class="col-md-3 mb-2"><label>Source</label><select class="form-control" id="candSource"><option value="linkedin">LinkedIn</option><option value="naukri">Naukri</option><option value="referral">Referral</option></select></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-success w-100">Save Candidate Profile</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <div class="modal fade" id="candidateModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header bg-success text-white"><h5 class="modal-title"><i class="bi bi-person-badge"></i> Add/Edit Candidate - Complete Profile</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" style="max-height: 70vh; overflow-y: auto;"><form id="candidateForm"><div class="card mb-3"><div class="card-header bg-primary text-white">Personal Information</div><div class="card-body"><div class="row"><div class="col-md-4 mb-2"><label>First Name *</label><input type="text" class="form-control" id="candFirstName" required></div><div class="col-md-4 mb-2"><label>Last Name</label><input type="text" class="form-control" id="candLastName"></div><div class="col-md-4 mb-2"><label>Email *</label><input type="email" class="form-control" id="candEmail" required></div><div class="col-md-3 mb-2"><label>Mobile Number</label><input type="tel" class="form-control" id="candPhone"></div><div class="col-md-3 mb-2"><label>Alternate Number</label><input type="tel" class="form-control" id="candAltPhone"></div><div class="col-md-3 mb-2"><label>LinkedIn ID</label><input type="text" class="form-control" id="candLinkedin" placeholder="linkedin.com/in/username"></div><div class="col-md-3 mb-2"><label>GitHub</label><input type="text" class="form-control" id="candGithub"></div><div class="col-md-6 mb-2"><label>Address</label><textarea class="form-control" id="candAddress" rows="2"></textarea></div><div class="col-md-6 mb-2"><label>Current Location</label><input type="text" class="form-control" id="candLocation"></div></div></div></div><div class="card mb-3"><div class="card-header bg-info text-white">Professional Summary</div><div class="card-body"><div class="row"><div class="col-md-4 mb-2"><label>Primary Role</label><input type="text" class="form-control" id="candPrimaryRole" placeholder="e.g., Java Developer"></div><div class="col-md-4 mb-2"><label>Total Experience (Years)</label><input type="number" step="0.5" class="form-control" id="candTotalExp" value="0"></div><div class="col-md-4 mb-2"><label>Relevant Experience</label><input type="number" step="0.5" class="form-control" id="candRelevantExp" value="0"></div><div class="col-md-12 mb-2"><label>Professional Summary</label><textarea class="form-control" id="candSummary" rows="2"></textarea></div></div></div></div><div class="card mb-3"><div class="card-header bg-warning text-dark">Skills</div><div class="card-body"><div id="skillsContainer"></div><button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="addSkillEntry()">+ Add Skill</button></div></div><div class="card mb-3"><div class="card-header bg-secondary text-white">Work Experience</div><div class="card-body"><div id="experienceContainer"></div><button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addExperienceEntry()">+ Add Company</button></div></div><div class="card mb-3"><div class="card-header bg-dark text-white">Education</div><div class="card-body"><div id="educationContainer"></div><button type="button" class="btn btn-sm btn-outline-dark mt-1" onclick="addEducationEntry()">+ Add Education</button></div></div><div class="card mb-3"><div class="card-header bg-dark text-white">Salary & Notice Period</div><div class="card-body"><div class="row"><div class="col-md-3 mb-2"><label>Current Salary (₹)</label><input type="number" class="form-control" id="candCurrentSalary"></div><div class="col-md-3 mb-2"><label>Expected Salary (₹)</label><input type="number" class="form-control" id="candExpectedSalary"></div><div class="col-md-3 mb-2"><label>Notice Period (days)</label><input type="number" class="form-control" id="candNoticePeriod"></div><div class="col-md-3 mb-2"><label>Source</label><select class="form-control" id="candSource"><option value="linkedin">LinkedIn</option><option value="naukri">Naukri</option><option value="referral">Referral</option></select></div></div></div></div><button type="submit" class="btn btn-success w-100">Save Candidate Profile</button></form></div></div></div></div>
+
     <!-- Resume Upload Modal -->
-    <div class="modal fade" id="resumeUploadModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">Upload Resume</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="file" class="form-control" id="resumeFile" accept=".pdf,.docx">
-                    <div id="parseProgress" class="mt-2" style="display:none"><div class="spinner-border spinner-border-sm"></div> Parsing...</div>
-                    <button class="btn btn-info mt-3 w-100" onclick="parseResume()">Parse Resume</button>
-                    <div id="parsedData" class="mt-3" style="display:none">
-                        <h6>Extracted Data:</h6>
-                        <pre id="extractedJson" class="bg-light p-2 rounded small"></pre>
-                        <button class="btn btn-success w-100" onclick="createCandidateFromResume()">Create Candidate</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <div class="modal fade" id="resumeUploadModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-info text-white"><h5 class="modal-title">Upload Resume</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="file" class="form-control" id="resumeFile" accept=".pdf,.docx"><div id="parseProgress" class="mt-2" style="display:none"><div class="spinner-border spinner-border-sm"></div> Parsing...</div><button class="btn btn-info mt-3 w-100" onclick="parseResume()">Parse Resume</button><div id="parsedData" class="mt-3" style="display:none"><h6>Extracted Data:</h6><pre id="extractedJson" class="bg-light p-2 rounded small"></pre><button class="btn btn-success w-100" onclick="createCandidateFromResume()">Create Candidate</button></div></div></div></div></div>
+
     <!-- Interview Modal -->
-    <div class="modal fade" id="interviewModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-warning">
-                    <h5 class="modal-title">Schedule Interview</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="number" class="form-control mb-2" id="interviewAppId" placeholder="Application ID" required>
-                    <input type="text" class="form-control mb-2" id="interviewerName" placeholder="Interviewer Name">
-                    <input type="email" class="form-control mb-2" id="interviewerEmail" placeholder="Interviewer Email">
-                    <input type="datetime-local" class="form-control mb-2" id="interviewTime">
-                    <input type="text" class="form-control mb-2" id="meetingLink" placeholder="Meeting Link (Google Meet/Zoom)">
-                    <select class="form-control mb-2" id="roundType">
-                        <option value="Technical">Technical Round</option>
-                        <option value="HR">HR Round</option>
-                        <option value="Managerial">Managerial Round</option>
-                        <option value="Client">Client Round</option>
-                    </select>
-                    <button class="btn btn-warning w-100" onclick="scheduleInterview()">Schedule Interview</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <div class="modal fade" id="interviewModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-warning"><h5 class="modal-title">Schedule Interview</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="number" class="form-control mb-2" id="interviewAppId" placeholder="Application ID" required><input type="text" class="form-control mb-2" id="interviewerName" placeholder="Interviewer Name"><input type="email" class="form-control mb-2" id="interviewerEmail" placeholder="Interviewer Email"><input type="datetime-local" class="form-control mb-2" id="interviewTime"><input type="text" class="form-control mb-2" id="meetingLink" placeholder="Meeting Link (Google Meet/Zoom)"><select class="form-control mb-2" id="roundType"><option value="Technical">Technical Round</option><option value="HR">HR Round</option><option value="Managerial">Managerial Round</option><option value="Client">Client Round</option></select><button class="btn btn-warning w-100" onclick="scheduleInterview()">Schedule Interview</button></div></div></div></div>
+
     <!-- Offer Modal -->
-    <div class="modal fade" id="offerModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Generate Offer Letter</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="number" class="form-control mb-2" id="offerAppId" placeholder="Application ID" required>
-                    <input type="text" class="form-control mb-2" id="candidateNameOffer" placeholder="Candidate Name" required>
-                    <input type="email" class="form-control mb-2" id="candidateEmailOffer" placeholder="Candidate Email" required>
-                    <input type="text" class="form-control mb-2" id="jobTitleOffer" placeholder="Job Title" required>
-                    <input type="number" class="form-control mb-2" id="baseSalary" placeholder="Base Salary ($)" required>
-                    <input type="number" class="form-control mb-2" id="joiningBonus" placeholder="Joining Bonus ($)">
-                    <input type="date" class="form-control mb-2" id="joiningDate">
-                    <button class="btn btn-primary w-100" onclick="generateOffer()">Generate Offer</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <div class="modal fade" id="offerModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header bg-primary text-white"><h5 class="modal-title">Generate Offer Letter</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><input type="number" class="form-control mb-2" id="offerAppId" placeholder="Application ID" required><input type="text" class="form-control mb-2" id="candidateNameOffer" placeholder="Candidate Name" required><input type="email" class="form-control mb-2" id="candidateEmailOffer" placeholder="Candidate Email" required><input type="text" class="form-control mb-2" id="jobTitleOffer" placeholder="Job Title" required><input type="number" class="form-control mb-2" id="baseSalary" placeholder="Base Salary ($)" required><input type="number" class="form-control mb-2" id="joiningBonus" placeholder="Joining Bonus ($)"><input type="date" class="form-control mb-2" id="joiningDate"><button class="btn btn-primary w-100" onclick="generateOffer()">Generate Offer</button></div></div></div></div>
+
     <!-- Reports Modal -->
-    <div class="modal fade" id="reportsModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title">Recruitment Analytics</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="reportsContent">Loading...</div>
-            </div>
-        </div>
-    </div>
-    
+    <div class="modal fade" id="reportsModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header bg-info text-white"><h5 class="modal-title">Recruitment Analytics</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body" id="reportsContent">Loading...</div></div></div></div>
+
     <!-- Kanban Modal -->
-    <div class="modal fade" id="kanbanModal" tabindex="-1">
-        <div class="modal-dialog modal-fullscreen">
-            <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title"><i class="bi bi-kanban"></i> Recruitment Pipeline</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" style="overflow-x: auto;">
-                    <div id="kanbanBoard" style="display: flex; gap: 20px; min-width: max-content; padding: 10px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
+    <div class="modal fade" id="kanbanModal" tabindex="-1"><div class="modal-dialog modal-fullscreen"><div class="modal-content"><div class="modal-header bg-info text-white"><h5 class="modal-title"><i class="bi bi-kanban"></i> Recruitment Pipeline</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" style="overflow-x: auto;"><div id="kanbanBoard" style="display: flex; gap: 20px; min-width: max-content; padding: 10px;"></div></div></div></div></div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let parsedResumeData = null;
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            loadStats(); loadJobs(); loadCandidates(); loadApplications(); loadInterviews(); loadOffers();
-            
-            // Handle candidate form submission
+        document.addEventListener('DOMContentLoaded', () => { loadStats(); loadJobs(); loadCandidates(); loadApplications(); loadInterviews(); loadOffers();
             document.getElementById('candidateForm')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const data = collectCandidateFormData();
-                const res = await fetch('/api/candidates/enhanced', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
+                const res = await fetch('/api/candidates/enhanced', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
                 const result = await res.json();
-                if (result.success) {
-                    alert(`Candidate added: ${result.candidate_code}`);
-                    bootstrap.Modal.getInstance(document.getElementById('candidateModal')).hide();
-                    loadCandidates();
-                    loadStats();
-                    document.getElementById('candidateForm').reset();
-                } else { alert('Error: ' + (result.error || 'Unknown error')); }
+                if (result.success) { alert(`Candidate added: ${result.candidate_code}`); bootstrap.Modal.getInstance(document.getElementById('candidateModal')).hide(); loadCandidates(); loadStats(); document.getElementById('candidateForm').reset(); }
+                else { alert('Error: ' + (result.error || 'Unknown error')); }
             });
         });
         
-        async function loadStats() {
-            try {
-                const res = await fetch('/api/dashboard/stats');
-                const data = await res.json();
-                document.getElementById('openPositions').innerText = data.overview.open_positions || 0;
-                document.getElementById('totalCandidates').innerText = data.overview.total_candidates || 0;
-                document.getElementById('totalApplications').innerText = data.overview.total_applications || 0;
-            } catch(e) { console.error(e); }
-        }
+        async function loadStats() { try { const res = await fetch('/api/dashboard/stats'); const data = await res.json(); document.getElementById('openPositions').innerText = data.overview.open_positions || 0; document.getElementById('totalCandidates').innerText = data.overview.total_candidates || 0; document.getElementById('totalApplications').innerText = data.overview.total_applications || 0; } catch(e) { console.error(e); } }
+        async function loadJobs() { try { const res = await fetch('/api/jds'); const jobs = await res.json(); const tbody = document.getElementById('jobsTable'); if (jobs.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">No jobs created yet</td></tr>'; return; } tbody.innerHTML = jobs.map(job => `<tr><td><code>${job.code}</code></td><td><strong>${job.title}</strong></td><td>${job.location || '-'}</td><td><span class="badge bg-success">${job.status}</span></td><td>${job.applications || 0}</td><td><button class="btn btn-sm btn-primary" onclick="createApplicationForJob(${job.id})">Create Application</button></td></tr>`).join(''); } catch(e) { console.error(e); } }
+        async function loadCandidates() { try { const res = await fetch('/api/candidates'); const data = await res.json(); const tbody = document.getElementById('candidatesTable'); if (data.candidates.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center">No candidates added yet</td></tr>'; return; } tbody.innerHTML = data.candidates.map(c => `<tr><td><code>${c.code}</code></td><td>${c.name}</td><td>${c.email}</td><td><button class="btn btn-sm btn-primary" onclick="createApplicationForCandidate(${c.id})">Apply to Job</button></td></tr>`).join(''); } catch(e) { console.error(e); } }
+        async function loadApplications() { try { const res = await fetch('/api/applications'); const apps = await res.json(); const tbody = document.getElementById('applicationsTable'); if (apps.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">No applications yet</td></tr>'; return; } tbody.innerHTML = apps.map(app => `<tr><td>${app.id}</td><td>Candidate #${app.candidate_id}</td><td>Job #${app.jd_id}</td><td><span class="badge bg-info">${app.match_score || 0}%</span></td><td>${app.status}</td><td><button class="btn btn-sm btn-warning" onclick="moveStage(${app.id}, prompt('Enter stage: new/shortlisted/selected/rejected'))">Move</button></td></tr>`).join(''); } catch(e) { console.error(e); } }
+        async function loadInterviews() { try { const res = await fetch('/api/interviews'); const interviews = await res.json(); const container = document.getElementById('interviewsList'); if (interviews.length === 0) { container.innerHTML = '<div class="alert alert-info">No interviews scheduled</div>'; return; } container.innerHTML = `<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>Candidate</th><th>Job</th><th>Interviewer</th><th>Time</th><th>Status</th></tr></thead><tbody>${interviews.map(i => `<tr><td>${i.candidate_name}</td><td>${i.job_title}</td><td>${i.interviewer}</td><td>${new Date(i.scheduled_time).toLocaleString()}</td><td>${i.status}</td></tr>`).join('')}</tbody></table></div>`; } catch(e) { console.error(e); } }
+        async function loadOffers() { try { const res = await fetch('/api/offers'); const offers = await res.json(); const container = document.getElementById('offersList'); if (offers.length === 0) { container.innerHTML = '<div class="alert alert-info">No offers generated</div>'; return; } container.innerHTML = `<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>Candidate</th><th>Job</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead><tbody>${offers.map(o => `<tr><td>${o.candidate_name}</td><td>${o.job_title}</td><td>$${o.base_salary}</td><td>${o.status}</td><td><button class="btn btn-sm btn-primary" onclick="viewOffer(${o.id})">View</button></td></tr>`).join('')}</tbody></table></div>`; } catch(e) { console.error(e); } }
         
-        async function loadJobs() {
-            try {
-                const res = await fetch('/api/jds');
-                const jobs = await res.json();
-                const tbody = document.getElementById('jobsTable');
-                if (jobs.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">No jobs created yet</td></tr>'; return; }
-                tbody.innerHTML = jobs.map(job => `<tr><td><code>${job.code}</code></td><td><strong>${job.title}</strong></td><td>${job.location || '-'}</td><td><span class="badge bg-success">${job.status}</span></td><td>${job.applications || 0}</td><td><button class="btn btn-sm btn-primary" onclick="createApplicationForJob(${job.id})">Create Application</button></td></tr>`).join('');
-            } catch(e) { console.error(e); }
-        }
-        
-        async function loadCandidates() {
-            try {
-                const res = await fetch('/api/candidates');
-                const data = await res.json();
-                const tbody = document.getElementById('candidatesTable');
-                if (data.candidates.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center">No candidates added yet</td></tr>'; return; }
-                tbody.innerHTML = data.candidates.map(c => `<tr><td><code>${c.code}</code></td><td>${c.name}</td><td>${c.email}</td><td><button class="btn btn-sm btn-primary" onclick="createApplicationForCandidate(${c.id})">Apply to Job</button></td></tr>`).join('');
-            } catch(e) { console.error(e); }
-        }
-        
-        async function loadApplications() {
-            try {
-                const res = await fetch('/api/applications');
-                const apps = await res.json();
-                const tbody = document.getElementById('applicationsTable');
-                if (apps.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="text-center">No applications yet</td></tr>'; return; }
-                tbody.innerHTML = apps.map(app => `<tr><td>${app.id}</td><td>Candidate #${app.candidate_id}</td><td>Job #${app.jd_id}</td><td><span class="badge bg-info">${app.match_score || 0}%</span></td><td>${app.status}</td><td><button class="btn btn-sm btn-warning" onclick="moveStage(${app.id}, prompt('Enter stage: new/shortlisted/selected/rejected'))">Move</button></td></tr>`).join('');
-            } catch(e) { console.error(e); }
-        }
-        
-        async function loadInterviews() {
-            try {
-                const res = await fetch('/api/interviews');
-                const interviews = await res.json();
-                const container = document.getElementById('interviewsList');
-                if (interviews.length === 0) { container.innerHTML = '<div class="alert alert-info">No interviews scheduled</div>'; return; }
-                container.innerHTML = `<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>Candidate</th><th>Job</th><th>Interviewer</th><th>Time</th><th>Status</th></tr></thead><tbody>${interviews.map(i => `<tr><td>${i.candidate_name}</td><td>${i.job_title}</td><td>${i.interviewer}</td><td>${new Date(i.scheduled_time).toLocaleString()}</td><td>${i.status}</td></tr>`).join('')}</tbody></table></div>`;
-            } catch(e) { console.error(e); }
-        }
-        
-        async function loadOffers() {
-            try {
-                const res = await fetch('/api/offers');
-                const offers = await res.json();
-                const container = document.getElementById('offersList');
-                if (offers.length === 0) { container.innerHTML = '<div class="alert alert-info">No offers generated</div>'; return; }
-                container.innerHTML = `<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>Candidate</th><th>Job</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead><tbody>${offers.map(o => `<tr><td>${o.candidate_name}</td><td>${o.job_title}</td><td>$${o.base_salary}</td><td>${o.status}</td><td><button class="btn btn-sm btn-primary" onclick="viewOffer(${o.id})">View</button></td></tr>`).join('')}</tbody></table></div>`;
-            } catch(e) { console.error(e); }
-        }
-        
-        async function createJob() {
-            const title = document.getElementById('jobTitle').value;
-            const location = document.getElementById('jobLocation').value;
-            const skills = document.getElementById('jobSkills').value;
-            const status = document.getElementById('jobStatus').value;
-            if (!title) { alert('Enter job title'); return; }
-            const res = await fetch('/api/jds', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, location, skills_required: skills, status}) });
-            const result = await res.json();
-            if (result.success) { alert(`Job created: ${result.jd_code}`); bootstrap.Modal.getInstance(document.getElementById('jobModal')).hide(); loadJobs(); loadStats(); }
-        }
-        
-        async function createApplicationForJob(jd_id) {
-            const candidate_id = prompt('Enter Candidate ID:');
-            if (!candidate_id) return;
-            const res = await fetch('/api/applications', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({candidate_id: parseInt(candidate_id), jd_id}) });
-            const result = await res.json();
-            if (result.success) { alert(`Application created! Match Score: ${result.match_score}%`); loadApplications(); loadStats(); loadJobs(); }
-        }
-        
-        async function createApplicationForCandidate(candidate_id) {
-            const jd_id = prompt('Enter Job ID:');
-            if (!jd_id) return;
-            const res = await fetch('/api/applications', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({candidate_id, jd_id: parseInt(jd_id)}) });
-            const result = await res.json();
-            if (result.success) { alert(`Application created! Match Score: ${result.match_score}%`); loadApplications(); loadStats(); loadJobs(); }
-        }
-        
+        async function createJob() { const title = document.getElementById('jobTitle').value; const location = document.getElementById('jobLocation').value; const skills = document.getElementById('jobSkills').value; const status = document.getElementById('jobStatus').value; if (!title) { alert('Enter job title'); return; } const res = await fetch('/api/jds', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({title, location, skills_required: skills, status}) }); const result = await res.json(); if (result.success) { alert(`Job created: ${result.jd_code}`); bootstrap.Modal.getInstance(document.getElementById('jobModal')).hide(); loadJobs(); loadStats(); } }
+        async function createApplicationForJob(jd_id) { const candidate_id = prompt('Enter Candidate ID:'); if (!candidate_id) return; const res = await fetch('/api/applications', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({candidate_id: parseInt(candidate_id), jd_id}) }); const result = await res.json(); if (result.success) { alert(`Application created! Match Score: ${result.match_score}%`); loadApplications(); loadStats(); loadJobs(); } }
+        async function createApplicationForCandidate(candidate_id) { const jd_id = prompt('Enter Job ID:'); if (!jd_id) return; const res = await fetch('/api/applications', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({candidate_id, jd_id: parseInt(jd_id)}) }); const result = await res.json(); if (result.success) { alert(`Application created! Match Score: ${result.match_score}%`); loadApplications(); loadStats(); loadJobs(); } }
         async function moveStage(app_id, stage) { if (!stage) return; await fetch(`/api/applications/${app_id}/move`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({stage}) }); loadApplications(); }
-        
-        async function scheduleInterview() {
-            const data = { application_id: parseInt(document.getElementById('interviewAppId').value), interviewer: document.getElementById('interviewerName').value, interviewer_email: document.getElementById('interviewerEmail').value, scheduled_time: document.getElementById('interviewTime').value, meeting_link: document.getElementById('meetingLink').value, round_type: document.getElementById('roundType').value, candidate_name: '', job_title: '' };
-            const res = await fetch('/api/interviews', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            const result = await res.json();
-            if (result.success) { alert('Interview scheduled!'); bootstrap.Modal.getInstance(document.getElementById('interviewModal')).hide(); loadInterviews(); }
-        }
-        
-        async function generateOffer() {
-            const data = { application_id: parseInt(document.getElementById('offerAppId').value), candidate_name: document.getElementById('candidateNameOffer').value, candidate_email: document.getElementById('candidateEmailOffer').value, job_title: document.getElementById('jobTitleOffer').value, base_salary: parseFloat(document.getElementById('baseSalary').value), joining_bonus: parseFloat(document.getElementById('joiningBonus').value) || 0, joining_date: document.getElementById('joiningDate').value };
-            const res = await fetch('/api/offers', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-            const result = await res.json();
-            if (result.success) { const win = window.open(); win.document.write(result.offer_html); win.document.close(); bootstrap.Modal.getInstance(document.getElementById('offerModal')).hide(); loadOffers(); }
-        }
-        
-        async function parseResume() {
-            const file = document.getElementById('resumeFile').files[0];
-            if (!file) { alert('Select a file'); return; }
-            const formData = new FormData(); formData.append('file', file);
-            document.getElementById('parseProgress').style.display = 'block';
-            const res = await fetch('/api/candidates/parse-resume-enhanced', { method: 'POST', body: formData });
-            const result = await res.json();
-            document.getElementById('parseProgress').style.display = 'none';
-            if (result.success) { parsedResumeData = result.data; document.getElementById('extractedJson').textContent = JSON.stringify(result.data, null, 2); document.getElementById('parsedData').style.display = 'block'; }
-            else { alert('Error parsing resume'); }
-        }
-        
-        function createCandidateFromResume() {
-            if (parsedResumeData) {
-                document.getElementById('candFirstName').value = parsedResumeData.first_name || '';
-                document.getElementById('candLastName').value = parsedResumeData.last_name || '';
-                document.getElementById('candEmail').value = parsedResumeData.email || '';
-                document.getElementById('candPhone').value = parsedResumeData.phone || '';
-                document.getElementById('candAltPhone').value = parsedResumeData.alternate_phone || '';
-                document.getElementById('candLinkedin').value = parsedResumeData.linkedin_url || '';
-                document.getElementById('candGithub').value = parsedResumeData.github_url || '';
-                document.getElementById('candAddress').value = parsedResumeData.address || '';
-                document.getElementById('candLocation').value = parsedResumeData.current_location || '';
-                document.getElementById('candPrimaryRole').value = parsedResumeData.primary_role || '';
-                document.getElementById('candTotalExp').value = parsedResumeData.total_experience || 0;
-                document.getElementById('candRelevantExp').value = parsedResumeData.relevant_experience || 0;
-                document.getElementById('candSummary').value = parsedResumeData.professional_summary || '';
-                document.getElementById('candCurrentSalary').value = parsedResumeData.current_salary || '';
-                document.getElementById('candExpectedSalary').value = parsedResumeData.expected_salary || '';
-                document.getElementById('candNoticePeriod').value = parsedResumeData.notice_period || '';
-                
-                const skillsContainer = document.getElementById('skillsContainer');
-                skillsContainer.innerHTML = '';
-                if (parsedResumeData.skills && parsedResumeData.skills.length > 0) {
-                    parsedResumeData.skills.forEach(skill => addSkillEntry(skill.name || skill, skill.proficiency || 'Intermediate', skill.years || ''));
-                }
-                
-                const expContainer = document.getElementById('experienceContainer');
-                expContainer.innerHTML = '';
-                if (parsedResumeData.work_experience && parsedResumeData.work_experience.length > 0) {
-                    parsedResumeData.work_experience.forEach(exp => addExperienceEntry(exp.company, exp.designation, exp.from_year, exp.to_year, exp.projects));
-                } else { addExperienceEntry(); }
-                
-                const eduContainer = document.getElementById('educationContainer');
-                eduContainer.innerHTML = '';
-                if (parsedResumeData.education && parsedResumeData.education.length > 0) {
-                    parsedResumeData.education.forEach(edu => addEducationEntry(edu.degree, edu.college, edu.year));
-                } else { addEducationEntry(); }
-                
-                bootstrap.Modal.getInstance(document.getElementById('resumeUploadModal')).hide();
-                new bootstrap.Modal(document.getElementById('candidateModal')).show();
-            } else { alert('No resume data available. Please parse a resume first.'); }
-        }
-        
-        async function showReportsModal() {
-            const res = await fetch('/api/reports/hiring-metrics');
-            const data = await res.json();
-            document.getElementById('reportsContent').innerHTML = `
-                <h5>Hiring Metrics</h5>
-                <div class="row"><div class="col-md-6"><div class="card mb-2"><div class="card-body"><h3>${data.total_applications}</h3><small>Total Applications</small></div></div></div>
-                <div class="col-md-6"><div class="card mb-2"><div class="card-body"><h3>${data.average_time_to_hire_days} days</h3><small>Avg Time to Hire</small></div></div></div></div>
-                <h6>Conversion Rates</h6><ul class="list-group mb-3">${Object.entries(data.conversion_rates).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between"><span>${k}</span><strong>${v}%</strong></li>`).join('')}</ul>
-                <h6>Applications by Stage</h6><ul class="list-group">${Object.entries(data.applications_by_stage).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between"><span>${k}</span><strong>${v}</strong></li>`).join('')}</ul>`;
-            new bootstrap.Modal(document.getElementById('reportsModal')).show();
-        }
-        
+        async function scheduleInterview() { const data = { application_id: parseInt(document.getElementById('interviewAppId').value), interviewer: document.getElementById('interviewerName').value, interviewer_email: document.getElementById('interviewerEmail').value, scheduled_time: document.getElementById('interviewTime').value, meeting_link: document.getElementById('meetingLink').value, round_type: document.getElementById('roundType').value, candidate_name: '', job_title: '' }; const res = await fetch('/api/interviews', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); const result = await res.json(); if (result.success) { alert('Interview scheduled!'); bootstrap.Modal.getInstance(document.getElementById('interviewModal')).hide(); loadInterviews(); } }
+        async function generateOffer() { const data = { application_id: parseInt(document.getElementById('offerAppId').value), candidate_name: document.getElementById('candidateNameOffer').value, candidate_email: document.getElementById('candidateEmailOffer').value, job_title: document.getElementById('jobTitleOffer').value, base_salary: parseFloat(document.getElementById('baseSalary').value), joining_bonus: parseFloat(document.getElementById('joiningBonus').value) || 0, joining_date: document.getElementById('joiningDate').value }; const res = await fetch('/api/offers', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }); const result = await res.json(); if (result.success) { const win = window.open(); win.document.write(result.offer_html); win.document.close(); bootstrap.Modal.getInstance(document.getElementById('offerModal')).hide(); loadOffers(); } }
+        async function parseResume() { const file = document.getElementById('resumeFile').files[0]; if (!file) { alert('Select a file'); return; } const formData = new FormData(); formData.append('file', file); document.getElementById('parseProgress').style.display = 'block'; const res = await fetch('/api/candidates/parse-resume-enhanced', { method: 'POST', body: formData }); const result = await res.json(); document.getElementById('parseProgress').style.display = 'none'; if (result.success) { parsedResumeData = result.data; document.getElementById('extractedJson').textContent = JSON.stringify(result.data, null, 2); document.getElementById('parsedData').style.display = 'block'; } else { alert('Error parsing resume'); } }
+        function createCandidateFromResume() { if (parsedResumeData) { document.getElementById('candFirstName').value = parsedResumeData.first_name || ''; document.getElementById('candLastName').value = parsedResumeData.last_name || ''; document.getElementById('candEmail').value = parsedResumeData.email || ''; document.getElementById('candPhone').value = parsedResumeData.phone || ''; document.getElementById('candAltPhone').value = parsedResumeData.alternate_phone || ''; document.getElementById('candLinkedin').value = parsedResumeData.linkedin_url || ''; document.getElementById('candGithub').value = parsedResumeData.github_url || ''; document.getElementById('candAddress').value = parsedResumeData.address || ''; document.getElementById('candLocation').value = parsedResumeData.current_location || ''; document.getElementById('candPrimaryRole').value = parsedResumeData.primary_role || ''; document.getElementById('candTotalExp').value = parsedResumeData.total_experience || 0; document.getElementById('candRelevantExp').value = parsedResumeData.relevant_experience || 0; document.getElementById('candSummary').value = parsedResumeData.professional_summary || ''; document.getElementById('candCurrentSalary').value = parsedResumeData.current_salary || ''; document.getElementById('candExpectedSalary').value = parsedResumeData.expected_salary || ''; document.getElementById('candNoticePeriod').value = parsedResumeData.notice_period || '';
+            const skillsContainer = document.getElementById('skillsContainer'); skillsContainer.innerHTML = ''; if (parsedResumeData.skills && parsedResumeData.skills.length > 0) { parsedResumeData.skills.forEach(skill => addSkillEntry(skill.name || skill, skill.proficiency || 'Intermediate', skill.years || '')); }
+            const expContainer = document.getElementById('experienceContainer'); expContainer.innerHTML = ''; if (parsedResumeData.work_experience && parsedResumeData.work_experience.length > 0) { parsedResumeData.work_experience.forEach(exp => addExperienceEntry(exp.company, exp.designation, exp.from_year, exp.to_year, exp.projects)); } else { addExperienceEntry(); }
+            const eduContainer = document.getElementById('educationContainer'); eduContainer.innerHTML = ''; if (parsedResumeData.education && parsedResumeData.education.length > 0) { parsedResumeData.education.forEach(edu => addEducationEntry(edu.degree, edu.college, edu.year)); } else { addEducationEntry(); }
+            bootstrap.Modal.getInstance(document.getElementById('resumeUploadModal')).hide(); new bootstrap.Modal(document.getElementById('candidateModal')).show(); } else { alert('No resume data available. Please parse a resume first.'); } }
+        async function showReportsModal() { const res = await fetch('/api/reports/hiring-metrics'); const data = await res.json(); document.getElementById('reportsContent').innerHTML = `<h5>Hiring Metrics</h5><div class="row"><div class="col-md-6"><div class="card mb-2"><div class="card-body"><h3>${data.total_applications}</h3><small>Total Applications</small></div></div></div><div class="col-md-6"><div class="card mb-2"><div class="card-body"><h3>${data.average_time_to_hire_days} days</h3><small>Avg Time to Hire</small></div></div></div></div><h6>Conversion Rates</h6><ul class="list-group mb-3">${Object.entries(data.conversion_rates).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between"><span>${k}</span><strong>${v}%</strong></li>`).join('')}</ul><h6>Applications by Stage</h6><ul class="list-group">${Object.entries(data.applications_by_stage).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between"><span>${k}</span><strong>${v}</strong></li>`).join('')}</ul>`; new bootstrap.Modal(document.getElementById('reportsModal')).show(); }
         async function showKanbanBoard() { await loadKanbanData(); new bootstrap.Modal(document.getElementById('kanbanModal')).show(); }
-        
         let currentPipelineData = null;
-        async function loadKanbanData() {
-            const stagesRes = await fetch('/api/pipeline/stages');
-            const stages = await stagesRes.json();
-            const candidatesRes = await fetch('/api/pipeline/candidates');
-            const candidates = await candidatesRes.json();
-            currentPipelineData = candidates;
-            const board = document.getElementById('kanbanBoard');
-            board.innerHTML = stages.map(stage => {
-                const stageCandidates = candidates[stage.id] || [];
-                return `<div class="kanban-column"><div class="kanban-column-header" style="background: ${stage.color}; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px;"><strong>${stage.name}</strong><span class="badge bg-light text-dark ms-2">${stageCandidates.length}</span></div><div class="kanban-cards" data-stage="${stage.id}" style="min-height: 200px;">${stageCandidates.map(c => `<div class="kanban-card" draggable="true" data-candidate-id="${c.id}" data-application-id="${c.application_id || ''}"><div class="d-flex justify-content-between"><strong>${c.name}</strong>${c.match_score ? `<span class="badge bg-primary">${c.match_score}%</span>` : ''}</div><small class="text-muted d-block">${c.current_designation || 'Candidate'}</small><small class="text-muted">💼 ${c.total_experience || 0} years exp</small><div class="mt-2"><small class="text-muted">${c.skills ? c.skills.substring(0, 50) : 'No skills'}</small></div></div>`).join('')}</div></div>`;
-            }).join('');
-            setupDragAndDrop();
-        }
-        
-        function setupDragAndDrop() {
-            document.querySelectorAll('.kanban-card').forEach(card => { card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', JSON.stringify({ candidateId: card.dataset.candidateId, applicationId: card.dataset.applicationId })); e.target.style.opacity = '0.5'; }); card.addEventListener('dragend', e => { e.target.style.opacity = '1'; }); });
-            document.querySelectorAll('.kanban-cards').forEach(column => { column.addEventListener('dragover', e => e.preventDefault()); column.addEventListener('drop', async e => { e.preventDefault(); const newStage = e.currentTarget.dataset.stage; const dragData = JSON.parse(e.dataTransfer.getData('text/plain')); const res = await fetch('/api/pipeline/move', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_id: parseInt(dragData.candidateId), new_stage: newStage }) }); const result = await res.json(); if (result.success) loadKanbanData(); else alert(result.error || 'Error moving candidate. Create a job first.'); }); });
-        }
-        
+        async function loadKanbanData() { const stagesRes = await fetch('/api/pipeline/stages'); const stages = await stagesRes.json(); const candidatesRes = await fetch('/api/pipeline/candidates'); const candidates = await candidatesRes.json(); currentPipelineData = candidates; const board = document.getElementById('kanbanBoard'); board.innerHTML = stages.map(stage => { const stageCandidates = candidates[stage.id] || []; return `<div class="kanban-column"><div class="kanban-column-header" style="background: ${stage.color}; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px;"><strong>${stage.name}</strong><span class="badge bg-light text-dark ms-2">${stageCandidates.length}</span></div><div class="kanban-cards" data-stage="${stage.id}" style="min-height: 200px;">${stageCandidates.map(c => `<div class="kanban-card" draggable="true" data-candidate-id="${c.id}" data-application-id="${c.application_id || ''}"><div class="d-flex justify-content-between"><strong>${c.name}</strong>${c.match_score ? `<span class="badge bg-primary">${c.match_score}%</span>` : ''}</div><small class="text-muted d-block">${c.current_designation || 'Candidate'}</small><small class="text-muted">💼 ${c.total_experience || 0} years exp</small><div class="mt-2"><small class="text-muted">${c.skills ? c.skills.substring(0, 50) : 'No skills'}</small></div></div>`).join('')}</div></div>`; }).join(''); setupDragAndDrop(); }
+        function setupDragAndDrop() { document.querySelectorAll('.kanban-card').forEach(card => { card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', JSON.stringify({ candidateId: card.dataset.candidateId, applicationId: card.dataset.applicationId })); e.target.style.opacity = '0.5'; }); card.addEventListener('dragend', e => { e.target.style.opacity = '1'; }); }); document.querySelectorAll('.kanban-cards').forEach(column => { column.addEventListener('dragover', e => e.preventDefault()); column.addEventListener('drop', async e => { e.preventDefault(); const newStage = e.currentTarget.dataset.stage; const dragData = JSON.parse(e.dataTransfer.getData('text/plain')); const res = await fetch('/api/pipeline/move', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_id: parseInt(dragData.candidateId), new_stage: newStage }) }); const result = await res.json(); if (result.success) loadKanbanData(); else alert(result.error || 'Error moving candidate. Create a job first.'); }); }); }
         function viewOffer(id) { const offer = offers.find(o => o.id === id); if (offer) { const win = window.open(); win.document.write(offer.offer_letter_html); win.document.close(); } }
-        
         function showJobModal() { new bootstrap.Modal(document.getElementById('jobModal')).show(); }
         function showCandidateModal() { new bootstrap.Modal(document.getElementById('candidateModal')).show(); }
         function showResumeUploadModal() { document.getElementById('resumeFile').value = ''; document.getElementById('parsedData').style.display = 'none'; new bootstrap.Modal(document.getElementById('resumeUploadModal')).show(); }
         function showInterviewModal() { new bootstrap.Modal(document.getElementById('interviewModal')).show(); }
         function showOfferModal() { new bootstrap.Modal(document.getElementById('offerModal')).show(); }
         
-        // ============= DYNAMIC FORM FUNCTIONS =============
-        function addSkillEntry(skill = '', proficiency = 'Intermediate', years = '') {
-            const container = document.getElementById('skillsContainer');
-            const entry = document.createElement('div');
-            entry.className = 'input-group mb-2 skill-entry';
-            entry.innerHTML = `<input type="text" class="form-control skill-name" placeholder="Skill" value="${skill}" style="width: 40%;"><select class="form-select skill-proficiency" style="width: 30%;"><option value="Expert" ${proficiency === 'Expert' ? 'selected' : ''}>Expert</option><option value="Advanced" ${proficiency === 'Advanced' ? 'selected' : ''}>Advanced</option><option value="Intermediate" ${proficiency === 'Intermediate' ? 'selected' : ''}>Intermediate</option><option value="Beginner" ${proficiency === 'Beginner' ? 'selected' : ''}>Beginner</option></select><input type="number" class="form-control skill-years" placeholder="Years" value="${years}" style="width: 25%;"><button type="button" class="btn btn-danger" onclick="removeSkillEntry(this)">✗</button>`;
-            container.appendChild(entry);
-        }
-        
+        function addSkillEntry(skill = '', proficiency = 'Intermediate', years = '') { const container = document.getElementById('skillsContainer'); const entry = document.createElement('div'); entry.className = 'input-group mb-2 skill-entry'; entry.innerHTML = `<input type="text" class="form-control skill-name" placeholder="Skill" value="${skill}" style="width: 40%;"><select class="form-select skill-proficiency" style="width: 30%;"><option value="Expert" ${proficiency === 'Expert' ? 'selected' : ''}>Expert</option><option value="Advanced" ${proficiency === 'Advanced' ? 'selected' : ''}>Advanced</option><option value="Intermediate" ${proficiency === 'Intermediate' ? 'selected' : ''}>Intermediate</option><option value="Beginner" ${proficiency === 'Beginner' ? 'selected' : ''}>Beginner</option></select><input type="number" class="form-control skill-years" placeholder="Years" value="${years}" style="width: 25%;"><button type="button" class="btn btn-danger" onclick="removeSkillEntry(this)">✗</button>`; container.appendChild(entry); }
         function removeSkillEntry(btn) { btn.closest('.skill-entry').remove(); }
-        
-        function addExperienceEntry(company = '', designation = '', fromYear = '', toYear = '', projects = '') {
-            const container = document.getElementById('experienceContainer');
-            const entry = document.createElement('div');
-            entry.className = 'experience-entry card mb-2 p-3';
-            entry.innerHTML = `<div class="row"><div class="col-md-4 mb-1"><input type="text" class="form-control company-name" placeholder="Company Name" value="${company}"></div><div class="col-md-3 mb-1"><input type="text" class="form-control designation" placeholder="Designation" value="${designation}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-from" placeholder="From Year" value="${fromYear}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-to" placeholder="To Year" value="${toYear}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeExperienceEntry(this)">✗</button></div><div class="col-md-12 mb-1"><textarea class="form-control projects" rows="2" placeholder="Projects & Responsibilities">${projects}</textarea></div></div>`;
-            container.appendChild(entry);
-        }
-        
+        function addExperienceEntry(company = '', designation = '', fromYear = '', toYear = '', projects = '') { const container = document.getElementById('experienceContainer'); const entry = document.createElement('div'); entry.className = 'experience-entry card mb-2 p-3'; entry.innerHTML = `<div class="row"><div class="col-md-4 mb-1"><input type="text" class="form-control company-name" placeholder="Company Name" value="${company}"></div><div class="col-md-3 mb-1"><input type="text" class="form-control designation" placeholder="Designation" value="${designation}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-from" placeholder="From Year" value="${fromYear}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-to" placeholder="To Year" value="${toYear}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeExperienceEntry(this)">✗</button></div><div class="col-md-12 mb-1"><textarea class="form-control projects" rows="2" placeholder="Projects & Responsibilities">${projects}</textarea></div></div>`; container.appendChild(entry); }
         function removeExperienceEntry(btn) { btn.closest('.experience-entry').remove(); }
-        
-        function addEducationEntry(degree = '', college = '', year = '') {
-            const container = document.getElementById('educationContainer');
-            const entry = document.createElement('div');
-            entry.className = 'education-entry card mb-2 p-2';
-            entry.innerHTML = `<div class="row"><div class="col-md-5 mb-1"><input type="text" class="form-control edu-degree" placeholder="Degree" value="${degree}"></div><div class="col-md-5 mb-1"><input type="text" class="form-control edu-college" placeholder="College" value="${college}"></div><div class="col-md-1 mb-1"><input type="text" class="form-control edu-year" placeholder="Year" value="${year}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeEducationEntry(this)">✗</button></div></div>`;
-            container.appendChild(entry);
-        }
-        
+        function addEducationEntry(degree = '', college = '', year = '') { const container = document.getElementById('educationContainer'); const entry = document.createElement('div'); entry.className = 'education-entry card mb-2 p-2'; entry.innerHTML = `<div class="row"><div class="col-md-5 mb-1"><input type="text" class="form-control edu-degree" placeholder="Degree" value="${degree}"></div><div class="col-md-5 mb-1"><input type="text" class="form-control edu-college" placeholder="College" value="${college}"></div><div class="col-md-1 mb-1"><input type="text" class="form-control edu-year" placeholder="Year" value="${year}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeEducationEntry(this)">✗</button></div></div>`; container.appendChild(entry); }
         function removeEducationEntry(btn) { btn.closest('.education-entry').remove(); }
-        
-        function collectCandidateFormData() {
-            const skills = [];
-            document.querySelectorAll('.skill-entry').forEach(entry => {
-                const name = entry.querySelector('.skill-name')?.value;
-                if (name) skills.push({name, proficiency: entry.querySelector('.skill-proficiency')?.value, years: entry.querySelector('.skill-years')?.value});
-            });
-            const work_experience = [];
-            document.querySelectorAll('.experience-entry').forEach(entry => {
-                const company = entry.querySelector('.company-name')?.value;
-                if (company) work_experience.push({company, designation: entry.querySelector('.designation')?.value, from_year: entry.querySelector('.exp-from')?.value, to_year: entry.querySelector('.exp-to')?.value, projects: entry.querySelector('.projects')?.value});
-            });
-            const education = [];
-            document.querySelectorAll('.education-entry').forEach(entry => {
-                const degree = entry.querySelector('.edu-degree')?.value;
-                if (degree) education.push({degree, college: entry.querySelector('.edu-college')?.value, year: entry.querySelector('.edu-year')?.value});
-            });
-            return {
-                first_name: document.getElementById('candFirstName').value, last_name: document.getElementById('candLastName').value,
-                email: document.getElementById('candEmail').value, phone: document.getElementById('candPhone').value,
-                alternate_phone: document.getElementById('candAltPhone').value, linkedin_url: document.getElementById('candLinkedin').value,
-                github_url: document.getElementById('candGithub').value, address: document.getElementById('candAddress').value,
-                current_location: document.getElementById('candLocation').value, primary_role: document.getElementById('candPrimaryRole').value,
-                total_experience: parseFloat(document.getElementById('candTotalExp').value) || 0,
-                relevant_experience: parseFloat(document.getElementById('candRelevantExp').value) || 0,
-                professional_summary: document.getElementById('candSummary').value, skills, work_experience, education,
-                current_salary: parseFloat(document.getElementById('candCurrentSalary').value),
-                expected_salary: parseFloat(document.getElementById('candExpectedSalary').value),
-                notice_period: parseInt(document.getElementById('candNoticePeriod').value), source: document.getElementById('candSource').value
-            };
-        }
-        
+        function collectCandidateFormData() { const skills = []; document.querySelectorAll('.skill-entry').forEach(entry => { const name = entry.querySelector('.skill-name')?.value; if (name) skills.push({name, proficiency: entry.querySelector('.skill-proficiency')?.value, years: entry.querySelector('.skill-years')?.value}); }); const work_experience = []; document.querySelectorAll('.experience-entry').forEach(entry => { const company = entry.querySelector('.company-name')?.value; if (company) work_experience.push({company, designation: entry.querySelector('.designation')?.value, from_year: entry.querySelector('.exp-from')?.value, to_year: entry.querySelector('.exp-to')?.value, projects: entry.querySelector('.projects')?.value}); }); const education = []; document.querySelectorAll('.education-entry').forEach(entry => { const degree = entry.querySelector('.edu-degree')?.value; if (degree) education.push({degree, college: entry.querySelector('.edu-college')?.value, year: entry.querySelector('.edu-year')?.value}); }); return { first_name: document.getElementById('candFirstName').value, last_name: document.getElementById('candLastName').value, email: document.getElementById('candEmail').value, phone: document.getElementById('candPhone').value, alternate_phone: document.getElementById('candAltPhone').value, linkedin_url: document.getElementById('candLinkedin').value, github_url: document.getElementById('candGithub').value, address: document.getElementById('candAddress').value, current_location: document.getElementById('candLocation').value, primary_role: document.getElementById('candPrimaryRole').value, total_experience: parseFloat(document.getElementById('candTotalExp').value) || 0, relevant_experience: parseFloat(document.getElementById('candRelevantExp').value) || 0, professional_summary: document.getElementById('candSummary').value, skills, work_experience, education, current_salary: parseFloat(document.getElementById('candCurrentSalary').value), expected_salary: parseFloat(document.getElementById('candExpectedSalary').value), notice_period: parseInt(document.getElementById('candNoticePeriod').value), source: document.getElementById('candSource').value }; }
         setInterval(() => { loadStats(); loadJobs(); loadCandidates(); loadApplications(); }, 30000);
     </script>
 </body>
@@ -1362,6 +819,7 @@ def move_pipeline_candidate():
 @app.route('/api/clients', methods=['GET'])
 def get_clients():
     return jsonify([])
+
 
 # ============= MAIN =============
 if __name__ == '__main__':
