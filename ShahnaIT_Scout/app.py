@@ -198,20 +198,89 @@ DASHBOARD_TEMPLATE = '''
         </div>
     </div>
     
-    <!-- Candidate Modal -->
+    <!-- Enhanced Candidate Modal -->
     <div class="modal fade" id="candidateModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Add Candidate</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title"><i class="bi bi-person-badge"></i> Add/Edit Candidate - Complete Profile</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <input type="text" class="form-control mb-2" id="candFirstName" placeholder="First Name" required>
-                    <input type="text" class="form-control mb-2" id="candLastName" placeholder="Last Name">
-                    <input type="email" class="form-control mb-2" id="candEmail" placeholder="Email" required>
-                    <input type="text" class="form-control mb-2" id="candSkills" placeholder="Skills (comma separated)">
-                    <button class="btn btn-success w-100" onclick="createCandidate()">Add Candidate</button>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <form id="candidateForm">
+                        <!-- Personal Information -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-primary text-white">Personal Information</div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-2"><label>First Name *</label><input type="text" class="form-control" id="candFirstName" required></div>
+                                    <div class="col-md-4 mb-2"><label>Last Name</label><input type="text" class="form-control" id="candLastName"></div>
+                                    <div class="col-md-4 mb-2"><label>Email *</label><input type="email" class="form-control" id="candEmail" required></div>
+                                    <div class="col-md-3 mb-2"><label>Mobile Number</label><input type="tel" class="form-control" id="candPhone"></div>
+                                    <div class="col-md-3 mb-2"><label>Alternate Number</label><input type="tel" class="form-control" id="candAltPhone"></div>
+                                    <div class="col-md-3 mb-2"><label>LinkedIn ID</label><input type="text" class="form-control" id="candLinkedin" placeholder="linkedin.com/in/username"></div>
+                                    <div class="col-md-3 mb-2"><label>GitHub</label><input type="text" class="form-control" id="candGithub"></div>
+                                    <div class="col-md-6 mb-2"><label>Address</label><textarea class="form-control" id="candAddress" rows="2"></textarea></div>
+                                    <div class="col-md-6 mb-2"><label>Current Location</label><input type="text" class="form-control" id="candLocation"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Professional Summary -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">Professional Summary</div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-2"><label>Primary Role</label><input type="text" class="form-control" id="candPrimaryRole" placeholder="e.g., Java Developer"></div>
+                                    <div class="col-md-4 mb-2"><label>Total Experience (Years)</label><input type="number" step="0.5" class="form-control" id="candTotalExp" value="0"></div>
+                                    <div class="col-md-4 mb-2"><label>Relevant Experience</label><input type="number" step="0.5" class="form-control" id="candRelevantExp" value="0"></div>
+                                    <div class="col-md-12 mb-2"><label>Professional Summary</label><textarea class="form-control" id="candSummary" rows="2"></textarea></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Skills -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-warning text-dark">Skills</div>
+                            <div class="card-body">
+                                <div id="skillsContainer"></div>
+                                <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="addSkillEntry()">+ Add Skill</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Work Experience -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-secondary text-white">Work Experience</div>
+                            <div class="card-body">
+                                <div id="experienceContainer"></div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addExperienceEntry()">+ Add Company</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Education -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-dark text-white">Education</div>
+                            <div class="card-body">
+                                <div id="educationContainer"></div>
+                                <button type="button" class="btn btn-sm btn-outline-dark mt-1" onclick="addEducationEntry()">+ Add Education</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Salary -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-dark text-white">Salary & Notice Period</div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3 mb-2"><label>Current Salary (₹)</label><input type="number" class="form-control" id="candCurrentSalary"></div>
+                                    <div class="col-md-3 mb-2"><label>Expected Salary (₹)</label><input type="number" class="form-control" id="candExpectedSalary"></div>
+                                    <div class="col-md-3 mb-2"><label>Notice Period (days)</label><input type="number" class="form-control" id="candNoticePeriod"></div>
+                                    <div class="col-md-3 mb-2"><label>Source</label><select class="form-control" id="candSource"><option value="linkedin">LinkedIn</option><option value="naukri">Naukri</option><option value="referral">Referral</option></select></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success w-100">Save Candidate Profile</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -295,9 +364,7 @@ DASHBOARD_TEMPLATE = '''
                     <h5 class="modal-title">Recruitment Analytics</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body" id="reportsContent">
-                    Loading...
-                </div>
+                <div class="modal-body" id="reportsContent">Loading...</div>
             </div>
         </div>
     </div>
@@ -323,6 +390,25 @@ DASHBOARD_TEMPLATE = '''
         
         document.addEventListener('DOMContentLoaded', () => {
             loadStats(); loadJobs(); loadCandidates(); loadApplications(); loadInterviews(); loadOffers();
+            
+            // Handle candidate form submission
+            document.getElementById('candidateForm')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const data = collectCandidateFormData();
+                const res = await fetch('/api/candidates/enhanced', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert(`Candidate added: ${result.candidate_code}`);
+                    bootstrap.Modal.getInstance(document.getElementById('candidateModal')).hide();
+                    loadCandidates();
+                    loadStats();
+                    document.getElementById('candidateForm').reset();
+                } else { alert('Error: ' + (result.error || 'Unknown error')); }
+            });
         });
         
         async function loadStats() {
@@ -396,17 +482,6 @@ DASHBOARD_TEMPLATE = '''
             if (result.success) { alert(`Job created: ${result.jd_code}`); bootstrap.Modal.getInstance(document.getElementById('jobModal')).hide(); loadJobs(); loadStats(); }
         }
         
-        async function createCandidate() {
-            const first_name = document.getElementById('candFirstName').value;
-            const last_name = document.getElementById('candLastName').value;
-            const email = document.getElementById('candEmail').value;
-            const skills = document.getElementById('candSkills').value;
-            if (!first_name || !email) { alert('Enter name and email'); return; }
-            const res = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({first_name, last_name, email, skills}) });
-            const result = await res.json();
-            if (result.success) { alert(`Candidate added: ${result.candidate_code}`); bootstrap.Modal.getInstance(document.getElementById('candidateModal')).hide(); loadCandidates(); loadStats(); }
-        }
-        
         async function createApplicationForJob(jd_id) {
             const candidate_id = prompt('Enter Candidate ID:');
             if (!candidate_id) return;
@@ -456,10 +531,41 @@ DASHBOARD_TEMPLATE = '''
                 document.getElementById('candFirstName').value = parsedResumeData.first_name || '';
                 document.getElementById('candLastName').value = parsedResumeData.last_name || '';
                 document.getElementById('candEmail').value = parsedResumeData.email || '';
-                document.getElementById('candSkills').value = Array.isArray(parsedResumeData.skills) ? parsedResumeData.skills.join(', ') : '';
+                document.getElementById('candPhone').value = parsedResumeData.phone || '';
+                document.getElementById('candAltPhone').value = parsedResumeData.alternate_phone || '';
+                document.getElementById('candLinkedin').value = parsedResumeData.linkedin_url || '';
+                document.getElementById('candGithub').value = parsedResumeData.github_url || '';
+                document.getElementById('candAddress').value = parsedResumeData.address || '';
+                document.getElementById('candLocation').value = parsedResumeData.current_location || '';
+                document.getElementById('candPrimaryRole').value = parsedResumeData.primary_role || '';
+                document.getElementById('candTotalExp').value = parsedResumeData.total_experience || 0;
+                document.getElementById('candRelevantExp').value = parsedResumeData.relevant_experience || 0;
+                document.getElementById('candSummary').value = parsedResumeData.professional_summary || '';
+                document.getElementById('candCurrentSalary').value = parsedResumeData.current_salary || '';
+                document.getElementById('candExpectedSalary').value = parsedResumeData.expected_salary || '';
+                document.getElementById('candNoticePeriod').value = parsedResumeData.notice_period || '';
+                
+                const skillsContainer = document.getElementById('skillsContainer');
+                skillsContainer.innerHTML = '';
+                if (parsedResumeData.skills && parsedResumeData.skills.length > 0) {
+                    parsedResumeData.skills.forEach(skill => addSkillEntry(skill.name || skill, skill.proficiency || 'Intermediate', skill.years || ''));
+                }
+                
+                const expContainer = document.getElementById('experienceContainer');
+                expContainer.innerHTML = '';
+                if (parsedResumeData.work_experience && parsedResumeData.work_experience.length > 0) {
+                    parsedResumeData.work_experience.forEach(exp => addExperienceEntry(exp.company, exp.designation, exp.from_year, exp.to_year, exp.projects));
+                } else { addExperienceEntry(); }
+                
+                const eduContainer = document.getElementById('educationContainer');
+                eduContainer.innerHTML = '';
+                if (parsedResumeData.education && parsedResumeData.education.length > 0) {
+                    parsedResumeData.education.forEach(edu => addEducationEntry(edu.degree, edu.college, edu.year));
+                } else { addEducationEntry(); }
+                
                 bootstrap.Modal.getInstance(document.getElementById('resumeUploadModal')).hide();
                 new bootstrap.Modal(document.getElementById('candidateModal')).show();
-            }
+            } else { alert('No resume data available. Please parse a resume first.'); }
         }
         
         async function showReportsModal() {
@@ -503,6 +609,68 @@ DASHBOARD_TEMPLATE = '''
         function showResumeUploadModal() { document.getElementById('resumeFile').value = ''; document.getElementById('parsedData').style.display = 'none'; new bootstrap.Modal(document.getElementById('resumeUploadModal')).show(); }
         function showInterviewModal() { new bootstrap.Modal(document.getElementById('interviewModal')).show(); }
         function showOfferModal() { new bootstrap.Modal(document.getElementById('offerModal')).show(); }
+        
+        // ============= DYNAMIC FORM FUNCTIONS =============
+        function addSkillEntry(skill = '', proficiency = 'Intermediate', years = '') {
+            const container = document.getElementById('skillsContainer');
+            const entry = document.createElement('div');
+            entry.className = 'input-group mb-2 skill-entry';
+            entry.innerHTML = `<input type="text" class="form-control skill-name" placeholder="Skill" value="${skill}" style="width: 40%;"><select class="form-select skill-proficiency" style="width: 30%;"><option value="Expert" ${proficiency === 'Expert' ? 'selected' : ''}>Expert</option><option value="Advanced" ${proficiency === 'Advanced' ? 'selected' : ''}>Advanced</option><option value="Intermediate" ${proficiency === 'Intermediate' ? 'selected' : ''}>Intermediate</option><option value="Beginner" ${proficiency === 'Beginner' ? 'selected' : ''}>Beginner</option></select><input type="number" class="form-control skill-years" placeholder="Years" value="${years}" style="width: 25%;"><button type="button" class="btn btn-danger" onclick="removeSkillEntry(this)">✗</button>`;
+            container.appendChild(entry);
+        }
+        
+        function removeSkillEntry(btn) { btn.closest('.skill-entry').remove(); }
+        
+        function addExperienceEntry(company = '', designation = '', fromYear = '', toYear = '', projects = '') {
+            const container = document.getElementById('experienceContainer');
+            const entry = document.createElement('div');
+            entry.className = 'experience-entry card mb-2 p-3';
+            entry.innerHTML = `<div class="row"><div class="col-md-4 mb-1"><input type="text" class="form-control company-name" placeholder="Company Name" value="${company}"></div><div class="col-md-3 mb-1"><input type="text" class="form-control designation" placeholder="Designation" value="${designation}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-from" placeholder="From Year" value="${fromYear}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-to" placeholder="To Year" value="${toYear}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeExperienceEntry(this)">✗</button></div><div class="col-md-12 mb-1"><textarea class="form-control projects" rows="2" placeholder="Projects & Responsibilities">${projects}</textarea></div></div>`;
+            container.appendChild(entry);
+        }
+        
+        function removeExperienceEntry(btn) { btn.closest('.experience-entry').remove(); }
+        
+        function addEducationEntry(degree = '', college = '', year = '') {
+            const container = document.getElementById('educationContainer');
+            const entry = document.createElement('div');
+            entry.className = 'education-entry card mb-2 p-2';
+            entry.innerHTML = `<div class="row"><div class="col-md-5 mb-1"><input type="text" class="form-control edu-degree" placeholder="Degree" value="${degree}"></div><div class="col-md-5 mb-1"><input type="text" class="form-control edu-college" placeholder="College" value="${college}"></div><div class="col-md-1 mb-1"><input type="text" class="form-control edu-year" placeholder="Year" value="${year}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeEducationEntry(this)">✗</button></div></div>`;
+            container.appendChild(entry);
+        }
+        
+        function removeEducationEntry(btn) { btn.closest('.education-entry').remove(); }
+        
+        function collectCandidateFormData() {
+            const skills = [];
+            document.querySelectorAll('.skill-entry').forEach(entry => {
+                const name = entry.querySelector('.skill-name')?.value;
+                if (name) skills.push({name, proficiency: entry.querySelector('.skill-proficiency')?.value, years: entry.querySelector('.skill-years')?.value});
+            });
+            const work_experience = [];
+            document.querySelectorAll('.experience-entry').forEach(entry => {
+                const company = entry.querySelector('.company-name')?.value;
+                if (company) work_experience.push({company, designation: entry.querySelector('.designation')?.value, from_year: entry.querySelector('.exp-from')?.value, to_year: entry.querySelector('.exp-to')?.value, projects: entry.querySelector('.projects')?.value});
+            });
+            const education = [];
+            document.querySelectorAll('.education-entry').forEach(entry => {
+                const degree = entry.querySelector('.edu-degree')?.value;
+                if (degree) education.push({degree, college: entry.querySelector('.edu-college')?.value, year: entry.querySelector('.edu-year')?.value});
+            });
+            return {
+                first_name: document.getElementById('candFirstName').value, last_name: document.getElementById('candLastName').value,
+                email: document.getElementById('candEmail').value, phone: document.getElementById('candPhone').value,
+                alternate_phone: document.getElementById('candAltPhone').value, linkedin_url: document.getElementById('candLinkedin').value,
+                github_url: document.getElementById('candGithub').value, address: document.getElementById('candAddress').value,
+                current_location: document.getElementById('candLocation').value, primary_role: document.getElementById('candPrimaryRole').value,
+                total_experience: parseFloat(document.getElementById('candTotalExp').value) || 0,
+                relevant_experience: parseFloat(document.getElementById('candRelevantExp').value) || 0,
+                professional_summary: document.getElementById('candSummary').value, skills, work_experience, education,
+                current_salary: parseFloat(document.getElementById('candCurrentSalary').value),
+                expected_salary: parseFloat(document.getElementById('candExpectedSalary').value),
+                notice_period: parseInt(document.getElementById('candNoticePeriod').value), source: document.getElementById('candSource').value
+            };
+        }
         
         setInterval(() => { loadStats(); loadJobs(); loadCandidates(); loadApplications(); }, 30000);
     </script>
@@ -682,13 +850,153 @@ def extract_languages(text):
 def extract_certifications(text):
     if not text:
         return []
-    import re
     cert_patterns = ['AWS', 'Azure', 'Google Cloud', 'PMP', 'Scrum Master', 'CISSP', 'CEH']
     found = []
     for pattern in cert_patterns:
         if pattern.lower() in text.lower():
             found.append(pattern)
     return found
+
+def extract_alternate_phone(text):
+    if not text:
+        return None
+    match = re.search(r'Alternate\s*Phone[:\s]*(\d{10})', text, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return None
+
+def extract_linkedin_url(text):
+    if not text:
+        return None
+    match = re.search(r'linkedin\.com/in/([a-zA-Z0-9-]+)', text, re.IGNORECASE)
+    if match:
+        return f"linkedin.com/in/{match.group(1)}"
+    return None
+
+def extract_github_url(text):
+    if not text:
+        return None
+    match = re.search(r'github\.com/([a-zA-Z0-9-]+)', text, re.IGNORECASE)
+    if match:
+        return f"github.com/{match.group(1)}"
+    return None
+
+def extract_address(text):
+    if not text:
+        return None
+    patterns = [r'Address[:\s]+([^\n]+)', r'Location[:\s]+([^\n]+)']
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return None
+
+def extract_primary_role(text):
+    if not text:
+        return None
+    lines = text.split('\n')[:20]
+    for line in lines:
+        roles = ['developer', 'engineer', 'architect', 'manager', 'lead', 'analyst', 'consultant']
+        if any(role in line.lower() for role in roles):
+            if len(line.strip().split()) <= 6:
+                return line.strip()
+    return None
+
+def extract_relevant_experience(text):
+    if not text:
+        return 0
+    match = re.search(r'Relevant\s+Experience[:\s]*(\d+(?:\.\d+)?)\s*years?', text, re.IGNORECASE)
+    if match:
+        return float(match.group(1))
+    return 0
+
+def extract_summary(text):
+    if not text:
+        return None
+    patterns = [r'Summary[:\s]+([^\n]+(?:\n[^\n]+){0,3})', r'Profile[:\s]+([^\n]+(?:\n[^\n]+){0,3})']
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return match.group(1).strip()[:500]
+    return None
+
+def extract_skills_with_details(text):
+    if not text:
+        return []
+    skill_database = ['Python', 'Java', 'JavaScript', 'AWS', 'Docker', 'React', 'Node.js', 'MongoDB', 'Git', 'SQL', 'Django', 'Flask', 'Kubernetes', 'TensorFlow']
+    skills = []
+    for skill in skill_database:
+        if skill.lower() in text.lower():
+            exp_match = re.search(f'{skill}.*?(\\d+(?:\\.\\d+)?)\\s*years?', text, re.IGNORECASE)
+            years = exp_match.group(1) if exp_match else ''
+            skills.append({'name': skill, 'proficiency': 'Advanced', 'years': years})
+    return skills
+
+def extract_work_experience_with_projects(text):
+    if not text:
+        return []
+    work_experiences = []
+    lines = text.split('\n')
+    current = {}
+    for line in lines:
+        line = line.strip()
+        date_match = re.search(r'(\d{4})\s*[-–to]+\s*(\d{4}|Present)', line, re.IGNORECASE)
+        if date_match:
+            if current:
+                work_experiences.append(current)
+            current = {'from_year': date_match.group(1), 'to_year': date_match.group(2), 'company': '', 'designation': '', 'projects': ''}
+        else:
+            if current:
+                company_match = re.search(r'(?:at|@)\s+([A-Z][a-zA-Z\s&.]+)', line)
+                if company_match and not current['company']:
+                    current['company'] = company_match.group(1).strip()
+                if line.startswith(('•', '-', '*', '✓')):
+                    current['projects'] += line + '\n'
+    if current:
+        work_experiences.append(current)
+    return work_experiences if work_experiences else []
+
+def extract_education_details(text):
+    if not text:
+        return []
+    education = []
+    degrees = ['B.Tech', 'M.Tech', 'BCA', 'MCA', 'MBA', 'B.Sc', 'M.Sc']
+    for degree in degrees:
+        if degree.lower() in text.lower():
+            year_match = re.search(r'(\d{4})', text)
+            year = year_match.group(1) if year_match else ''
+            education.append({'degree': degree, 'college': '', 'year': year})
+    return education
+
+def extract_current_salary(text):
+    if not text:
+        return None
+    match = re.search(r'Current\s+Salary[:\s]*[₹$]?\s*(\d+(?:,\d{3})*)\s*(?:LPA|Lakhs?)?', text, re.IGNORECASE)
+    if match:
+        salary = match.group(1).replace(',', '')
+        if 'LPA' in text or 'Lakh' in text:
+            return float(salary) * 100000
+        return float(salary)
+    return None
+
+def extract_expected_salary(text):
+    if not text:
+        return None
+    match = re.search(r'Expected\s+Salary[:\s]*[₹$]?\s*(\d+(?:,\d{3})*)\s*(?:LPA|Lakhs?)?', text, re.IGNORECASE)
+    if match:
+        salary = match.group(1).replace(',', '')
+        if 'LPA' in text or 'Lakh' in text:
+            return float(salary) * 100000
+        return float(salary)
+    return None
+
+def extract_notice_period(text):
+    if not text:
+        return None
+    match = re.search(r'Notice\s+Period[:\s]*(\d+)\s*days?', text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return None
 
 # ============= API ROUTES =============
 @app.route('/')
@@ -756,6 +1064,29 @@ def manage_candidates():
         return jsonify({'success': True, 'candidate_id': candidate['id'], 'candidate_code': candidate['code']})
     return jsonify({'candidates': [{'id': c['id'], 'code': c['code'], 'name': c['name'], 'email': c['email']} for c in candidates], 'total': len(candidates), 'page': 1, 'pages': 1})
 
+@app.route('/api/candidates/enhanced', methods=['POST'])
+def create_enhanced_candidate():
+    global next_id
+    data = request.get_json()
+    candidate = {
+        'id': next_id, 'code': f"CAN-{next_id:04d}",
+        'first_name': data.get('first_name', ''), 'last_name': data.get('last_name', ''),
+        'name': f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
+        'email': data.get('email', ''), 'phone': data.get('phone', ''),
+        'alternate_phone': data.get('alternate_phone', ''), 'linkedin_url': data.get('linkedin_url', ''),
+        'github_url': data.get('github_url', ''), 'address': data.get('address', ''),
+        'current_location': data.get('current_location', ''), 'primary_role': data.get('primary_role', ''),
+        'total_experience': data.get('total_experience', 0), 'relevant_experience': data.get('relevant_experience', 0),
+        'professional_summary': data.get('professional_summary', ''), 'skills': data.get('skills', []),
+        'work_experience': data.get('work_experience', []), 'education': data.get('education', []),
+        'current_salary': data.get('current_salary'), 'expected_salary': data.get('expected_salary'),
+        'notice_period': data.get('notice_period'), 'source': 'resume_upload',
+        'created_at': datetime.now().isoformat()
+    }
+    candidates.append(candidate)
+    next_id += 1
+    return jsonify({'success': True, 'candidate_id': candidate['id'], 'candidate_code': candidate['code']})
+
 @app.route('/api/applications', methods=['GET', 'POST'])
 def manage_applications():
     if request.method == 'POST':
@@ -815,10 +1146,14 @@ def parse_resume_enhanced():
     parsed_data = {
         'first_name': extract_name_enhanced(text)['first'], 'last_name': extract_name_enhanced(text)['last'],
         'email': extract_email_enhanced(text), 'phone': extract_phone_enhanced(text),
-        'skills': extract_skills_enhanced(text), 'total_experience': extract_experience_enhanced(text),
-        'current_company': extract_company_enhanced(text), 'current_designation': extract_designation_enhanced(text),
-        'current_location': extract_location_enhanced(text), 'qualifications': extract_qualifications_enhanced(text),
-        'languages': extract_languages(text), 'certifications': extract_certifications(text)
+        'alternate_phone': extract_alternate_phone(text), 'linkedin_url': extract_linkedin_url(text),
+        'github_url': extract_github_url(text), 'address': extract_address(text),
+        'current_location': extract_location_enhanced(text), 'primary_role': extract_primary_role(text),
+        'total_experience': extract_experience_enhanced(text), 'relevant_experience': extract_relevant_experience(text),
+        'professional_summary': extract_summary(text), 'skills': extract_skills_with_details(text),
+        'work_experience': extract_work_experience_with_projects(text), 'education': extract_education_details(text),
+        'current_salary': extract_current_salary(text), 'expected_salary': extract_expected_salary(text),
+        'notice_period': extract_notice_period(text)
     }
     return jsonify({'success': True, 'data': parsed_data, 'resume_text_preview': text[:500] + '...' if len(text) > 500 else text})
 
@@ -987,8 +1322,8 @@ def get_pipeline_candidates():
             if current_stage is None and stage_id == 'new':
                 pipeline_data[stage_id].append({'id': candidate['id'], 'name': candidate['name'], 'email': candidate['email'], 'skills': candidate.get('skills', ''), 'current_company': candidate.get('current_company', ''), 'current_designation': candidate.get('current_designation', ''), 'total_experience': candidate.get('total_experience', 0), 'application_id': None, 'match_score': None})
             elif current_stage == stage_id:
-                app = next((a for a in applications if a.get('candidate_id') == candidate['id']), None)
-                pipeline_data[stage_id].append({'id': candidate['id'], 'name': candidate['name'], 'email': candidate['email'], 'skills': candidate.get('skills', ''), 'current_company': candidate.get('current_company', ''), 'current_designation': candidate.get('current_designation', ''), 'total_experience': candidate.get('total_experience', 0), 'application_id': app['id'] if app else None, 'match_score': app.get('match_score') if app else None})
+                app_obj = next((a for a in applications if a.get('candidate_id') == candidate['id']), None)
+                pipeline_data[stage_id].append({'id': candidate['id'], 'name': candidate['name'], 'email': candidate['email'], 'skills': candidate.get('skills', ''), 'current_company': candidate.get('current_company', ''), 'current_designation': candidate.get('current_designation', ''), 'total_experience': candidate.get('total_experience', 0), 'application_id': app_obj['id'] if app_obj else None, 'match_score': app_obj.get('match_score') if app_obj else None})
     return jsonify(pipeline_data)
 
 @app.route('/api/pipeline/move', methods=['PUT'])
