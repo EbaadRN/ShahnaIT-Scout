@@ -1,10 +1,104 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, jsonify, request, render_template_string
 from datetime import datetime
 import os
 
 app = Flask(__name__)
 
-# Simple in-memory storage
+# Simple HTML template as a string (so no file needed!)
+HTML_TEMPLATE = '''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ShahnaIT Scout</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>🚀 ShahnaIT Scout</h1>
+        <p class="text-success">✅ Application is running successfully!</p>
+        <hr>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Open Positions</h5>
+                        <h2 id="openPos">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Total Candidates</h5>
+                        <h2 id="totalCand">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5>Applications</h5>
+                        <h2 id="totalApps">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4">
+            <button class="btn btn-primary" onclick="createJob()">Create Job</button>
+            <button class="btn btn-success" onclick="createCandidate()">Add Candidate</button>
+        </div>
+        
+        <div class="mt-4" id="result"></div>
+    </div>
+    
+    <script>
+        async function loadStats() {
+            const res = await fetch('/api/dashboard/stats');
+            const data = await res.json();
+            document.getElementById('openPos').innerText = data.overview.open_positions;
+            document.getElementById('totalCand').innerText = data.overview.total_candidates;
+            document.getElementById('totalApps').innerText = data.overview.total_applications;
+        }
+        
+        async function createJob() {
+            const title = prompt("Enter Job Title:");
+            if(title) {
+                const res = await fetch('/api/jds', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({title: title, location: "Remote"})
+                });
+                const result = await res.json();
+                document.getElementById('result').innerHTML = `<div class="alert alert-success">Job created: ${result.jd_code}</div>`;
+                loadStats();
+            }
+        }
+        
+        async function createCandidate() {
+            const name = prompt("Enter Candidate Name:");
+            const email = prompt("Enter Email:");
+            if(name && email) {
+                const res = await fetch('/api/candidates', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({first_name: name, email: email})
+                });
+                const result = await res.json();
+                document.getElementById('result').innerHTML = `<div class="alert alert-success">Candidate added: ${result.candidate_code}</div>`;
+                loadStats();
+            }
+        }
+        
+        loadStats();
+        setInterval(loadStats, 5000);
+    </script>
+</body>
+</html>
+'''
+
+# In-memory storage
 jobs = []
 candidates = []
 applications = []
@@ -12,7 +106,7 @@ next_id = 1
 
 @app.route('/')
 def index():
-    return render_template('dashboard.html')
+    return render_template_string(HTML_TEMPLATE)
 
 @app.route('/api/dashboard/stats')
 def dashboard_stats():
@@ -44,12 +138,8 @@ def manage_jds():
             'id': next_id,
             'code': f"JD-{next_id:04d}",
             'title': data.get('title'),
-            'client_name': data.get('client_name'),
-            'location': data.get('location'),
-            'employment_type': data.get('employment_type', 'full-time'),
-            'status': data.get('status', 'open'),
-            'priority': data.get('priority', 'medium'),
-            'skills_required': data.get('skills_required'),
+            'location': data.get('location', 'Remote'),
+            'status': 'open',
             'applications': 0,
             'created_at': datetime.now().isoformat()
         }
@@ -63,23 +153,13 @@ def manage_candidates():
     global next_id
     if request.method == 'POST':
         data = request.json
-        existing = next((c for c in candidates if c.get('email') == data.get('email')), None)
-        if existing:
-            return jsonify({'error': 'Candidate already exists', 'candidate_id': existing['id']}), 409
-        
         candidate = {
             'id': next_id,
             'code': f"CAN-{next_id:04d}",
             'first_name': data.get('first_name'),
-            'last_name': data.get('last_name'),
-            'name': f"{data.get('first_name')} {data.get('last_name')}",
+            'last_name': data.get('last_name', ''),
+            'name': f"{data.get('first_name')} {data.get('last_name', '')}",
             'email': data.get('email'),
-            'phone': data.get('phone'),
-            'current_company': data.get('current_company'),
-            'current_designation': data.get('current_designation'),
-            'total_experience': data.get('total_experience', 0),
-            'skills': data.get('skills'),
-            'source': data.get('source', 'website'),
             'created_at': datetime.now().isoformat()
         }
         candidates.append(candidate)
@@ -92,7 +172,7 @@ def manage_candidates():
     
     filtered = candidates
     if search:
-        filtered = [c for c in candidates if search.lower() in c.get('name', '').lower() or search.lower() in c.get('skills', '').lower()]
+        filtered = [c for c in candidates if search.lower() in c.get('name', '').lower()]
     
     start = (page - 1) * per_page
     end = start + per_page
@@ -107,48 +187,22 @@ def manage_candidates():
 
 @app.route('/api/applications', methods=['GET', 'POST'])
 def manage_applications():
-    global next_id
     if request.method == 'POST':
         data = request.json
-        job = next((j for j in jobs if j['id'] == data.get('jd_id')), None)
-        candidate = next((c for c in candidates if c['id'] == data.get('candidate_id')), None)
-        
-        match_score = 0
-        if job and candidate:
-            job_skills = set(job.get('skills_required', '').lower().split(','))
-            cand_skills = set(candidate.get('skills', '').lower().split(','))
-            if job_skills and cand_skills:
-                matches = len(job_skills.intersection(cand_skills))
-                match_score = round((matches / len(job_skills)) * 100, 2)
-        
         application = {
-            'id': next_id,
-            'code': f"APP-{next_id:04d}",
+            'id': len(applications) + 1,
             'candidate_id': data.get('candidate_id'),
-            'candidate_name': candidate.get('name') if candidate else None,
             'jd_id': data.get('jd_id'),
-            'job_title': job.get('title') if job else None,
-            'match_score': match_score,
             'status': 'new',
             'application_date': datetime.now().date().isoformat()
         }
         applications.append(application)
-        next_id += 1
-        
-        if job:
-            job['applications'] = job.get('applications', 0) + 1
-        
-        return jsonify({'success': True, 'application_id': application['id'], 'match_score': match_score})
+        return jsonify({'success': True, 'application_id': application['id']})
     return jsonify(applications)
 
-@app.route('/api/applications/<int:app_id>/move', methods=['PUT'])
-def move_application_stage(app_id):
-    data = request.json
-    for app in applications:
-        if app['id'] == app_id:
-            app['status'] = data.get('stage')
-            break
-    return jsonify({'success': True})
+@app.route('/api/clients', methods=['GET'])
+def get_clients():
+    return jsonify([])
 
 @app.route('/api/candidates/parse-resume', methods=['POST'])
 def parse_resume():
@@ -158,19 +212,14 @@ def parse_resume():
             'first_name': 'Sample',
             'last_name': 'Candidate',
             'email': 'sample@example.com',
-            'phone': '1234567890',
-            'skills': ['Python', 'JavaScript', 'SQL'],
-            'qualifications': 'Bachelor of Technology',
-            'current_company': 'Tech Corp',
-            'current_designation': 'Software Engineer'
+            'phone': '1234567890'
         }
     })
 
-@app.route('/api/clients', methods=['GET'])
-def get_clients():
-    return jsonify([])
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()})
 
-# ============= THIS IS THE IMPORTANT PART - AT THE BOTTOM =============
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
