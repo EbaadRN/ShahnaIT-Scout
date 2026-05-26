@@ -682,10 +682,11 @@ def extract_languages(text):
 def extract_certifications(text):
     if not text:
         return []
-    cert_patterns = [r'AWS\s+Certified', r'Azure\s+Certified', r'Google\s+Cloud', r'PMP', r'Scrum\s+Master', r'TOGAF', r'CISSP', r'CISM', r'CEH', r'Certified\s+Ethical\s+Hacker', r'CCNA', r'CCNP']
+    import re
+    cert_patterns = ['AWS', 'Azure', 'Google Cloud', 'PMP', 'Scrum Master', 'CISSP', 'CEH']
     found = []
     for pattern in cert_patterns:
-        if re.search(pattern, text, re.IGNORECASE):
+        if pattern.lower() in text.lower():
             found.append(pattern)
     return found
 
