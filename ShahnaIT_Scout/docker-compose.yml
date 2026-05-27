@@ -4,27 +4,90 @@ services:
   web:
     build: .
     ports:
-      - "5000:5000"
+      - "8080:8080"
     environment:
+      - PORT=8080
+      - FLASK_ENV=production
       - DATABASE_URL=mysql+pymysql://root:rootpass@db:3306/recruitment_db
-      - SECRET_KEY=your-super-secret-key-change-this
-      - MAIL_SERVER=smtp.gmail.com
-      - MAIL_PORT=587
-      - MAIL_USERNAME=
-      - MAIL_PASSWORD=
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY=${SECRET_KEY:-super-secret-key-change-me}
+    env_file:
+      - .env
     depends_on:
       - db
-    command: python app.py
+      - redis
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - recruitment_network
 
   db:
     image: mysql:8.0
     environment:
       - MYSQL_ROOT_PASSWORD=rootpass
       - MYSQL_DATABASE=recruitment_db
+      - MYSQL_USER=recruitment_user
+      - MYSQL_PASSWORD=recruitment_pass
     ports:
-      - "3307:3306"
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    networks:
+      - recruitment_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - recruitment_network
+
+  celery:
+    build: .
+    command: celery -A app.celery worker --loglevel=info
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:rootpass@db:3306/recruitment_db
+      - REDIS_URL=redis://redis:6379
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    networks:
+      - recruitment_network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./static:/app/static
+    depends_on:
+      - web
+    restart: unless-stopped
+    networks:
+      - recruitment_network
 
 volumes:
   mysql_data:
+  redis_data:
+
+networks:
+  recruitment_network:
+    driver: bridge
