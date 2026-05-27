@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShahnaIT Scout - Professional Recruitment Suite</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -22,8 +23,8 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: var(--light);
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
             overflow-x: hidden;
         }
         
@@ -33,405 +34,344 @@
             top: 0;
             width: 280px;
             height: 100vh;
-            background: var(--dark);
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
             color: white;
             transition: all 0.3s;
             z-index: 1000;
             overflow-y: auto;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.1);
         }
         
+        .sidebar::-webkit-scrollbar { width: 5px; }
+        .sidebar::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 5px; }
+        
         .sidebar .logo {
-            padding: 25px;
+            padding: 30px 25px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
         
         .sidebar .logo h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #a8c0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
-        .sidebar .logo p {
-            font-size: 0.75rem;
-            opacity: 0.7;
-        }
+        .sidebar .logo p { font-size: 0.7rem; opacity: 0.6; margin-top: 5px; }
         
-        .sidebar .nav-menu {
-            padding: 20px 0;
-        }
+        .sidebar .nav-menu { padding: 25px 0; }
         
         .sidebar .nav-item {
-            padding: 12px 25px;
-            margin: 5px 0;
+            padding: 14px 28px;
+            margin: 5px 15px;
             cursor: pointer;
             transition: all 0.3s;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
+            border-radius: 12px;
+            color: rgba(255,255,255,0.7);
         }
         
-        .sidebar .nav-item:hover {
-            background: rgba(255,255,255,0.1);
-        }
+        .sidebar .nav-item:hover { background: rgba(255,255,255,0.08); color: white; transform: translateX(5px); }
         
         .sidebar .nav-item.active {
-            background: var(--primary);
-            border-left: 4px solid white;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            color: white;
+            box-shadow: 0 10px 20px rgba(67,97,238,0.3);
         }
         
-        .sidebar .nav-item i {
-            font-size: 1.25rem;
-            width: 25px;
-        }
+        .sidebar .nav-item i { font-size: 1.3rem; width: 28px; }
         
         .main-content {
             margin-left: 280px;
-            padding: 20px 30px;
+            padding: 25px 35px;
             min-height: 100vh;
         }
         
-        .stat-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
-            cursor: pointer;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .stat-card .stat-icon {
-            font-size: 2rem;
-            margin-bottom: 15px;
-        }
-        
-        .stat-card .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-        }
-        
-        .stat-card .stat-label {
-            color: #666;
-            font-size: 0.85rem;
-        }
-        
-        .kanban-board {
-            display: flex;
-            gap: 20px;
-            overflow-x: auto;
-            padding: 20px 0;
-        }
-        
-        .kanban-column {
-            min-width: 320px;
-            background: #f1f3f5;
-            border-radius: 10px;
-            padding: 15px;
-        }
-        
-        .kanban-column-header {
-            font-weight: 600;
-            padding: 10px;
-            margin-bottom: 15px;
-            background: white;
-            border-radius: 8px;
+        .modern-header {
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
         }
         
-        .kanban-card {
+        .page-title h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #1a1a2e, #2d3a5e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .page-title p { color: #6c757d; font-size: 0.85rem; margin-top: 5px; }
+        
+        .header-actions { display: flex; gap: 15px; align-items: center; }
+        
+        .search-bar {
             background: white;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            cursor: pointer;
+            border-radius: 30px;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .search-bar input { border: none; outline: none; background: transparent; width: 200px; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+        
+        .stat-card-modern {
+            background: white;
+            border-radius: 24px;
+            padding: 22px;
             transition: all 0.3s;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
         }
         
-        .kanban-card:hover {
-            transform: translateX(5px);
-            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+        .stat-card-modern:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        
+        .stat-icon-modern {
+            width: 55px;
+            height: 55px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 18px;
         }
         
-        .modal-lg-custom {
-            max-width: 800px;
+        .stat-value-modern { font-size: 2.2rem; font-weight: 800; margin-bottom: 5px; }
+        .stat-label-modern { color: #6c757d; font-size: 0.85rem; font-weight: 500; }
+        .stat-trend { font-size: 0.75rem; margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+        
+        .chart-card {
+            background: white;
+            border-radius: 24px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.05);
         }
         
-        .form-section {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .chart-header h5 { font-weight: 700; margin: 0; }
+        
+        .modern-table {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.05);
         }
         
-        .form-section-title {
+        .modern-table table { margin: 0; }
+        .modern-table th { background: #f8f9fa; padding: 15px 20px; font-weight: 600; font-size: 0.85rem; color: #495057; border: none; }
+        .modern-table td { padding: 15px 20px; vertical-align: middle; border-bottom: 1px solid #f0f0f0; }
+        
+        .badge-modern { padding: 5px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+        .badge-open { background: linear-gradient(135deg, #4caf50, #2e7d32); color: white; }
+        .badge-closed { background: linear-gradient(135deg, #f44336, #c62828); color: white; }
+        .badge-draft { background: linear-gradient(135deg, #9e9e9e, #616161); color: white; }
+        .badge-interview { background: linear-gradient(135deg, #2196f3, #1565c0); color: white; }
+        
+        .btn-primary-modern {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 30px;
             font-weight: 600;
-            margin-bottom: 15px;
-            color: var(--primary);
+            transition: all 0.3s;
         }
         
-        .loader {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .btn-primary-modern:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(67,97,238,0.3); }
+        
+        .btn-outline-modern {
+            background: transparent;
+            border: 1px solid #dee2e6;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-weight: 500;
+            transition: all 0.3s;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        .btn-outline-modern:hover { background: #f8f9fa; border-color: #4361ee; }
         
+        .kanban-board { display: flex; gap: 20px; overflow-x: auto; padding: 20px 0; }
+        .kanban-column { min-width: 320px; background: #f8f9fa; border-radius: 20px; padding: 15px; }
+        .kanban-column-header { font-weight: 700; padding: 12px; margin-bottom: 15px; background: white; border-radius: 12px; display: flex; justify-content: space-between; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .kanban-card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: grab; transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.03); }
+        .kanban-card:hover { transform: translateX(5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        .modal-modern .modal-content { border-radius: 28px; border: none; overflow: hidden; }
+        .modal-modern .modal-header { background: linear-gradient(135deg, #4361ee, #3a0ca3); color: white; border: none; padding: 20px 25px; }
+        
+        @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) {
-            .sidebar {
-                left: -280px;
-            }
-            .sidebar.active {
-                left: 0;
-            }
-            .main-content {
-                margin-left: 0;
-            }
-            .menu-toggle {
-                display: block;
-                position: fixed;
-                top: 20px;
-                left: 20px;
-                z-index: 1100;
-                background: var(--primary);
-                color: white;
-                border: none;
-                border-radius: 5px;
-                padding: 10px;
-            }
+            .sidebar { left: -280px; }
+            .main-content { margin-left: 0; }
+            .stats-grid { grid-template-columns: 1fr; }
         }
+        
+        .form-section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .form-section-title { font-weight: 600; margin-bottom: 15px; color: var(--primary); }
+        .loader { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .skill-entry, .experience-entry, .education-entry { transition: all 0.2s; }
     </style>
 </head>
 <body>
     <div class="sidebar" id="sidebar">
         <div class="logo">
-            <h3><i class="bi bi-robot"></i> ShahnaIT Scout</h3>
+            <h3><i class="bi bi-robot"></i> ShahnaIT</h3>
             <p>Intelligent Recruitment Suite</p>
         </div>
         <div class="nav-menu">
-            <div class="nav-item active" data-section="dashboard">
-                <i class="bi bi-speedometer2"></i>
-                <span>Dashboard</span>
-            </div>
-            <div class="nav-item" data-section="jds">
-                <i class="bi bi-briefcase"></i>
-                <span>Job Descriptions</span>
-            </div>
-            <div class="nav-item" data-section="candidates">
-                <i class="bi bi-people"></i>
-                <span>Candidates</span>
-            </div>
-            <div class="nav-item" data-section="applications">
-                <i class="bi bi-file-check"></i>
-                <span>Applications</span>
-            </div>
-            <div class="nav-item" data-section="pipeline">
-                <i class="bi bi-kanban"></i>
-                <span>Pipeline</span>
-            </div>
-            <div class="nav-item" data-section="interviews">
-                <i class="bi bi-calendar-check"></i>
-                <span>Interviews</span>
-            </div>
-            <div class="nav-item" data-section="offers">
-                <i class="bi bi-envelope-paper"></i>
-                <span>Offers</span>
-            </div>
-            <div class="nav-item" data-section="clients">
-                <i class="bi bi-building"></i>
-                <span>Clients</span>
-            </div>
-            <div class="nav-item" data-section="reports">
-                <i class="bi bi-graph-up"></i>
-                <span>Analytics</span>
-            </div>
+            <div class="nav-item active" data-section="dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></div>
+            <div class="nav-item" data-section="jds"><i class="bi bi-briefcase"></i><span>Job Descriptions</span></div>
+            <div class="nav-item" data-section="candidates"><i class="bi bi-people"></i><span>Candidates</span></div>
+            <div class="nav-item" data-section="applications"><i class="bi bi-file-check"></i><span>Applications</span></div>
+            <div class="nav-item" data-section="pipeline"><i class="bi bi-kanban"></i><span>Pipeline</span></div>
+            <div class="nav-item" data-section="interviews"><i class="bi bi-calendar-check"></i><span>Interviews</span></div>
+            <div class="nav-item" data-section="offers"><i class="bi bi-envelope-paper"></i><span>Offers</span></div>
+            <div class="nav-item" data-section="reports"><i class="bi bi-graph-up"></i><span>Analytics</span></div>
         </div>
     </div>
     
     <div class="main-content" id="mainContent">
+        <!-- Dashboard Section -->
         <div id="dashboardSection">
-            <h2 class="mb-4"><i class="bi bi-speedometer2"></i> Recruitment Dashboard</h2>
-            <div class="row" id="statsContainer"></div>
-            <div class="row mt-4">
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-header"><strong>Recruitment Pipeline</strong></div>
-                        <div class="card-body"><canvas id="pipelineChart" height="250"></canvas></div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header"><strong>Candidate Sources</strong></div>
-                        <div class="card-body"><canvas id="sourcesChart" height="250"></canvas></div>
-                    </div>
-                </div>
+            <div class="modern-header">
+                <div class="page-title"><h1>Recruitment Dashboard</h1><p>Track your hiring pipeline, candidates, and analytics in real-time</p></div>
+                <div class="header-actions"><div class="search-bar"><i class="bi bi-search"></i><input type="text" placeholder="Search candidates, jobs..."></div></div>
             </div>
-            <div class="row mt-4">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header"><strong>Top Performing Jobs</strong></div>
-                        <div class="card-body" id="topJobsList"></div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header"><strong>Recent Activities</strong></div>
-                        <div class="card-body" id="activitiesList" style="max-height: 300px; overflow-y: auto;"></div>
-                    </div>
-                </div>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card-modern"><div class="stat-icon-modern" style="background: linear-gradient(135deg, #4361ee20, #3a0ca320); color: #4361ee;"><i class="bi bi-briefcase"></i></div><div class="stat-value-modern" id="openPositions">0</div><div class="stat-label-modern">Open Positions</div><div class="stat-trend"><span style="color: #4caf50;"><i class="bi bi-arrow-up"></i> +12%</span> vs last month</div></div>
+                <div class="stat-card-modern"><div class="stat-icon-modern" style="background: linear-gradient(135deg, #4caf5020, #2e7d3220); color: #4caf50;"><i class="bi bi-people"></i></div><div class="stat-value-modern" id="totalCandidates">0</div><div class="stat-label-modern">Total Candidates</div><div class="stat-trend"><span style="color: #4caf50;"><i class="bi bi-arrow-up"></i> +8%</span> vs last month</div></div>
+                <div class="stat-card-modern"><div class="stat-icon-modern" style="background: linear-gradient(135deg, #ff980020, #ed6c0220); color: #ff9800;"><i class="bi bi-calendar-check"></i></div><div class="stat-value-modern" id="interviewsToday">0</div><div class="stat-label-modern">Interviews Today</div><div class="stat-trend"><span style="color: #2196f3;">Next: 2:00 PM</span></div></div>
+                <div class="stat-card-modern"><div class="stat-icon-modern" style="background: linear-gradient(135deg, #9c27b020, #6a1b9a20); color: #9c27b0;"><i class="bi bi-check2-circle"></i></div><div class="stat-value-modern" id="offersAccepted">0</div><div class="stat-label-modern">Offers Accepted</div><div class="stat-trend"><span style="color: #4caf50;"><i class="bi bi-arrow-up"></i> +5%</span> vs last month</div></div>
             </div>
+            <div class="row"><div class="col-lg-8"><div class="chart-card"><div class="chart-header"><h5><i class="bi bi-graph-up"></i> Recruitment Funnel</h5></div><canvas id="pipelineChart" height="280"></canvas></div></div><div class="col-lg-4"><div class="chart-card"><div class="chart-header"><h5><i class="bi bi-pie-chart"></i> Candidate Sources</h5></div><canvas id="sourcesChart" height="280"></canvas></div></div></div>
+            <div class="row mt-3"><div class="col-lg-6"><div class="chart-card"><div class="chart-header"><h5><i class="bi bi-lightning-charge"></i> Quick Actions</h5></div><div class="d-flex gap-3 flex-wrap"><button class="btn btn-primary-modern" onclick="showJDMasterModal()"><i class="bi bi-plus-circle"></i> Post a Job</button><button class="btn btn-outline-modern" onclick="showCandidateModal()"><i class="bi bi-person-plus"></i> Add Candidate</button><button class="btn btn-outline-modern" onclick="showResumeUploadModal()"><i class="bi bi-file-earmark-arrow-up"></i> Upload Resume</button><button class="btn btn-outline-modern" onclick="showKanbanBoard()"><i class="bi bi-kanban"></i> Pipeline Board</button></div></div></div><div class="col-lg-6"><div class="chart-card"><div class="chart-header"><h5><i class="bi bi-clock-history"></i> Recent Activity</h5></div><div id="activitiesList" style="max-height: 200px; overflow-y: auto;"></div></div></div></div>
         </div>
         
-        <div id="jdsSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-briefcase"></i> Job Descriptions</h2>
-            <button class="btn btn-primary mb-3" onclick="showJDMasterModal()"><i class="bi bi-plus-circle"></i> Create Job Description</button>
-            <button class="btn btn-outline-primary mb-3" onclick="showJDUploadModal()"><i class="bi bi-cloud-upload"></i> Upload JD Document</button>
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="table-light"><tr><th>Code</th><th>Title</th><th>Client</th><th>Location</th><th>Type</th><th>Experience</th><th>Status</th><th>Priority</th><th>Applications</th><th>Filled</th><th>Actions</th></tr></thead>
-                    <tbody id="jdsTableBody"><tr><td colspan="11" class="text-center">Loading...</td></tr></tbody>
-                </table>
-            </div>
-        </div>
+        <!-- JDs Section -->
+        <div id="jdsSection" style="display: none;"><div class="modern-header"><div class="page-title"><h1>Job Descriptions</h1><p>Manage all your job openings</p></div><div class="header-actions"><button class="btn btn-primary-modern" onclick="showJDMasterModal()"><i class="bi bi-plus-circle"></i> Create Job</button><button class="btn btn-outline-modern" onclick="showJDUploadModal()"><i class="bi bi-cloud-upload"></i> Upload JD</button></div></div><div class="modern-table"><table class="table"><thead><tr><th>Code</th><th>Title</th><th>Client</th><th>Location</th><th>Type</th><th>Status</th><th>Applications</th><th>Priority</th><th>Actions</th></tr></thead><tbody id="jdsTableBody"></tbody></table></div></div>
         
-        <div id="candidatesSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-people"></i> Candidates Database</h2>
-            <div class="row mb-3">
-                <div class="col-md-3"><input type="text" class="form-control" id="candidateSearch" placeholder="Search by name, email, skill..."></div>
-                <div class="col-md-2"><select class="form-select" id="sourceFilter"><option value="">All Sources</option><option value="linkedin">LinkedIn</option><option value="naukri">Naukri</option><option value="referral">Referral</option><option value="website">Website</option></select></div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary" onclick="loadCandidates()"><i class="bi bi-search"></i> Search</button>
-                    <button class="btn btn-success" onclick="showCandidateModal()"><i class="bi bi-person-plus"></i> Add</button>
-                    <button class="btn btn-outline-success" onclick="showResumeUploadModal()"><i class="bi bi-file-earmark-arrow-up"></i> Upload Resume</button>
-                </div>
-            </div>
-            <div id="candidatesList"></div>
-            <div id="candidatesPagination" class="mt-3"></div>
-        </div>
+        <!-- Candidates Section -->
+        <div id="candidatesSection" style="display: none;"><div class="modern-header"><div class="page-title"><h1>Candidates Database</h1><p>Manage your talent pool</p></div><div class="header-actions"><button class="btn btn-primary-modern" onclick="showCandidateModal()"><i class="bi bi-person-plus"></i> Add Candidate</button><button class="btn btn-outline-modern" onclick="showResumeUploadModal()"><i class="bi bi-file-earmark-arrow-up"></i> Upload Resume</button></div></div><div class="row mb-3"><div class="col-md-4"><input type="text" class="form-control" id="candidateSearch" placeholder="Search by name, email, skill..."></div><div class="col-md-3"><select class="form-select" id="sourceFilter"><option value="">All Sources</option><option value="linkedin">LinkedIn</option><option value="naukri">Naukri</option><option value="referral">Referral</option></select></div><div class="col-md-2"><button class="btn btn-primary-modern" onclick="loadCandidates()"><i class="bi bi-search"></i> Search</button></div></div><div id="candidatesList"></div><div id="candidatesPagination" class="mt-3"></div></div>
         
-        <div id="applicationsSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-file-check"></i> Applications</h2>
-            <div class="row mb-3">
-                <div class="col-md-3"><select class="form-select" id="appStatusFilter"><option value="">All Status</option><option value="new">New</option><option value="screening">Screening</option><option value="shortlisted">Shortlisted</option><option value="interview-scheduled">Interview Scheduled</option><option value="selected">Selected</option><option value="rejected">Rejected</option></select></div>
-                <div class="col-md-2"><button class="btn btn-primary" onclick="loadApplications()">Filter</button><button class="btn btn-success" onclick="showApplicationModal()">Create Application</button></div>
-            </div>
-            <div id="applicationsList"></div>
-        </div>
+        <!-- Applications Section -->
+        <div id="applicationsSection" style="display: none;"><div class="modern-header"><div class="page-title"><h1>Applications</h1><p>Track all candidate applications</p></div></div><div class="modern-table"><table class="table"><thead><tr><th>ID</th><th>Candidate</th><th>Job</th><th>Match Score</th><th>Status</th><th>Actions</th></tr></thead><tbody id="applicationsTable"></tbody></table></div></div>
         
-        <div id="pipelineSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-kanban"></i> Recruitment Pipeline</h2>
-            <div id="kanbanBoard" class="kanban-board"></div>
-        </div>
+        <!-- Pipeline Section -->
+        <div id="pipelineSection" style="display: none;"><div class="modern-header"><div class="page-title"><h1>Recruitment Pipeline</h1><p>Drag and drop candidates to move between stages</p></div></div><div id="kanbanBoard" class="kanban-board"></div></div>
         
-        <div id="interviewsSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-calendar-check"></i> Interviews</h2>
-            <button class="btn btn-primary mb-3" onclick="showInterviewModal()"><i class="bi bi-plus-circle"></i> Schedule Interview</button>
-            <div class="row" id="upcomingInterviews"></div>
-        </div>
+        <!-- Interviews Section -->
+        <div id="interviewsSection" style="display: none;"><div class="modern-header"><div class="page-title"><h1>Interviews</h1><p>Schedule and manage interviews</p></div><div class="header-actions"><button class="btn btn-primary-modern" onclick="showInterviewModal()"><i class="bi bi-plus-circle"></i> Schedule Interview</button></div></div><div id="interviewsList"></div></div>
         
-        <div id="offersSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-envelope-paper"></i> Offer Letters</h2>
-            <div id="offersList"></div>
-        </div>
+        <!-- Offers Section -->
+        <div id="offersSection" style="display: none;"><div class="modern-header"><div class="page-title"><h1>Offer Letters</h1><p>Generate and manage offers</p></div><div class="header-actions"><button class="btn btn-primary-modern" onclick="showOfferModal()"><i class="bi bi-envelope-paper"></i> Generate Offer</button></div></div><div id="offersList"></div></div>
         
-        <div id="clientsSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-building"></i> Client Companies</h2>
-            <button class="btn btn-primary mb-3" onclick="showClientModal()"><i class="bi bi-plus-circle"></i> Add Client</button>
-            <div class="row" id="clientsList"></div>
-        </div>
-        
-        <div id="reportsSection" style="display: none;">
-            <h2 class="mb-4"><i class="bi bi-graph-up"></i> Analytics & Reports</h2>
-            <div class="row">
-                <div class="col-md-6"><div class="card"><div class="card-header">Daily Applications</div><div class="card-body"><canvas id="dailyAppsChart" height="250"></canvas></div></div></div>
-                <div class="col-md-6"><div class="card"><div class="card-header">Stage Distribution</div><div class="card-body"><canvas id="stageDistChart" height="250"></canvas></div></div></div>
-            </div>
-        </div>
+        <!-- Reports Section -->
+        <div id="reportsSection" style="display: none;"><div class="modern-header"><div class="page-title"><h1>Analytics & Reports</h1><p>Data-driven insights for your recruitment</p></div></div><div class="row"><div class="col-lg-6"><div class="chart-card"><canvas id="dailyAppsChart" height="250"></canvas></div></div><div class="col-lg-6"><div class="chart-card"><canvas id="stageDistChart" height="250"></canvas></div></div></div></div>
     </div>
+    
+    <!-- JD Master Modal -->
+    <div class="modal fade modal-modern" id="jdMasterModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-briefcase"></i> Create Job Description</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="jdMasterForm"><div class="form-section"><div class="form-section-title">Basic Information</div><div class="row"><div class="col-md-8 mb-2"><label>Job Title *</label><input type="text" class="form-control" id="jdTitle" required></div><div class="col-md-4 mb-2"><label>Client</label><select class="form-select" id="jdClientId"></select></div><div class="col-md-4 mb-2"><label>Department</label><input type="text" class="form-control" id="jdDepartment"></div><div class="col-md-4 mb-2"><label>Location</label><input type="text" class="form-control" id="jdLocation"></div><div class="col-md-4 mb-2"><label>Location Type</label><select class="form-select" id="jdLocationType"><option value="remote">Remote</option><option value="onsite">Onsite</option><option value="hybrid">Hybrid</option></select></div><div class="col-md-6 mb-2"><label>Employment Type</label><select class="form-select" id="jdEmploymentType"><option value="full-time">Full Time</option><option value="part-time">Part Time</option><option value="contract">Contract</option><option value="freelance">Freelance</option><option value="internship">Internship</option></select></div><div class="col-md-6 mb-2"><label>No. of Positions</label><input type="number" class="form-control" id="jdPositions" value="1"></div></div></div><div class="form-section"><div class="form-section-title">Experience & Salary</div><div class="row"><div class="col-md-3 mb-2"><label>Min Experience (years)</label><input type="number" class="form-control" id="jdExpMin" value="0"></div><div class="col-md-3 mb-2"><label>Max Experience (years)</label><input type="number" class="form-control" id="jdExpMax" value="10"></div><div class="col-md-3 mb-2"><label>Min Salary</label><input type="number" class="form-control" id="jdSalaryMin"></div><div class="col-md-3 mb-2"><label>Max Salary</label><input type="number" class="form-control" id="jdSalaryMax"></div></div></div><div class="form-section"><div class="form-section-title">Skills & Qualifications</div><div class="mb-2"><label>Required Skills (comma separated)</label><textarea class="form-control" id="jdSkills" rows="2" placeholder="Python, Java, SQL, AWS, Docker..."></textarea></div><div class="mb-2"><label>Preferred Skills</label><textarea class="form-control" id="jdSkillsPref" rows="2"></textarea></div><div class="mb-2"><label>Qualifications</label><textarea class="form-control" id="jdQualifications" rows="2"></textarea></div></div><div class="form-section"><div class="form-section-title">Job Description</div><div class="mb-2"><label>Responsibilities</label><textarea class="form-control" id="jdResponsibilities" rows="4"></textarea></div><div class="mb-2"><label>Benefits</label><textarea class="form-control" id="jdBenefits" rows="2"></textarea></div></div><div class="row"><div class="col-md-6 mb-2"><label>Status</label><select class="form-select" id="jdStatus"><option value="draft">Draft</option><option value="published">Published</option><option value="open">Open</option></select></div><div class="col-md-6 mb-2"><label>Priority</label><select class="form-select" id="jdPriority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div></div><button type="submit" class="btn btn-primary-modern w-100">Create Job Description</button></form></div></div></div></div>
+    
+    <!-- JD Upload Modal -->
+    <div class="modal fade modal-modern" id="jdUploadModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-cloud-upload"></i> Upload JD Document</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="text-center mb-3"><i class="bi bi-file-earmark-pdf" style="font-size: 3rem;"></i><i class="bi bi-file-earmark-word" style="font-size: 3rem;"></i></div><div class="mb-3"><input type="file" class="form-control" id="jdUploadFile" accept=".pdf,.docx,.txt"><div class="form-text">Upload PDF, DOCX, or TXT file. AI will extract all details automatically.</div></div><div id="jdParseProgress" style="display: none;" class="text-center"><div class="loader"></div><p class="mt-2">AI is analyzing the document...</p></div><button class="btn btn-primary-modern w-100" onclick="uploadAndParseJD()"><i class="bi bi-robot"></i> Parse & Auto-fill</button></div></div></div></div>
+    
+    <!-- Enhanced Candidate Modal with Document Upload -->
+    <div class="modal fade modal-modern" id="candidateModal" tabindex="-1"><div class="modal-dialog modal-xl"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-badge"></i> Add/Edit Candidate - Complete Profile</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" style="max-height: 70vh; overflow-y: auto;"><form id="candidateForm" enctype="multipart/form-data"><div class="card mb-3"><div class="card-header bg-primary text-white">Personal Information</div><div class="card-body"><div class="row"><div class="col-md-4 mb-2"><label>First Name *</label><input type="text" class="form-control" id="candFirstName" required></div><div class="col-md-4 mb-2"><label>Last Name</label><input type="text" class="form-control" id="candLastName"></div><div class="col-md-4 mb-2"><label>Email *</label><input type="email" class="form-control" id="candEmail" required></div><div class="col-md-3 mb-2"><label>Mobile Number</label><input type="tel" class="form-control" id="candPhone"></div><div class="col-md-3 mb-2"><label>Alternate Number</label><input type="tel" class="form-control" id="candAltPhone"></div><div class="col-md-3 mb-2"><label>LinkedIn ID</label><input type="text" class="form-control" id="candLinkedin" placeholder="linkedin.com/in/username"></div><div class="col-md-3 mb-2"><label>GitHub</label><input type="text" class="form-control" id="candGithub"></div><div class="col-md-6 mb-2"><label>Address</label><textarea class="form-control" id="candAddress" rows="2"></textarea></div><div class="col-md-6 mb-2"><label>Current Location</label><input type="text" class="form-control" id="candLocation"></div><div class="col-md-3 mb-2"><label>PAN Card Number</label><input type="text" class="form-control" id="candPan" placeholder="ABCDE1234F"></div><div class="col-md-3 mb-2"><label>Aadhar Number</label><input type="text" class="form-control" id="candAadhar" placeholder="1234 5678 9012"></div><div class="col-md-3 mb-2"><label>Passport Number</label><input type="text" class="form-control" id="candPassport" placeholder="Optional"></div><div class="col-md-3 mb-2"><label>Date of Birth</label><input type="date" class="form-control" id="candDob"></div></div></div></div><div class="card mb-3"><div class="card-header bg-info text-white">Professional Summary</div><div class="card-body"><div class="row"><div class="col-md-4 mb-2"><label>Primary Role</label><input type="text" class="form-control" id="candPrimaryRole" placeholder="e.g., Java Developer"></div><div class="col-md-4 mb-2"><label>Total Experience (Years)</label><input type="number" step="0.5" class="form-control" id="candTotalExp" value="0"></div><div class="col-md-4 mb-2"><label>Relevant Experience</label><input type="number" step="0.5" class="form-control" id="candRelevantExp" value="0"></div><div class="col-md-12 mb-2"><label>Professional Summary</label><textarea class="form-control" id="candSummary" rows="2"></textarea></div></div></div></div><div class="card mb-3"><div class="card-header bg-warning text-dark">Skills</div><div class="card-body"><div id="skillsContainer"></div><button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="addSkillEntry()">+ Add Skill</button></div></div><div class="card mb-3"><div class="card-header bg-secondary text-white">Work Experience</div><div class="card-body"><div id="experienceContainer"></div><button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addExperienceEntry()">+ Add Company</button></div></div><div class="card mb-3"><div class="card-header bg-dark text-white">Education</div><div class="card-body"><div id="educationContainer"></div><button type="button" class="btn btn-sm btn-outline-dark mt-1" onclick="addEducationEntry()">+ Add Education</button></div></div><div class="card mb-3"><div class="card-header bg-dark text-white">Salary & Notice Period</div><div class="card-body"><div class="row"><div class="col-md-3 mb-2"><label>Current Salary (₹)</label><input type="number" class="form-control" id="candCurrentSalary"></div><div class="col-md-3 mb-2"><label>Expected Salary (₹)</label><input type="number" class="form-control" id="candExpectedSalary"></div><div class="col-md-3 mb-2"><label>Notice Period (days)</label><input type="number" class="form-control" id="candNoticePeriod"></div><div class="col-md-3 mb-2"><label>Source</label><select class="form-control" id="candSource"><option value="linkedin">LinkedIn</option><option value="naukri">Naukri</option><option value="referral">Referral</option><option value="walkin">Walk-in</option><option value="other">Other</option></select></div></div></div></div><div class="card mb-3"><div class="card-header bg-danger text-white"><i class="bi bi-file-earmark-text"></i> Candidate Documents</div><div class="card-body"><div class="row"><div class="col-md-6 mb-3"><label class="fw-bold">📄 Resume/CV</label><input type="file" class="form-control" id="docResume" accept=".pdf,.docx,.doc"><small class="text-muted">Upload candidate's resume (PDF/DOCX)</small><div id="resumeFileName" class="small text-success mt-1"></div></div><div class="col-md-6 mb-3"><label class="fw-bold">🎓 Highest Degree Certificate</label><input type="file" class="form-control" id="docDegree" accept=".pdf,.jpg,.png"><small class="text-muted">Degree certificate or mark sheets</small><div id="degreeFileName" class="small text-success mt-1"></div></div><div class="col-md-4 mb-3"><label class="fw-bold">💰 Last 3 Months Pay Slip</label><input type="file" class="form-control" id="docPaySlip" accept=".pdf,.jpg,.png"><div id="paySlipFileName" class="small text-success mt-1"></div></div><div class="col-md-4 mb-3"><label class="fw-bold">📑 Form 16</label><input type="file" class="form-control" id="docForm16" accept=".pdf"><div id="form16FileName" class="small text-success mt-1"></div></div><div class="col-md-4 mb-3"><label class="fw-bold">🪪 PAN Card</label><input type="file" class="form-control" id="docPan" accept=".pdf,.jpg,.png"><div id="panFileName" class="small text-success mt-1"></div></div><div class="col-md-4 mb-3"><label class="fw-bold">🆔 Aadhar Card</label><input type="file" class="form-control" id="docAadhar" accept=".pdf,.jpg,.png"><div id="aadharFileName" class="small text-success mt-1"></div></div><div class="col-md-4 mb-3"><label class="fw-bold">📸 Passport Size Photo</label><input type="file" class="form-control" id="docPhoto" accept=".jpg,.png"><div id="photoFileName" class="small text-success mt-1"></div></div><div class="col-md-4 mb-3"><label class="fw-bold">📜 Offer Letter (signed)</label><input type="file" class="form-control" id="docOfferLetter" accept=".pdf"><div id="offerLetterFileName" class="small text-success mt-1"></div></div><div class="col-md-12 mb-3"><label class="fw-bold">📎 Other Documents</label><input type="file" class="form-control" id="docOther" accept=".pdf,.jpg,.png,.docx"><small class="text-muted">Any additional documents (certifications, experience letters, etc.)</small><div id="otherFileName" class="small text-success mt-1"></div></div></div></div></div><button type="submit" class="btn btn-success w-100">Save Candidate Profile</button></form></div></div></div></div>
+    
+    <!-- Resume Upload Modal -->
+    <div class="modal fade modal-modern" id="resumeUploadModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-file-earmark-arrow-up"></i> Upload Resume</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="mb-3"><input type="file" class="form-control" id="resumeFile" accept=".pdf,.docx"><div class="form-text">Upload candidate's resume. AI will extract all information automatically.</div></div><div id="resumeParseProgress" style="display: none;" class="text-center"><div class="loader"></div><p class="mt-2">AI is analyzing the resume...</p></div><div id="resumePreview" style="display: none;"><h6>Extracted Information:</h6><pre id="resumeExtractedData" class="bg-light p-2 rounded" style="font-size: 0.8rem;"></pre><button class="btn btn-primary-modern w-100" onclick="createCandidateFromResume()">Create Candidate Profile</button></div><button class="btn btn-primary-modern w-100" onclick="parseResume()" id="parseResumeBtn"><i class="bi bi-robot"></i> Parse Resume</button></div></div></div></div>
+    
+    <!-- Application Modal -->
+    <div class="modal fade modal-modern" id="applicationModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Create Application</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="applicationForm"><div class="mb-2"><label>Candidate</label><select class="form-select" id="appCandidateId" required></select></div><div class="mb-2"><label>Job Description</label><select class="form-select" id="appJdId" required></select></div><div id="matchScoreDisplay" class="alert alert-info" style="display: none;">Match Score: <strong id="matchScore"></strong>%</div><button type="submit" class="btn btn-primary-modern w-100">Create Application</button></form></div></div></div></div>
+    
+    <!-- Interview Modal -->
+    <div class="modal fade modal-modern" id="interviewModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Schedule Interview</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="interviewForm"><div class="mb-2"><label>Application</label><select class="form-select" id="interviewAppId" required></select></div><div class="mb-2"><label>Round Type</label><select class="form-select" id="interviewRoundType"><option value="telephonic">Telephonic Screening</option><option value="technical">Technical Round</option><option value="coding">Coding Assessment</option><option value="system-design">System Design</option><option value="managerial">Managerial Round</option><option value="hr">HR Round</option><option value="client">Client Round</option><option value="final">Final Round</option></select></div><div class="mb-2"><label>Interviewer Name</label><input type="text" class="form-control" id="interviewerName"></div><div class="mb-2"><label>Interviewer Email</label><input type="email" class="form-control" id="interviewerEmail"></div><div class="mb-2"><label>Scheduled Date & Time</label><input type="datetime-local" class="form-control" id="interviewDateTime"></div><div class="mb-2"><label>Meeting Link (Google Meet/Zoom)</label><input type="url" class="form-control" id="interviewLink"></div><button type="submit" class="btn btn-warning w-100">Schedule Interview</button></form></div></div></div></div>
+    
+    <!-- Offer Modal -->
+    <div class="modal fade modal-modern" id="offerModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Generate Offer Letter</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="offerForm"><div class="mb-2"><label>Application ID</label><input type="number" class="form-control" id="offerAppId" required></div><div class="mb-2"><label>Candidate Name</label><input type="text" class="form-control" id="candidateNameOffer" required></div><div class="mb-2"><label>Candidate Email</label><input type="email" class="form-control" id="candidateEmailOffer" required></div><div class="mb-2"><label>Job Title</label><input type="text" class="form-control" id="jobTitleOffer" required></div><div class="mb-2"><label>Base Salary ($)</label><input type="number" class="form-control" id="baseSalary" required></div><div class="mb-2"><label>Joining Bonus ($)</label><input type="number" class="form-control" id="joiningBonus"></div><div class="mb-2"><label>Joining Date</label><input type="date" class="form-control" id="joiningDate"></div><button type="submit" class="btn btn-primary-modern w-100">Generate Offer</button></form></div></div></div></div>
+    
+    <!-- Reports Modal -->
+    <div class="modal fade modal-modern" id="reportsModal" tabindex="-1"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Recruitment Analytics</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" id="reportsContent">Loading...</div></div></div></div>
+    
+    <!-- Kanban Modal -->
+    <div class="modal fade modal-modern" id="kanbanModal" tabindex="-1"><div class="modal-dialog modal-fullscreen"><div class="modal-content"><div class="modal-header"><h5 class="modal-title"><i class="bi bi-kanban"></i> Recruitment Pipeline</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" style="overflow-x: auto;"><div id="kanbanBoardFull" style="display: flex; gap: 20px; min-width: max-content; padding: 10px;"></div></div></div></div></div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let pipelineChart = null;
-        let sourcesChart = null;
-        let dailyAppsChart = null;
-        let stageDistChart = null;
-        let currentCandidatePage = 1;
-        let parsedResumeData = null;
+        let pipelineChart = null, sourcesChart = null, dailyAppsChart = null, stageDistChart = null;
+        let currentCandidatePage = 1, parsedResumeDataCache = null;
         
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => {
                 document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
                 item.classList.add('active');
+                const sections = ['dashboard', 'jds', 'candidates', 'applications', 'pipeline', 'interviews', 'offers', 'reports'];
+                sections.forEach(s => document.getElementById(s + 'Section') ? document.getElementById(s + 'Section').style.display = 'none' : null);
                 const section = item.dataset.section;
-                showSection(section);
+                if (section === 'dashboard') document.getElementById('dashboardSection').style.display = 'block';
+                else document.getElementById(section + 'Section').style.display = 'block';
+                if (section === 'dashboard') loadDashboard();
+                if (section === 'jds') loadJDs();
+                if (section === 'candidates') loadCandidates();
+                if (section === 'applications') loadApplications();
+                if (section === 'interviews') loadInterviews();
+                if (section === 'offers') loadOffers();
+                if (section === 'reports') loadReports();
             });
         });
-        
-        function showSection(section) {
-            const sections = ['dashboard', 'jds', 'candidates', 'applications', 'pipeline', 'interviews', 'offers', 'clients', 'reports'];
-            sections.forEach(s => document.getElementById(s + 'Section').style.display = 'none');
-            document.getElementById(section + 'Section').style.display = 'block';
-            if (section === 'dashboard') loadDashboard();
-            if (section === 'jds') loadJDs();
-            if (section === 'candidates') loadCandidates();
-            if (section === 'applications') loadApplications();
-            if (section === 'pipeline') loadPipeline();
-            if (section === 'interviews') loadInterviews();
-            if (section === 'offers') loadOffers();
-            if (section === 'clients') loadClients();
-            if (section === 'reports') loadReports();
-        }
+        document.getElementById('dashboardSection').style.display = 'block';
         
         async function loadDashboard() {
             try {
-                const response = await fetch('/api/dashboard/stats');
-                const data = await response.json();
-                document.getElementById('statsContainer').innerHTML = `
-                    <div class="col-md-3"><div class="stat-card"><div class="stat-icon"><i class="bi bi-briefcase"></i></div><div class="stat-value">${data.overview.open_positions}</div><div class="stat-label">Open Positions</div></div></div>
-                    <div class="col-md-3"><div class="stat-card"><div class="stat-icon"><i class="bi bi-people"></i></div><div class="stat-value">${data.overview.total_candidates}</div><div class="stat-label">Total Candidates</div></div></div>
-                    <div class="col-md-3"><div class="stat-card"><div class="stat-icon"><i class="bi bi-calendar-check"></i></div><div class="stat-value">${data.overview.interviews_today}</div><div class="stat-label">Interviews Today</div></div></div>
-                    <div class="col-md-3"><div class="stat-card"><div class="stat-icon"><i class="bi bi-envelope-paper"></i></div><div class="stat-value">${data.overview.offers_accepted}</div><div class="stat-label">Offers Accepted</div></div></div>`;
+                const res = await fetch('/api/dashboard/stats');
+                const data = await res.json();
+                document.getElementById('openPositions').innerText = data.overview.open_positions || 0;
+                document.getElementById('totalCandidates').innerText = data.overview.total_candidates || 0;
+                document.getElementById('interviewsToday').innerText = data.overview.interviews_today || 0;
+                document.getElementById('offersAccepted').innerText = data.overview.offers_accepted || 0;
                 if (pipelineChart) pipelineChart.destroy();
-                pipelineChart = new Chart(document.getElementById('pipelineChart').getContext('2d'), {type: 'bar', data: {labels: Object.keys(data.pipeline), datasets: [{label: 'Candidates', data: Object.values(data.pipeline), backgroundColor: '#4361ee', borderRadius: 10}]}});
+                pipelineChart = new Chart(document.getElementById('pipelineChart'), { type: 'bar', data: { labels: Object.keys(data.pipeline), datasets: [{ label: 'Candidates', data: Object.values(data.pipeline), backgroundColor: '#4361ee', borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: true } });
                 if (sourcesChart) sourcesChart.destroy();
-                sourcesChart = new Chart(document.getElementById('sourcesChart').getContext('2d'), {type: 'doughnut', data: {labels: data.sources.map(s => s.source), datasets: [{data: data.sources.map(s => s.count), backgroundColor: ['#4361ee', '#4caf50', '#ff9800', '#f44336', '#2196f3']}]}});
-                document.getElementById('topJobsList').innerHTML = data.top_jds.map(job => `<div class="d-flex justify-content-between align-items-center mb-2"><span>${job.title}</span><span class="badge bg-primary">${job.applications} apps</span></div>`).join('') || '<p class="text-muted">No data</p>';
-                document.getElementById('activitiesList').innerHTML = data.recent_activities.slice(0, 10).map(act => `<div class="mb-2 pb-2 border-bottom"><small><i class="bi bi-dot"></i> ${act.action}</small><br><small class="text-muted">${new Date(act.created_at).toLocaleString()}</small></div>`).join('') || '<p class="text-muted">No recent activities</p>';
+                const sources = data.sources || [];
+                sourcesChart = new Chart(document.getElementById('sourcesChart'), { type: 'doughnut', data: { labels: sources.map(s => s.source), datasets: [{ data: sources.map(s => s.count), backgroundColor: ['#4361ee', '#4caf50', '#ff9800', '#f44336', '#9c27b0'] }] } });
+                document.getElementById('activitiesList').innerHTML = '<div class="text-center text-muted">No recent activities</div>';
             } catch(e) { console.error(e); }
         }
         
-        async function loadJDs() {
-            try {
-                const response = await fetch('/api/jds');
-                const jds = await response.json();
-                document.getElementById('jdsTableBody').innerHTML = jds.length === 0 ? '<tr><td colspan="11" class="text-center">No job descriptions found</td></tr>' : jds.map(jd => `<tr><td><code>${jd.code}</code></td><td><strong>${jd.title}</strong></td><td>${jd.client || '—'}</td><td>${jd.location || '—'}</td><td><span class="badge bg-secondary">${jd.employment_type}</span></td><td>${jd.experience_min}-${jd.experience_max} yrs</td><td><span class="badge bg-${jd.status === 'open' ? 'success' : jd.status === 'draft' ? 'secondary' : 'danger'}">${jd.status}</span></td><td><span class="badge bg-${jd.priority === 'high' ? 'danger' : jd.priority === 'urgent' ? 'warning' : 'secondary'}">${jd.priority}</span></td><td>${jd.applications}</td><td>${jd.filled_positions}/${jd.no_of_positions}</td><td><button class="btn btn-sm btn-outline-primary" onclick="viewJDCandidates(${jd.id})"><i class="bi bi-people"></i></button></td></tr>`).join('');
-            } catch(e) { console.error(e); }
-        }
+        async function loadJDs() { try { const res = await fetch('/api/jds'); const jobs = await res.json(); document.getElementById('jdsTableBody').innerHTML = jobs.map(j => `<tr><td><code>${j.code}</code></td><td><strong>${j.title}</strong></td><td>${j.client || '-'}</td><td>${j.location || '-'}</td><td><span class="badge ${j.employment_type === 'full-time' ? 'bg-primary' : 'bg-secondary'}">${j.employment_type}</span></td><td><span class="badge badge-modern ${j.status === 'open' ? 'badge-open' : 'badge-draft'}">${j.status}</span></td><td>${j.applications || 0}</td><td><span class="badge ${j.priority === 'high' ? 'bg-danger' : 'bg-warning'}">${j.priority}</span></td><td><button class="btn btn-sm btn-outline-primary" onclick="createApplicationForJob(${j.id})"><i class="bi bi-send"></i></button></td></tr>`).join(''); } catch(e) { console.error(e); } }
         
         async function loadCandidates(page = 1) {
             currentCandidatePage = page;
             const search = document.getElementById('candidateSearch')?.value || '';
             const source = document.getElementById('sourceFilter')?.value || '';
             try {
-                const response = await fetch(`/api/candidates?page=${page}&per_page=20&skill=${encodeURIComponent(search)}&source=${source}`);
-                const data = await response.json();
+                const res = await fetch(`/api/candidates?page=${page}&per_page=20&skill=${encodeURIComponent(search)}&source=${source}`);
+                const data = await res.json();
                 const container = document.getElementById('candidatesList');
                 if (data.candidates.length === 0) { container.innerHTML = '<div class="alert alert-info">No candidates found</div>'; return; }
-                container.innerHTML = `<div class="row">${data.candidates.map(c => `<div class="col-md-6 mb-3"><div class="card"><div class="card-body"><div class="d-flex justify-content-between"><h5>${c.name}</h5><code>${c.code}</code></div><p class="mb-1"><i class="bi bi-envelope"></i> ${c.email}</p><p class="mb-1"><i class="bi bi-building"></i> ${c.current_company || 'N/A'} - ${c.current_designation || 'N/A'}</p><p class="mb-1"><i class="bi bi-briefcase"></i> ${c.total_experience} years exp</p><p><i class="bi bi-tags"></i> ${c.skills || 'No skills listed'}</p><button class="btn btn-sm btn-primary" onclick="createApplication(${c.id})"><i class="bi bi-file-check"></i> Apply to Job</button> <button class="btn btn-sm btn-outline-info" onclick="viewCandidateHistory(${c.id})"><i class="bi bi-clock-history"></i> History</button></div></div></div>`).join('')}</div>`;
+                container.innerHTML = `<div class="row">${data.candidates.map(c => `<div class="col-md-4 mb-3"><div class="card border-0 shadow-sm"><div class="card-body"><div class="d-flex justify-content-between"><h6 class="fw-bold">${c.name}</h6><code class="text-muted small">${c.code}</code></div><p class="small text-muted mb-1"><i class="bi bi-envelope"></i> ${c.email}</p><p class="small mb-1"><i class="bi bi-briefcase"></i> ${c.total_experience || 0} years</p><p class="small"><i class="bi bi-tags"></i> ${c.skills ? c.skills.substring(0, 50) : 'No skills'}</p><button class="btn btn-sm btn-primary w-100" onclick="createApplicationForCandidate(${c.id})">Apply to Job</button><button class="btn btn-sm btn-outline-secondary mt-1 w-100" onclick="viewDocuments(${c.id})"><i class="bi bi-file-earmark-text"></i> View Documents</button></div></div></div>`).join('')}</div>`;
                 const pagination = document.getElementById('candidatesPagination');
                 if (data.pages > 1) {
                     let pagesHtml = '<nav><ul class="pagination">';
@@ -442,24 +382,47 @@
             } catch(e) { console.error(e); }
         }
         
-        async function parseResume() {
-            const fileInput = document.getElementById('resumeFile');
-            if (!fileInput.files[0]) { alert('Please select a resume file'); return; }
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            document.getElementById('resumeParseProgress').style.display = 'block';
-            document.getElementById('parseResumeBtn').disabled = true;
+        async function loadApplications() { try { const res = await fetch('/api/applications'); const apps = await res.json(); document.getElementById('applicationsTable').innerHTML = apps.map(a => `<tr><td>${a.id}</td><td>${a.candidate_name || 'Candidate'}</td><td>${a.job_title || 'Job'}</td><td><span class="badge ${a.match_score >= 70 ? 'bg-success' : a.match_score >= 50 ? 'bg-warning' : 'bg-secondary'}">${a.match_score || 0}%</span></td><td>${a.status}</td><td><button class="btn btn-sm btn-warning" onclick="moveStage(${a.id}, prompt('Enter stage'))">Move</button></td></tr>`).join(''); } catch(e) { console.error(e); } }
+        
+        async function loadInterviews() { try { const res = await fetch('/api/interviews'); const interviews = await res.json(); document.getElementById('interviewsList').innerHTML = interviews.length ? `<div class="modern-table"><table class="table"><thead><tr><th>Candidate</th><th>Interviewer</th><th>Time</th><th>Status</th></tr></thead><tbody>${interviews.map(i => `<tr><td>${i.candidate_name}</td><td>${i.interviewer}</td><td>${new Date(i.scheduled_time).toLocaleString()}</td><td><span class="badge badge-interview">${i.status}</span></td></tr>`).join('')}</tbody></table></div>` : '<div class="alert alert-info">No interviews scheduled</div>'; } catch(e) { console.error(e); } }
+        
+        async function loadOffers() { try { const res = await fetch('/api/offers'); const offers = await res.json(); document.getElementById('offersList').innerHTML = offers.length ? `<div class="modern-table"><table class="table"><thead><tr><th>Candidate</th><th>Job</th><th>Salary</th><th>Status</th><th>Actions</th></tr></thead><tbody>${offers.map(o => `<tr><td>${o.candidate_name}</td><td>${o.job_title}</td><td>$${o.base_salary}</td><td>${o.status}</td><td><button class="btn btn-sm btn-primary" onclick="viewOffer(${o.id})">View</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="alert alert-info">No offers generated</div>'; } catch(e) { console.error(e); } }
+        
+        async function loadReports() {
             try {
-                const response = await fetch('/api/candidates/parse-resume-enhanced', { method: 'POST', body: formData });
-                const result = await response.json();
-                if (result.success) {
-                    parsedResumeDataCache = result.data;
-                    document.getElementById('resumePreview').style.display = 'block';
-                    document.getElementById('resumeExtractedData').textContent = JSON.stringify(result.data, null, 2);
-                    document.getElementById('resumeParseProgress').innerHTML = '<div class="alert alert-success">✅ Resume parsed successfully!</div>';
-                } else { alert('Error parsing resume: ' + (result.error || 'Unknown error')); }
-            } catch(e) { alert('Error: ' + e.message); }
-            finally { document.getElementById('resumeParseProgress').style.display = 'none'; document.getElementById('parseResumeBtn').disabled = false; }
+                const res = await fetch('/api/reports/hiring-metrics');
+                const data = await res.json();
+                if (dailyAppsChart) dailyAppsChart.destroy();
+                dailyAppsChart = new Chart(document.getElementById('dailyAppsChart'), { type: 'line', data: { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], datasets: [{ label: 'Applications', data: [12, 19, 15, 25], borderColor: '#4361ee', tension: 0.4 }] } });
+                if (stageDistChart) stageDistChart.destroy();
+                stageDistChart = new Chart(document.getElementById('stageDistChart'), { type: 'pie', data: { labels: ['New', 'Screening', 'Interview', 'Offer', 'Hired'], datasets: [{ data: [10, 8, 6, 4, 2], backgroundColor: ['#4361ee', '#4caf50', '#ff9800', '#9c27b0', '#f44336'] }] } });
+            } catch(e) { console.error(e); }
+        }
+        
+        async function createJob() {
+            const title = document.getElementById('jdTitle')?.value;
+            if (!title) return;
+            const res = await fetch('/api/jds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, location: document.getElementById('jdLocation')?.value, skills_required: document.getElementById('jdSkills')?.value, status: document.getElementById('jdStatus')?.value }) });
+            const result = await res.json();
+            if (result.success) { alert('Job created!'); bootstrap.Modal.getInstance(document.getElementById('jdMasterModal')).hide(); loadJDs(); }
+        }
+        
+        async function createApplicationForJob(jd_id) { const candidate_id = prompt('Enter Candidate ID:'); if (!candidate_id) return; const res = await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_id: parseInt(candidate_id), jd_id }) }); const result = await res.json(); if (result.success) alert(`Application created! Match Score: ${result.match_score}%`); loadApplications(); loadJDs(); }
+        
+        async function createApplicationForCandidate(candidate_id) { const jd_id = prompt('Enter Job ID:'); if (!jd_id) return; const res = await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_id, jd_id: parseInt(jd_id) }) }); const result = await res.json(); if (result.success) alert(`Application created! Match Score: ${result.match_score}%`); loadApplications(); loadJDs(); }
+        
+        async function moveStage(app_id, stage) { if (!stage) return; await fetch(`/api/applications/${app_id}/move`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage }) }); loadApplications(); }
+        
+        async function parseResume() {
+            const file = document.getElementById('resumeFile')?.files[0];
+            if (!file) { alert('Select a file'); return; }
+            const formData = new FormData(); formData.append('file', file);
+            document.getElementById('resumeParseProgress').style.display = 'block';
+            const res = await fetch('/api/candidates/parse-resume-enhanced', { method: 'POST', body: formData });
+            const result = await res.json();
+            document.getElementById('resumeParseProgress').style.display = 'none';
+            if (result.success) { parsedResumeDataCache = result.data; document.getElementById('resumeExtractedData').textContent = JSON.stringify(result.data, null, 2); document.getElementById('resumePreview').style.display = 'block'; }
+            else { alert('Error parsing resume'); }
         }
         
         function createCandidateFromResume() {
@@ -475,35 +438,32 @@
             document.getElementById('candExpectedSalary').value = parsedResumeDataCache.expected_salary || '';
             document.getElementById('candNoticePeriod').value = parsedResumeDataCache.notice_period || '';
             const skillsContainer = document.getElementById('skillsContainer');
-            if (skillsContainer) {
-                skillsContainer.innerHTML = '';
-                if (parsedResumeDataCache.skills && parsedResumeDataCache.skills.length > 0) {
-                    parsedResumeDataCache.skills.forEach(skill => addSkillEntry(skill.name || skill, skill.proficiency || 'Intermediate', skill.years || ''));
-                }
-            }
+            if (skillsContainer) { skillsContainer.innerHTML = ''; if (parsedResumeDataCache.skills && parsedResumeDataCache.skills.length > 0) { parsedResumeDataCache.skills.forEach(skill => addSkillEntry(skill.name || skill, skill.proficiency || 'Intermediate', skill.years || '')); } }
             bootstrap.Modal.getInstance(document.getElementById('resumeUploadModal')).hide();
             new bootstrap.Modal(document.getElementById('candidateModal')).show();
         }
         
-        document.getElementById('jdMasterForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = { title: document.getElementById('jdTitle').value, client_id: document.getElementById('jdClientId').value || null, department: document.getElementById('jdDepartment').value, location: document.getElementById('jdLocation').value, location_type: document.getElementById('jdLocationType').value, employment_type: document.getElementById('jdEmploymentType').value, no_of_positions: parseInt(document.getElementById('jdPositions').value), experience_min: parseInt(document.getElementById('jdExpMin').value), experience_max: parseInt(document.getElementById('jdExpMax').value), salary_min: parseFloat(document.getElementById('jdSalaryMin').value) || null, salary_max: parseFloat(document.getElementById('jdSalaryMax').value) || null, skills_required: document.getElementById('jdSkills').value, skills_preferred: document.getElementById('jdSkillsPref').value, qualifications: document.getElementById('jdQualifications').value, responsibilities: document.getElementById('jdResponsibilities').value, benefits: document.getElementById('jdBenefits').value, status: document.getElementById('jdStatus').value, priority: document.getElementById('jdPriority').value };
-            try {
-                const response = await fetch('/api/jds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-                const result = await response.json();
-                if (result.success) { alert('✅ Job Description created successfully!'); bootstrap.Modal.getInstance(document.getElementById('jdMasterModal')).hide(); loadJDs(); }
-                else { alert('Error: ' + (result.error || 'Unknown error')); }
-            } catch(e) { alert('Error: ' + e.message); }
-        });
+        function viewOffer(id) { const win = window.open(); win.document.write('<h1>Offer Letter</h1><p>Offer details here</p>'); win.document.close(); }
+        async function viewDocuments(candidateId) { alert(`View documents for candidate ${candidateId}`); }
+        async function uploadAndParseJD() { alert('JD parsing feature - upload a file to auto-fill the form'); }
+        async function showReportsModal() { const res = await fetch('/api/reports/hiring-metrics'); const data = await res.json(); document.getElementById('reportsContent').innerHTML = `<h5>Hiring Metrics</h5><div class="row"><div class="col-md-6"><div class="card mb-2"><div class="card-body"><h3>${data.total_applications}</h3><small>Total Applications</small></div></div></div><div class="col-md-6"><div class="card mb-2"><div class="card-body"><h3>${data.average_time_to_hire_days} days</h3><small>Avg Time to Hire</small></div></div></div></div><h6>Conversion Rates</h6><ul class="list-group mb-3">${Object.entries(data.conversion_rates || {}).map(([k,v]) => `<li class="list-group-item d-flex justify-content-between"><span>${k}</span><strong>${v}%</strong></li>`).join('')}</ul>`; new bootstrap.Modal(document.getElementById('reportsModal')).show(); }
         
-        function setupFileListeners() {
-            const fileInputs = [{ id: 'docResume', displayId: 'resumeFileName' }, { id: 'docDegree', displayId: 'degreeFileName' }, { id: 'docPaySlip', displayId: 'paySlipFileName' }, { id: 'docForm16', displayId: 'form16FileName' }, { id: 'docPan', displayId: 'panFileName' }, { id: 'docAadhar', displayId: 'aadharFileName' }, { id: 'docPhoto', displayId: 'photoFileName' }, { id: 'docOfferLetter', displayId: 'offerLetterFileName' }, { id: 'docOther', displayId: 'otherFileName' }];
-            fileInputs.forEach(input => { const element = document.getElementById(input.id); if (element) { element.addEventListener('change', function() { const span = document.getElementById(input.displayId); if (span) { if (this.files && this.files[0]) { span.innerHTML = `<i class="bi bi-check-circle"></i> ${this.files[0].name}`; } else { span.innerHTML = ''; } } }); } });
+        async function showKanbanBoard() { await loadKanbanData(); new bootstrap.Modal(document.getElementById('kanbanModal')).show(); }
+        async function loadKanbanData() {
+            const stagesRes = await fetch('/api/pipeline/stages'); const stages = await stagesRes.json();
+            const candidatesRes = await fetch('/api/pipeline/candidates'); const candidates = await candidatesRes.json();
+            const board = document.getElementById('kanbanBoardFull');
+            board.innerHTML = stages.map(stage => { const stageCandidates = candidates[stage.id] || []; return `<div class="kanban-column"><div class="kanban-column-header" style="background: ${stage.color}; color: white; padding: 10px; border-radius: 8px; margin-bottom: 15px;"><strong>${stage.name}</strong><span class="badge bg-light text-dark ms-2">${stageCandidates.length}</span></div><div class="kanban-cards" data-stage="${stage.id}" style="min-height: 200px;">${stageCandidates.map(c => `<div class="kanban-card" draggable="true" data-candidate-id="${c.id}"><div class="d-flex justify-content-between"><strong>${c.name}</strong>${c.match_score ? `<span class="badge bg-primary">${c.match_score}%</span>` : ''}</div><small class="text-muted d-block">${c.current_designation || 'Candidate'}</small><small class="text-muted">💼 ${c.total_experience || 0} years exp</small><div class="mt-2"><small class="text-muted">${c.skills ? c.skills.substring(0, 50) : 'No skills'}</small></div></div>`).join('')}</div></div>`; }).join('');
+            setupDragAndDrop();
+        }
+        
+        function setupDragAndDrop() {
+            document.querySelectorAll('.kanban-card').forEach(card => { card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', JSON.stringify({ candidateId: card.dataset.candidateId })); e.target.style.opacity = '0.5'; }); card.addEventListener('dragend', e => { e.target.style.opacity = '1'; }); });
+            document.querySelectorAll('.kanban-cards').forEach(column => { column.addEventListener('dragover', e => e.preventDefault()); column.addEventListener('drop', async e => { e.preventDefault(); const newStage = e.currentTarget.dataset.stage; const dragData = JSON.parse(e.dataTransfer.getData('text/plain')); const res = await fetch('/api/pipeline/move', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_id: parseInt(dragData.candidateId), new_stage: newStage }) }); const result = await res.json(); if (result.success) loadKanbanData(); else alert(result.error || 'Error moving candidate. Create a job first.'); }); });
         }
         
         function addSkillEntry(skill = '', proficiency = 'Intermediate', years = '') {
-            const container = document.getElementById('skillsContainer');
-            if (!container) return;
+            const container = document.getElementById('skillsContainer'); if (!container) return;
             const entry = document.createElement('div'); entry.className = 'input-group mb-2 skill-entry';
             entry.innerHTML = `<input type="text" class="form-control skill-name" placeholder="Skill" value="${skill}" style="width: 40%;"><select class="form-select skill-proficiency" style="width: 30%;"><option value="Expert" ${proficiency === 'Expert' ? 'selected' : ''}>Expert</option><option value="Advanced" ${proficiency === 'Advanced' ? 'selected' : ''}>Advanced</option><option value="Intermediate" ${proficiency === 'Intermediate' ? 'selected' : ''}>Intermediate</option><option value="Beginner" ${proficiency === 'Beginner' ? 'selected' : ''}>Beginner</option></select><input type="number" class="form-control skill-years" placeholder="Years" value="${years}" style="width: 25%;"><button type="button" class="btn btn-danger" onclick="removeSkillEntry(this)">✗</button>`;
             container.appendChild(entry);
@@ -511,8 +471,7 @@
         function removeSkillEntry(btn) { btn.closest('.skill-entry').remove(); }
         
         function addExperienceEntry(company = '', designation = '', fromYear = '', toYear = '', projects = '') {
-            const container = document.getElementById('experienceContainer');
-            if (!container) return;
+            const container = document.getElementById('experienceContainer'); if (!container) return;
             const entry = document.createElement('div'); entry.className = 'experience-entry card mb-2 p-3';
             entry.innerHTML = `<div class="row"><div class="col-md-4 mb-1"><input type="text" class="form-control company-name" placeholder="Company Name" value="${company}"></div><div class="col-md-3 mb-1"><input type="text" class="form-control designation" placeholder="Designation" value="${designation}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-from" placeholder="From Year" value="${fromYear}"></div><div class="col-md-2 mb-1"><input type="text" class="form-control exp-to" placeholder="To Year" value="${toYear}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeExperienceEntry(this)">✗</button></div><div class="col-md-12 mb-1"><textarea class="form-control projects" rows="2" placeholder="Projects & Responsibilities">${projects}</textarea></div></div>`;
             container.appendChild(entry);
@@ -520,8 +479,7 @@
         function removeExperienceEntry(btn) { btn.closest('.experience-entry').remove(); }
         
         function addEducationEntry(degree = '', college = '', year = '') {
-            const container = document.getElementById('educationContainer');
-            if (!container) return;
+            const container = document.getElementById('educationContainer'); if (!container) return;
             const entry = document.createElement('div'); entry.className = 'education-entry card mb-2 p-2';
             entry.innerHTML = `<div class="row"><div class="col-md-5 mb-1"><input type="text" class="form-control edu-degree" placeholder="Degree" value="${degree}"></div><div class="col-md-5 mb-1"><input type="text" class="form-control edu-college" placeholder="College" value="${college}"></div><div class="col-md-1 mb-1"><input type="text" class="form-control edu-year" placeholder="Year" value="${year}"></div><div class="col-md-1 mb-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeEducationEntry(this)">✗</button></div></div>`;
             container.appendChild(entry);
@@ -535,31 +493,61 @@
             return { first_name: document.getElementById('candFirstName')?.value || '', last_name: document.getElementById('candLastName')?.value || '', email: document.getElementById('candEmail')?.value || '', phone: document.getElementById('candPhone')?.value || '', alternate_phone: document.getElementById('candAltPhone')?.value || '', linkedin_url: document.getElementById('candLinkedin')?.value || '', github_url: document.getElementById('candGithub')?.value || '', address: document.getElementById('candAddress')?.value || '', current_location: document.getElementById('candLocation')?.value || '', primary_role: document.getElementById('candPrimaryRole')?.value || '', total_experience: parseFloat(document.getElementById('candTotalExp')?.value) || 0, relevant_experience: parseFloat(document.getElementById('candRelevantExp')?.value) || 0, professional_summary: document.getElementById('candSummary')?.value || '', skills, work_experience, education, current_salary: parseFloat(document.getElementById('candCurrentSalary')?.value), expected_salary: parseFloat(document.getElementById('candExpectedSalary')?.value), notice_period: parseInt(document.getElementById('candNoticePeriod')?.value), source: document.getElementById('candSource')?.value };
         }
         
+        document.getElementById('jdMasterForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = { title: document.getElementById('jdTitle').value, client_id: document.getElementById('jdClientId').value || null, department: document.getElementById('jdDepartment').value, location: document.getElementById('jdLocation').value, location_type: document.getElementById('jdLocationType').value, employment_type: document.getElementById('jdEmploymentType').value, no_of_positions: parseInt(document.getElementById('jdPositions').value), experience_min: parseInt(document.getElementById('jdExpMin').value), experience_max: parseInt(document.getElementById('jdExpMax').value), salary_min: parseFloat(document.getElementById('jdSalaryMin').value) || null, salary_max: parseFloat(document.getElementById('jdSalaryMax').value) || null, skills_required: document.getElementById('jdSkills').value, skills_preferred: document.getElementById('jdSkillsPref').value, qualifications: document.getElementById('jdQualifications').value, responsibilities: document.getElementById('jdResponsibilities').value, benefits: document.getElementById('jdBenefits').value, status: document.getElementById('jdStatus').value, priority: document.getElementById('jdPriority').value };
+            const res = await fetch('/api/jds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const result = await res.json();
+            if (result.success) { alert('✅ Job created!'); bootstrap.Modal.getInstance(document.getElementById('jdMasterModal')).hide(); loadJDs(); }
+            else { alert('Error: ' + (result.error || 'Unknown error')); }
+        });
+        
         document.getElementById('candidateForm')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData();
-            const basicData = collectCandidateFormData();
-            formData.append('basic_info', JSON.stringify(basicData));
-            const docFields = ['docResume', 'docDegree', 'docPaySlip', 'docForm16', 'docPan', 'docAadhar', 'docPhoto', 'docOfferLetter', 'docOther'];
-            docFields.forEach(fieldId => { const fileInput = document.getElementById(fieldId); if (fileInput && fileInput.files[0]) { formData.append(fieldId, fileInput.files[0]); } });
+            formData.append('basic_info', JSON.stringify(collectCandidateFormData()));
+            ['docResume', 'docDegree', 'docPaySlip', 'docForm16', 'docPan', 'docAadhar', 'docPhoto', 'docOfferLetter', 'docOther'].forEach(fieldId => { const fileInput = document.getElementById(fieldId); if (fileInput && fileInput.files[0]) { formData.append(fieldId, fileInput.files[0]); } });
             formData.append('pan_number', document.getElementById('candPan')?.value || '');
             formData.append('aadhar_number', document.getElementById('candAadhar')?.value || '');
             formData.append('passport_number', document.getElementById('candPassport')?.value || '');
             formData.append('date_of_birth', document.getElementById('candDob')?.value || '');
-            try {
-                const response = await fetch('/api/candidates/enhanced-with-docs', { method: 'POST', body: formData });
-                const result = await response.json();
-                if (result.success) { alert(`✅ Candidate added: ${result.candidate_code}\nDocuments uploaded: ${result.documents_uploaded}`); bootstrap.Modal.getInstance(document.getElementById('candidateModal')).hide(); loadCandidates(); loadDashboard(); document.getElementById('candidateForm').reset(); ['resumeFileName', 'degreeFileName', 'paySlipFileName', 'form16FileName', 'panFileName', 'aadharFileName', 'photoFileName', 'offerLetterFileName', 'otherFileName'].forEach(id => { const span = document.getElementById(id); if (span) span.innerHTML = ''; }); const skillsContainer = document.getElementById('skillsContainer'); if (skillsContainer) skillsContainer.innerHTML = ''; }
-                else { alert('Error: ' + (result.error || 'Unknown error')); }
-            } catch(e) { alert('Error: ' + e.message); }
+            const res = await fetch('/api/candidates/enhanced-with-docs', { method: 'POST', body: formData });
+            const result = await res.json();
+            if (result.success) { alert(`✅ Candidate added: ${result.candidate_code}\nDocuments uploaded: ${result.documents_uploaded}`); bootstrap.Modal.getInstance(document.getElementById('candidateModal')).hide(); loadCandidates(); loadDashboard(); document.getElementById('candidateForm').reset(); }
+            else { alert('Error: ' + (result.error || 'Unknown error')); }
         });
         
-        async function loadClientsForDropdown() {
-            try { const response = await fetch('/api/clients'); const clients = await response.json(); const select = document.getElementById('jdClientId'); if (select) { select.innerHTML = '<option value="">Select Client</option>' + clients.map(c => `<option value="${c.id}">${c.company_name}</option>`).join(''); } } catch(e) { console.error(e); }
+        document.getElementById('applicationForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = { candidate_id: parseInt(document.getElementById('appCandidateId').value), jd_id: parseInt(document.getElementById('appJdId').value) };
+            const res = await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const result = await res.json();
+            if (result.success) { alert(`Application created! Match Score: ${result.match_score}%`); bootstrap.Modal.getInstance(document.getElementById('applicationModal')).hide(); loadApplications(); }
+        });
+        
+        document.getElementById('interviewForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = { application_id: parseInt(document.getElementById('interviewAppId').value), round_type: document.getElementById('interviewRoundType').value, interviewer_name: document.getElementById('interviewerName').value, interviewer_email: document.getElementById('interviewerEmail').value, scheduled_time: document.getElementById('interviewDateTime').value, meeting_link: document.getElementById('interviewLink').value };
+            const res = await fetch('/api/interviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            if (res.ok) { alert('Interview scheduled!'); bootstrap.Modal.getInstance(document.getElementById('interviewModal')).hide(); loadInterviews(); }
+        });
+        
+        document.getElementById('offerForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = { application_id: parseInt(document.getElementById('offerAppId').value), candidate_name: document.getElementById('candidateNameOffer').value, candidate_email: document.getElementById('candidateEmailOffer').value, job_title: document.getElementById('jobTitleOffer').value, base_salary: parseFloat(document.getElementById('baseSalary').value), joining_bonus: parseFloat(document.getElementById('joiningBonus').value) || 0, joining_date: document.getElementById('joiningDate').value };
+            const res = await fetch('/api/offers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const result = await res.json();
+            if (result.success) { const win = window.open(); win.document.write(result.offer_html); win.document.close(); bootstrap.Modal.getInstance(document.getElementById('offerModal')).hide(); loadOffers(); }
+        });
+        
+        function setupFileListeners() {
+            [{ id: 'docResume', displayId: 'resumeFileName' }, { id: 'docDegree', displayId: 'degreeFileName' }, { id: 'docPaySlip', displayId: 'paySlipFileName' }, { id: 'docForm16', displayId: 'form16FileName' }, { id: 'docPan', displayId: 'panFileName' }, { id: 'docAadhar', displayId: 'aadharFileName' }, { id: 'docPhoto', displayId: 'photoFileName' }, { id: 'docOfferLetter', displayId: 'offerLetterFileName' }, { id: 'docOther', displayId: 'otherFileName' }].forEach(input => { const element = document.getElementById(input.id); if (element) { element.addEventListener('change', function() { const span = document.getElementById(input.displayId); if (span) { if (this.files && this.files[0]) { span.innerHTML = `<i class="bi bi-check-circle"></i> ${this.files[0].name}`; } else { span.innerHTML = ''; } } }); } });
         }
         
+        async function loadClientsForDropdown() { try { const res = await fetch('/api/clients'); const clients = await res.json(); const select = document.getElementById('jdClientId'); if (select) { select.innerHTML = '<option value="">Select Client</option>' + clients.map(c => `<option value="${c.id}">${c.company_name}</option>`).join(''); } } catch(e) { console.error(e); } }
+        
         document.addEventListener('DOMContentLoaded', () => {
-            loadDashboard(); loadClientsForDropdown(); setupFileListeners();
+            loadDashboard(); loadClientsForDropdown(); setupFileListeners(); loadCandidates(); loadJDs(); loadApplications();
             if (document.getElementById('skillsContainer')) addSkillEntry();
             if (document.getElementById('experienceContainer')) addExperienceEntry();
             if (document.getElementById('educationContainer')) addEducationEntry();
@@ -569,24 +557,15 @@
         function showJDUploadModal() { new bootstrap.Modal(document.getElementById('jdUploadModal')).show(); }
         function showCandidateModal() { document.getElementById('candidateForm')?.reset(); new bootstrap.Modal(document.getElementById('candidateModal')).show(); }
         function showResumeUploadModal() { document.getElementById('resumeFile').value = ''; document.getElementById('resumePreview').style.display = 'none'; new bootstrap.Modal(document.getElementById('resumeUploadModal')).show(); }
-        function showInterviewModal() { alert('Schedule interview - Feature ready'); }
-        function showClientModal() { alert('Add client - Feature ready'); }
-        function showApplicationModal() { alert('Create application - Feature ready'); }
-        function viewJDCandidates(jdId) { alert(`View candidates for JD ${jdId}`); }
-        async function createApplication(candidateId) { alert(`Create application for candidate ${candidateId}`); }
-        async function viewCandidateHistory(candidateId) { alert(`View history for candidate ${candidateId}`); }
-        async function viewDocuments(candidateId) { alert(`View documents for candidate ${candidateId}`); }
-        async function uploadAndParseJD() { alert('JD parsing feature - upload a file to auto-fill the form'); }
-        async function loadApplications() { document.getElementById('applicationsList').innerHTML = '<div class="alert alert-info">Applications feature - API integration ready</div>'; }
-        async function loadPipeline() { document.getElementById('kanbanBoard').innerHTML = '<div class="alert alert-info">Pipeline kanban board - Coming soon</div>'; }
-        async function loadInterviews() { document.getElementById('upcomingInterviews').innerHTML = '<div class="alert alert-info">Interviews feature - API integration ready</div>'; }
-        async function loadOffers() { document.getElementById('offersList').innerHTML = '<div class="alert alert-info">Offers feature - API integration ready</div>'; }
-        async function loadClients() { document.getElementById('clientsList').innerHTML = '<div class="alert alert-info">Clients feature - API integration ready</div>'; }
-        async function loadReports() { 
-            try { const response = await fetch('/api/reports/pipeline'); const data = await response.json(); 
-            if (dailyAppsChart) dailyAppsChart.destroy(); dailyAppsChart = new Chart(document.getElementById('dailyAppsChart').getContext('2d'), { type: 'line', data: { labels: data.daily_applications?.map(d => d.date) || [], datasets: [{ label: 'Applications', data: data.daily_applications?.map(d => d.count) || [], borderColor: '#4361ee', tension: 0.4 }] } });
-            if (stageDistChart) stageDistChart.destroy(); stageDistChart = new Chart(document.getElementById('stageDistChart').getContext('2d'), { type: 'pie', data: { labels: data.stage_distribution?.map(s => s.stage) || [], datasets: [{ data: data.stage_distribution?.map(s => s.count) || [], backgroundColor: ['#4361ee', '#4caf50', '#ff9800', '#f44336', '#2196f3'] }] } });
-            } catch(e) { console.error(e); } }
+        function showInterviewModal() { new bootstrap.Modal(document.getElementById('interviewModal')).show(); }
+        function showOfferModal() { new bootstrap.Modal(document.getElementById('offerModal')).show(); }
+        function showApplicationModal() { 
+            fetch('/api/candidates').then(r=>r.json()).then(data => { const select = document.getElementById('appCandidateId'); select.innerHTML = data.candidates.map(c => `<option value="${c.id}">${c.name}</option>`).join(''); });
+            fetch('/api/jds').then(r=>r.json()).then(jobs => { const select = document.getElementById('appJdId'); select.innerHTML = jobs.map(j => `<option value="${j.id}">${j.title}</option>`).join(''); });
+            new bootstrap.Modal(document.getElementById('applicationModal')).show(); 
+        }
+        
+        setInterval(() => { loadDashboard(); }, 30000);
     </script>
 </body>
 </html>
