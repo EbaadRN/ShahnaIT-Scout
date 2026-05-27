@@ -541,4 +541,52 @@
             const basicData = collectCandidateFormData();
             formData.append('basic_info', JSON.stringify(basicData));
             const docFields = ['docResume', 'docDegree', 'docPaySlip', 'docForm16', 'docPan', 'docAadhar', 'docPhoto', 'docOfferLetter', 'docOther'];
-            docFields
+            docFields.forEach(fieldId => { const fileInput = document.getElementById(fieldId); if (fileInput && fileInput.files[0]) { formData.append(fieldId, fileInput.files[0]); } });
+            formData.append('pan_number', document.getElementById('candPan')?.value || '');
+            formData.append('aadhar_number', document.getElementById('candAadhar')?.value || '');
+            formData.append('passport_number', document.getElementById('candPassport')?.value || '');
+            formData.append('date_of_birth', document.getElementById('candDob')?.value || '');
+            try {
+                const response = await fetch('/api/candidates/enhanced-with-docs', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) { alert(`✅ Candidate added: ${result.candidate_code}\nDocuments uploaded: ${result.documents_uploaded}`); bootstrap.Modal.getInstance(document.getElementById('candidateModal')).hide(); loadCandidates(); loadDashboard(); document.getElementById('candidateForm').reset(); ['resumeFileName', 'degreeFileName', 'paySlipFileName', 'form16FileName', 'panFileName', 'aadharFileName', 'photoFileName', 'offerLetterFileName', 'otherFileName'].forEach(id => { const span = document.getElementById(id); if (span) span.innerHTML = ''; }); const skillsContainer = document.getElementById('skillsContainer'); if (skillsContainer) skillsContainer.innerHTML = ''; }
+                else { alert('Error: ' + (result.error || 'Unknown error')); }
+            } catch(e) { alert('Error: ' + e.message); }
+        });
+        
+        async function loadClientsForDropdown() {
+            try { const response = await fetch('/api/clients'); const clients = await response.json(); const select = document.getElementById('jdClientId'); if (select) { select.innerHTML = '<option value="">Select Client</option>' + clients.map(c => `<option value="${c.id}">${c.company_name}</option>`).join(''); } } catch(e) { console.error(e); }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDashboard(); loadClientsForDropdown(); setupFileListeners();
+            if (document.getElementById('skillsContainer')) addSkillEntry();
+            if (document.getElementById('experienceContainer')) addExperienceEntry();
+            if (document.getElementById('educationContainer')) addEducationEntry();
+        });
+        
+        function showJDMasterModal() { loadClientsForDropdown(); new bootstrap.Modal(document.getElementById('jdMasterModal')).show(); }
+        function showJDUploadModal() { new bootstrap.Modal(document.getElementById('jdUploadModal')).show(); }
+        function showCandidateModal() { document.getElementById('candidateForm')?.reset(); new bootstrap.Modal(document.getElementById('candidateModal')).show(); }
+        function showResumeUploadModal() { document.getElementById('resumeFile').value = ''; document.getElementById('resumePreview').style.display = 'none'; new bootstrap.Modal(document.getElementById('resumeUploadModal')).show(); }
+        function showInterviewModal() { alert('Schedule interview - Feature ready'); }
+        function showClientModal() { alert('Add client - Feature ready'); }
+        function showApplicationModal() { alert('Create application - Feature ready'); }
+        function viewJDCandidates(jdId) { alert(`View candidates for JD ${jdId}`); }
+        async function createApplication(candidateId) { alert(`Create application for candidate ${candidateId}`); }
+        async function viewCandidateHistory(candidateId) { alert(`View history for candidate ${candidateId}`); }
+        async function viewDocuments(candidateId) { alert(`View documents for candidate ${candidateId}`); }
+        async function uploadAndParseJD() { alert('JD parsing feature - upload a file to auto-fill the form'); }
+        async function loadApplications() { document.getElementById('applicationsList').innerHTML = '<div class="alert alert-info">Applications feature - API integration ready</div>'; }
+        async function loadPipeline() { document.getElementById('kanbanBoard').innerHTML = '<div class="alert alert-info">Pipeline kanban board - Coming soon</div>'; }
+        async function loadInterviews() { document.getElementById('upcomingInterviews').innerHTML = '<div class="alert alert-info">Interviews feature - API integration ready</div>'; }
+        async function loadOffers() { document.getElementById('offersList').innerHTML = '<div class="alert alert-info">Offers feature - API integration ready</div>'; }
+        async function loadClients() { document.getElementById('clientsList').innerHTML = '<div class="alert alert-info">Clients feature - API integration ready</div>'; }
+        async function loadReports() { 
+            try { const response = await fetch('/api/reports/pipeline'); const data = await response.json(); 
+            if (dailyAppsChart) dailyAppsChart.destroy(); dailyAppsChart = new Chart(document.getElementById('dailyAppsChart').getContext('2d'), { type: 'line', data: { labels: data.daily_applications?.map(d => d.date) || [], datasets: [{ label: 'Applications', data: data.daily_applications?.map(d => d.count) || [], borderColor: '#4361ee', tension: 0.4 }] } });
+            if (stageDistChart) stageDistChart.destroy(); stageDistChart = new Chart(document.getElementById('stageDistChart').getContext('2d'), { type: 'pie', data: { labels: data.stage_distribution?.map(s => s.stage) || [], datasets: [{ data: data.stage_distribution?.map(s => s.count) || [], backgroundColor: ['#4361ee', '#4caf50', '#ff9800', '#f44336', '#2196f3'] }] } });
+            } catch(e) { console.error(e); } }
+    </script>
+</body>
+</html>
