@@ -1,98 +1,11 @@
-# Core Framework
 flask==2.3.0
 flask-sqlalchemy==3.0.5
 flask-mail==0.9.1
 flask-cors==4.0.0
-flask-session==0.5.0
-
-# Database
 pymysql==1.0.3
-psycopg2-binary==2.9.9
-sqlalchemy==2.0.23
-alembic==1.12.1
-
-# Security
 cryptography==41.0.0
 python-dotenv==1.0.0
-passlib==1.7.4
-bcrypt==4.0.1
-jwt==1.3.1
-itsdangerous==2.1.2
-
-# PDF & Document Processing
 PyPDF2==3.0.0
-pdfplumber==0.10.3
 python-docx==1.1.0
-openpyxl==3.1.2
-xlsxwriter==3.1.9
-reportlab==4.0.4
-
-# AI & Machine Learning
-google-generativeai==0.3.0
-openai==1.3.0
-scikit-learn==1.3.0
-numpy==1.24.3
-pandas==2.0.3
-transformers==4.35.0
-sentence-transformers==2.2.2
-spacy==3.7.2
-textblob==0.17.1
-
-# Web Scraping & Enrichment
-beautifulsoup4==4.12.2
-selenium==4.15.0
 requests==2.31.0
-httpx==0.25.1
-aiohttp==3.9.1
-
-# Email
-flask-mail==0.9.1
-sendgrid==6.10.0
-mailgun==1.0.0
-
-# Calendar & Scheduling
-google-auth==2.23.0
-google-auth-oauthlib==1.0.0
-google-auth-httplib2==0.1.1
-google-api-python-client==2.108.0
-icalendar==5.0.7
-
-# Video & Communication
-agora-token==1.0.0
-twilio==8.10.0
-
-# Cloud Storage
-boto3==1.29.0
-google-cloud-storage==2.10.0
-azure-storage-blob==12.19.0
-
-# Social Media (LinkedIn, Twitter, GitHub)
-social-auth-app-flask==5.0.0
-PyGithub==2.1.1
-
-# Job Boards
-xmltodict==0.13.0
-feedparser==6.0.10
-
-# Webhooks & Integrations
-flask-webhook==1.0.0
-celery==5.3.4
-redis==5.0.1
-
-# Reporting & Analytics
-plotly==5.18.0
-matplotlib==3.8.1
-seaborn==0.13.0
-jinja2==3.1.2
-
-# Production Server
 gunicorn==20.1.0
-gevent==23.9.1
-nginx==1.24.0
-
-# Utilities
-python-magic==0.4.27
-pillow==10.1.0
-qrcode==7.4.2
-pyotp==2.9.0
-qrcode==7.4.2
