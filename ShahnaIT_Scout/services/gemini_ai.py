@@ -14,7 +14,9 @@ try:
         GEMINI_AVAILABLE = True
         print("Gemini AI initialized")
     else:
-        print("Gemini AI: No API key")
+        print("Gemini AI: No API key found")
+except ImportError:
+    print("Gemini AI: google-generativeai not installed")
 except Exception as e:
     print(f"Gemini AI error: {e}")
 
