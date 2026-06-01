@@ -1,6 +1,4 @@
 # services/resume_parser.py
-# Extract data from resumes (PDF, DOCX, TXT)
-
 import re
 import PyPDF2
 import docx
@@ -38,8 +36,9 @@ def extract_text_from_txt(file):
         return ""
 
 def extract_text_from_resume(file):
-    """Extract text from any supported file type"""
+    """Extract text from any supported resume file"""
     filename = file.filename.lower()
+    file.seek(0)
     
     if filename.endswith('.pdf'):
         return extract_text_from_pdf(file)
@@ -48,30 +47,25 @@ def extract_text_from_resume(file):
     else:
         return extract_text_from_txt(file)
 
-def extract_name(text):
-    """Extract candidate name from resume text"""
-    lines = text.split('\n')[:15]
-    for line in lines:
+def extract_name_basic(text):
+    """Extract candidate name from resume text (basic fallback)"""
+    lines = text.split('\n')
+    for line in lines[:10]:
         line = line.strip()
-        if len(line.split()) == 2 and not any(x in line.lower() for x in ['resume', 'email', 'phone']):
+        if line and not any(x in line.lower() for x in ['resume', 'curriculum', 'email', 'phone', 'page']):
             parts = line.split()
-            if len(parts) == 2 and parts[0][0].isupper() and parts[1][0].isupper():
-                return parts[0], parts[1]
-    
-    name_match = re.search(r'Name[:\s]+([A-Z][a-z]+)\s+([A-Z][a-z]+)', text, re.IGNORECASE)
-    if name_match:
-        return name_match.group(1), name_match.group(2)
-    
-    return None, None
+            if len(parts) >= 2 and parts[0][0].isupper() and parts[1][0].isupper():
+                return parts[0], parts[1] if len(parts) > 1 else ''
+    return '', ''
 
-def extract_email(text):
-    """Extract email address"""
+def extract_email_basic(text):
+    """Extract email address from text"""
     pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
     match = re.search(pattern, text)
-    return match.group(0) if match else None
+    return match.group(0) if match else ''
 
-def extract_phone(text):
-    """Extract phone number"""
+def extract_phone_basic(text):
+    """Extract phone number from text"""
     patterns = [
         r'\b\d{10}\b',
         r'\+\d{1,2}[-.\s]?\d{10}\b',
@@ -81,15 +75,17 @@ def extract_phone(text):
         match = re.search(pattern, text)
         if match:
             return match.group(0)
-    return None
+    return ''
 
-def extract_skills(text):
-    """Extract technical skills from resume"""
+def extract_skills_basic(text):
+    """Extract technical skills from text"""
     skill_database = [
-        'Python', 'Java', 'JavaScript', 'React', 'Angular', 'Vue', 'Node.js',
-        'Django', 'Flask', 'Spring', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes',
-        'MySQL', 'PostgreSQL', 'MongoDB', 'Git', 'Machine Learning', 'Data Science',
-        'Project Management', 'Agile', 'Scrum', 'Leadership', 'Communication'
+        'Python', 'Java', 'JavaScript', 'TypeScript', 'C++', 'C#', 'Go', 'Ruby', 'PHP', 'Swift', 'Kotlin',
+        'React', 'Angular', 'Vue', 'Node.js', 'Django', 'Flask', 'Spring', 'Express', 'Rails', 'Laravel',
+        'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Oracle', 'SQL Server', 'Cassandra', 'DynamoDB',
+        'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Terraform', 'Jenkins', 'Git', 'CI/CD',
+        'TensorFlow', 'PyTorch', 'Scikit-learn', 'Pandas', 'NumPy', 'Machine Learning', 'Data Science',
+        'Leadership', 'Project Management', 'Agile', 'Scrum', 'Communication', 'Teamwork'
     ]
     found = []
     text_lower = text.lower()
@@ -98,8 +94,27 @@ def extract_skills(text):
             found.append(skill)
     return found
 
-def extract_experience(text):
-    """Extract years of experience"""
+def extract_current_role_basic(text):
+    """Extract current job role from text"""
+    lines = text.split('\n')
+    role_keywords = ['developer', 'engineer', 'manager', 'lead', 'architect', 'analyst', 
+                     'consultant', 'specialist', 'administrator', 'designer']
+    for line in lines[:20]:
+        line_lower = line.lower()
+        for role in role_keywords:
+            if role in line_lower:
+                words = line.strip().split()
+                if len(words) <= 8:
+                    return line.strip()
+                for i, word in enumerate(words):
+                    if role in word.lower():
+                        start = max(0, i - 2)
+                        end = min(len(words), i + 3)
+                        return ' '.join(words[start:end])
+    return ''
+
+def extract_experience_basic(text):
+    """Extract total years of experience"""
     patterns = [
         r'(\d+)\s*\+\s*years?',
         r'(\d+)\s*years?\s+of\s+experience',
@@ -115,61 +130,39 @@ def extract_experience(text):
                 pass
     return 0
 
-def extract_location(text):
-    """Extract location from resume"""
-    cities = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 
-              'Kolkata', 'Ahmedabad', 'Remote', 'Gurgaon', 'Noida']
+def extract_location_basic(text):
+    """Extract location from text"""
+    cities = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 'Pune', 'Kolkata', 
+              'Ahmedabad', 'Remote', 'Gurgaon', 'Noida', 'Lucknow', 'Jaipur', 'Indore']
     for city in cities:
         if city.lower() in text.lower():
             return city
-    
     pattern = r'Location\s*:?\s*([^\n]+)'
     match = re.search(pattern, text, re.IGNORECASE)
-    return match.group(1).strip() if match else None
+    return match.group(1).strip() if match else ''
 
-def extract_designation(text):
-    """Extract current designation/job title"""
-    lines = text.split('\n')[:20]
-    titles = ['Developer', 'Engineer', 'Manager', 'Lead', 'Architect', 
-              'Analyst', 'Consultant', 'Specialist']
-    for line in lines:
-        for title in titles:
-            if title.lower() in line.lower():
-                words = line.strip().split()
-                if len(words) <= 6:
-                    return line.strip()
-                for i, word in enumerate(words):
-                    if title.lower() in word.lower():
-                        start = max(0, i - 2)
-                        end = min(len(words), i + 3)
-                        return ' '.join(words[start:end])
-    return None
-
-def parse_resume(file, use_ai=True, ai_parser=None):
-    """Main function to parse resume and extract all data"""
-    # Extract text from file
+def parse_resume_basic(file):
+    """Complete basic resume parsing (fallback when AI is unavailable)"""
     text = extract_text_from_resume(file)
     
     if not text:
         return None
     
-    # Try AI parsing first if available
-    if use_ai and ai_parser:
-        ai_data = ai_parser(text)
-        if ai_data:
-            return ai_data
-    
-    # Fallback to basic extraction
-    first_name, last_name = extract_name(text)
+    first_name, last_name = extract_name_basic(text)
     
     return {
         'first_name': first_name,
         'last_name': last_name,
-        'email': extract_email(text),
-        'phone': extract_phone(text),
-        'skills': extract_skills(text),
-        'total_experience': extract_experience(text),
-        'current_location': extract_location(text),
-        'current_designation': extract_designation(text),
-        'resume_text_preview': text[:500] + '...' if len(text) > 500 else text
+        'email': extract_email_basic(text),
+        'phone': extract_phone_basic(text),
+        'address': '',
+        'linkedin_url': '',
+        'current_role': extract_current_role_basic(text),
+        'notice_period': None,
+        'employment_status': '',
+        'work_history': [],
+        'certifications': [],
+        'top_skills': extract_skills_basic(text)[:5],
+        'total_experience': extract_experience_basic(text),
+        'current_location': extract_location_basic(text)
     }
