@@ -1,9 +1,11 @@
-# app.py - WITH JD PARSING (Feature 1)
+# app.py - WITH EXPORT TO CSV FEATURE
 import os
 import re
 import sqlite3
+import csv
+import io
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, request, jsonify, render_template_string, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import PyPDF2
@@ -68,7 +70,6 @@ COMMON_SKILLS = [
 ]
 
 def extract_skills_from_text(text):
-    """Extract skills from any text (JD or Resume)"""
     if not text:
         return []
     text_lower = text.lower()
@@ -79,7 +80,6 @@ def extract_skills_from_text(text):
     return found_skills
 
 def calculate_match_score(candidate_skills, job_skills):
-    """Calculate match percentage between candidate and job skills"""
     if not job_skills:
         return 0
     candidate_set = set([s.lower() for s in candidate_skills])
@@ -129,7 +129,6 @@ def extract_name(text):
     return "Unknown"
 
 def extract_work_history(text):
-    """Extract work experience (simplified)"""
     lines = text.split('\n')
     experience = []
     keywords = ['experience', 'work', 'employment', 'job', 'position', 'role']
@@ -141,7 +140,6 @@ def extract_work_history(text):
     return ' | '.join(experience[:3]) if experience else ""
 
 def extract_certifications(text):
-    """Extract certifications"""
     cert_patterns = [
         r'certified', r'certification', r'certificate', r'PMP', r'CISSP', r'AWS',
         r'Scrum Master', r'ITIL', r'CPA', r'CFA', r'CCNA', r'MCSE', r'CISM'
@@ -199,8 +197,10 @@ HTML_TEMPLATE = '''
         .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1A4D4A; }
         .card h3 { color: #1A4D4A; margin-bottom: 12px; }
         
-        .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; margin-bottom: 10px; }
         .btn-primary:hover { background: #2A6B67; transform: translateY(-1px); }
+        .btn-secondary { background: #7F8C8D; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+        .btn-secondary:hover { background: #95A5A6; }
         
         input, textarea { width: 100%; padding: 12px; margin: 10px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; }
         input:focus, textarea:focus { outline: none; border-color: #1A4D4A; }
@@ -216,6 +216,8 @@ HTML_TEMPLATE = '''
         .match-low { color: #E74C3C; font-weight: bold; font-size: 1.2em; }
         
         .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; }
+        
+        .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
         
         @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } }
         .text-center { text-align: center; }
@@ -237,7 +239,13 @@ HTML_TEMPLATE = '''
         </div>
         
         <div id="jobs-tab"><div id="jobs-list"></div></div>
-        <div id="candidates-tab" style="display:none;"><div id="candidates-list"></div></div>
+        
+        <div id="candidates-tab" style="display:none;">
+            <div class="button-group">
+                <button class="btn-primary" onclick="exportToCSV()">📥 Export to CSV</button>
+            </div>
+            <div id="candidates-list"></div>
+        </div>
         
         <div id="upload-tab" style="display:none;">
             <div class="card">
@@ -326,6 +334,14 @@ HTML_TEMPLATE = '''
             }
         }
         
+        async function exportToCSV() {
+            try {
+                window.location.href = '/api/export-candidates';
+            } catch (error) {
+                alert('Error exporting data');
+            }
+        }
+        
         async function uploadResume() {
             const fileInput = document.getElementById('resume-file');
             const file = fileInput.files[0];
@@ -349,7 +365,6 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
-                // Show job selector if jobs exist
                 let jobSelector = '';
                 if (jobsData.length > 0) {
                     jobSelector = `
@@ -385,7 +400,6 @@ HTML_TEMPLATE = '''
             const dataToSave = { ...candidateData };
             if (jobId) {
                 dataToSave.job_id = parseInt(jobId);
-                // Calculate match score
                 const selectedJob = jobsData.find(j => j.id == jobId);
                 if (selectedJob && selectedJob.required_skills && candidateData.skills) {
                     dataToSave.match_score = await calculateMatchScore(candidateData.skills, selectedJob.required_skills);
@@ -482,7 +496,6 @@ def create_job():
     data = request.json
     description = data.get('description', '')
     
-    # Auto-extract skills from job description
     required_skills = extract_skills_from_text(description)
     skills_str = ', '.join(required_skills)
     
@@ -520,6 +533,44 @@ def create_candidate():
     conn.commit()
     conn.close()
     return jsonify({'message': 'Candidate saved'})
+
+@app.route('/api/export-candidates', methods=['GET'])
+def export_candidates():
+    conn = sqlite3.connect('shahnai.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write headers
+    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Work History', 'Certifications', 'Match Score', 'Created Date'])
+    
+    # Write data
+    for c in candidates:
+        writer.writerow([
+            c.get('id', ''),
+            c.get('name', ''),
+            c.get('email', ''),
+            c.get('phone', ''),
+            c.get('skills', ''),
+            c.get('work_history', ''),
+            c.get('certifications', ''),
+            c.get('match_score', ''),
+            c.get('created_at', '')
+        ])
+    
+    # Return as downloadable file
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'}
+    )
 
 @app.route('/api/parse-resume', methods=['POST'])
 def parse_resume():
