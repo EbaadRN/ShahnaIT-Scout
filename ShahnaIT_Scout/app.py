@@ -114,3 +114,35 @@ def manage_candidates():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
+# ============= DATABASE MODELS =============
+from flask_sqlalchemy import SQLAlchemy
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///recruitment.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+class Job(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    location = db.Column(db.String(100))
+    skills_required = db.Column(db.Text)
+    status = db.Column(db.String(50), default='open')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Candidate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(100), unique=True)
+    phone = db.Column(db.String(20))
+    skills = db.Column(db.Text)
+    current_role = db.Column(db.String(200))
+    total_experience = db.Column(db.Float, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Application(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.id'))
+    job_id = db.Column(db.Integer, db.ForeignKey('job.id'))
+    match_score = db.Column(db.Float, default=0)
+    status = db.Column(db.String(50), default='new')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
