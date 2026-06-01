@@ -1,4 +1,3 @@
-# services/gemini_ai.py
 import os
 import json
 import re
@@ -15,9 +14,7 @@ try:
         GEMINI_AVAILABLE = True
         print("Gemini AI initialized")
     else:
-        print("Gemini AI: No API key found")
-except ImportError:
-    print("Gemini AI: google-generativeai not installed")
+        print("Gemini AI: No API key")
 except Exception as e:
     print(f"Gemini AI error: {e}")
 
@@ -28,99 +25,39 @@ def parse_resume_with_gemini(resume_text):
     if not GEMINI_AVAILABLE:
         return None
     try:
-        prompt = """Extract information from this resume. Return ONLY valid JSON.
-
-Resume text:
-""" + resume_text[:3500] + """
-
-Return JSON with these exact keys:
-- first_name
-- last_name
-- email
-- phone
-- address
-- linkedin_url
-- current_role
-- notice_period
-- employment_status
-- work_history (array of objects with: company, role, duration_from, duration_to)
-- certifications (array of strings)
-- top_skills (array of 5 strings, each as "skill: years")
-
-Use null or empty array if information not found."""
-        
+        prompt = 'Extract from resume. Return JSON only. Keys: first_name, last_name, email, phone, address, linkedin_url, current_role, notice_period, employment_status, work_history (array with company,role,duration_from,duration_to), certifications (array), top_skills (array of 5). Use null if missing. Resume: ' + resume_text[:3000]
         response = gemini_model.generate_content(prompt)
-        json_str = response.text.replace('```json', '').replace('```', '').strip()
-        return json.loads(json_str)
+        text = response.text
+        text = text.replace('```json', '').replace('```', '').strip()
+        return json.loads(text)
     except Exception as e:
-        print(f"Gemini parsing error: {e}")
+        print(f"Parse error: {e}")
         return None
 
 def parse_jd_with_gemini(jd_text):
     if not GEMINI_AVAILABLE:
         return None
     try:
-        prompt = """Extract information from this job description. Return ONLY valid JSON.
-
-JD text:
-""" + jd_text[:3500] + """
-
-Return JSON with these exact keys:
-- job_title
-- experience_min (number)
-- experience_max (number)
-- budget_min (number, or null)
-- budget_max (number, or null)
-- work_location (Remote/Hybrid/Onsite)
-- work_location_city
-- responsibilities (array of strings)
-- mandatory_skills (array of strings)
-- preferred_skills (array of strings)
-- good_to_have_skills (array of strings)
-- education_qualification
-- work_timings
-- number_of_openings (number)
-
-Use null or empty array if not found."""
-        
+        prompt = 'Extract from job description. Return JSON only. Keys: job_title, experience_min, experience_max, budget_min, budget_max, work_location, work_location_city, responsibilities (array), mandatory_skills (array), preferred_skills (array), good_to_have_skills (array), education_qualification, work_timings, number_of_openings. Use null if missing. JD: ' + jd_text[:3000]
         response = gemini_model.generate_content(prompt)
-        json_str = response.text.replace('```json', '').replace('```', '').strip()
-        return json.loads(json_str)
+        text = response.text
+        text = text.replace('```json', '').replace('```', '').strip()
+        return json.loads(text)
     except Exception as e:
-        print(f"Gemini JD error: {e}")
+        print(f"JD error: {e}")
         return None
 
 def analyze_profile_with_gemini(candidate_data, job_data):
     if not GEMINI_AVAILABLE:
         return None
     try:
-        prompt = """Analyze this candidate against the job requirement. Return ONLY valid JSON.
-
-CANDIDATE:
-- Name: """ + candidate_data.get('name', '') + """
-- Current Role: """ + candidate_data.get('current_role', '') + """
-- Skills: """ + candidate_data.get('skills', '') + """
-- Experience: """ + str(candidate_data.get('total_experience', 0)) + """ years
-
-JOB:
-- Title: """ + job_data.get('title', '') + """
-- Required Skills: """ + job_data.get('skills_required', '') + """
-- Experience Needed: """ + str(job_data.get('experience_min', 0)) + """-""" + str(job_data.get('experience_max', 10)) + """ years
-
-Return JSON:
-{
-    "relevance_score": 0-100,
-    "relevance_reason": "brief explanation",
-    "genuineness_score": 0-100,
-    "genuineness_reason": "brief explanation",
-    "strengths": ["strength1", "strength2"],
-    "weaknesses": ["weakness1", "weakness2"],
-    "recommendation": "Hire/Interview/Reject"
-}"""
-        
+        candidate_str = json.dumps(candidate_data)
+        job_str = json.dumps(job_data)
+        prompt = 'Analyze candidate against job. Return JSON only. Keys: relevance_score, relevance_reason, genuineness_score, genuineness_reason, strengths (array), weaknesses (array), recommendation. Candidate: ' + candidate_str + ' Job: ' + job_str
         response = gemini_model.generate_content(prompt)
-        json_str = response.text.replace('```json', '').replace('```', '').strip()
-        return json.loads(json_str)
+        text = response.text
+        text = text.replace('```json', '').replace('```', '').strip()
+        return json.loads(text)
     except Exception as e:
         print(f"Analysis error: {e}")
         return None
