@@ -1,10 +1,9 @@
-# app.py - WITH VISIBLE GEMINI STATUS
+# app.py - WORKING GEMINI INTEGRATION (Latest API)
 import os
 import re
 import sqlite3
 import csv
 import io
-import json
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template_string, Response
 from flask_cors import CORS
@@ -15,35 +14,6 @@ import docx
 app = Flask(__name__)
 CORS(app)
 
-# ============ GEMINI SETUP WITH DEBUG ============
-GEMINI_ENABLED = False
-GEMINI_ERROR = None
-
-try:
-    import google.generativeai as genai
-    print("✅ google-generativeai imported successfully")
-    
-    api_key = os.getenv('GEMINI_API_KEY')
-    print(f"GEMINI_API_KEY present: {bool(api_key)}")
-    
-    if api_key:
-        genai.configure(api_key=api_key)
-        gemini_model = genai.GenerativeModel('gemini-pro')
-        GEMINI_ENABLED = True
-        print("✅✅✅ GEMINI AI IS ACTIVE AND WORKING! ✅✅✅")
-    else:
-        GEMINI_ERROR = "No API key found"
-        print("❌ GEMINI_API_KEY not found in environment")
-        
-except ImportError as e:
-    GEMINI_ERROR = "Package not installed"
-    print(f"❌ google-generativeai not installed: {e}")
-except Exception as e:
-    GEMINI_ERROR = str(e)
-    print(f"❌ Gemini setup error: {e}")
-
-print(f"Final GEMINI_ENABLED: {GEMINI_ENABLED}")
-
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = '/tmp'
@@ -51,6 +21,26 @@ ALLOWED_EXTENSIONS = {'pdf', 'docx'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# ============ GEMINI SETUP WITH LATEST API ============
+GEMINI_ENABLED = False
+
+try:
+    # Try to import Gemini
+    import google.generativeai as genai
+    print("✅ Google Generative AI imported")
+    
+    api_key = os.getenv('GEMINI_API_KEY')
+    if api_key:
+        genai.configure(api_key=api_key)
+        # Use the correct model name
+        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+        GEMINI_ENABLED = True
+        print("✅✅✅ GEMINI AI IS ACTIVE! ✅✅✅")
+    else:
+        print("❌ No API key found")
+except Exception as e:
+    print(f"❌ Gemini setup error: {e}")
 
 # ============ DATABASE SETUP ============
 def init_db():
@@ -92,11 +82,8 @@ init_db()
 COMMON_SKILLS = [
     'Python', 'Java', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue', 'Node.js',
     'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes',
-    'Machine Learning', 'AI', 'Deep Learning', 'TensorFlow', 'PyTorch', 'Data Science',
-    'Excel', 'Tableau', 'Power BI', 'Project Management', 'Agile', 'Scrum', 'Kanban',
-    'Leadership', 'Communication', 'Team Management', 'Sales', 'Marketing', 'SEO',
-    'HTML', 'CSS', 'SASS', 'PHP', 'Ruby', 'C++', 'C#', '.NET', 'Go', 'Rust',
-    'Git', 'GitHub', 'CI/CD', 'Jenkins', 'Jira', 'Confluence', 'REST API', 'GraphQL'
+    'Machine Learning', 'AI', 'Data Science', 'Excel', 'Tableau', 'Power BI',
+    'HTML', 'CSS', 'Git', 'REST API', 'GraphQL'
 ]
 
 def extract_skills_from_text(text):
@@ -109,75 +96,96 @@ def extract_skills_from_text(text):
             found_skills.append(skill)
     return found_skills
 
-def extract_skills_with_gemini(text, is_resume=True):
-    """Extract skills using Gemini AI"""
-    if not GEMINI_ENABLED:
-        return extract_skills_from_text(text)
-    
-    try:
-        prompt = f"""
-        Analyze this {'resume' if is_resume else 'job description'} and extract ALL technical and professional skills.
-        Return ONLY a JSON array of skill names, nothing else.
-        Example output: ["Python", "Machine Learning", "Project Management"]
-        
-        Text to analyze:
-        {text[:3000]}
-        """
-        
-        response = gemini_model.generate_content(prompt)
-        skills_text = response.text.strip()
-        skills_text = re.sub(r'```json\s*', '', skills_text)
-        skills_text = re.sub(r'```\s*', '', skills_text)
-        skills = json.loads(skills_text)
-        return skills if isinstance(skills, list) else []
-    except Exception as e:
-        print(f"Gemini extraction error: {e}")
-        return extract_skills_from_text(text)
-
 def parse_with_gemini(resume_text):
-    """Use Gemini to parse entire resume"""
+    """Parse resume using Gemini - FIXED VERSION"""
     if not GEMINI_ENABLED:
         return None
     
     try:
+        # Simple, direct prompt
         prompt = f"""
-        Parse this resume and return a JSON object with these fields:
-        - name: The candidate's full name
-        - email: Email address
-        - phone: Phone number
-        - skills: Array of technical and professional skills
-        - work_history: Array of work experiences (each with title, company, duration)
-        - certifications: Array of certifications
-        - education: Highest degree and field
+        Extract information from this resume. Return ONLY valid JSON, no other text.
         
-        Resume text:
-        {resume_text[:4000]}
+        Resume: {resume_text[:3000]}
         
-        Return ONLY valid JSON, nothing else.
+        Return JSON with these exact keys:
+        {{
+            "name": "full name here",
+            "email": "email here", 
+            "phone": "phone number here",
+            "skills": ["skill1", "skill2", "skill3"],
+            "work_history": "brief work history summary",
+            "certifications": "certifications here"
+        }}
         """
         
         response = gemini_model.generate_content(prompt)
-        json_text = re.sub(r'```json\s*', '', response.text)
-        json_text = re.sub(r'```\s*', '', json_text)
-        parsed = json.loads(json_text)
-        print(f"✅ Gemini parsing successful")
-        return parsed
+        response_text = response.text
+        
+        # Clean up the response
+        response_text = response_text.strip()
+        if response_text.startswith('```json'):
+            response_text = response_text[7:]
+        if response_text.startswith('```'):
+            response_text = response_text[3:]
+        if response_text.endswith('```'):
+            response_text = response_text[:-3]
+        
+        # Parse JSON
+        import json
+        result = json.loads(response_text)
+        print(f"✅ Gemini parsed: {result.get('name', 'Unknown')}")
+        return result
+        
     except Exception as e:
-        print(f"Gemini parse error: {e}")
+        print(f"Gemini error: {e}")
         return None
 
-def calculate_match_score(candidate_skills, job_skills):
-    if not job_skills:
-        return 0
-    candidate_set = set([s.lower() for s in candidate_skills])
-    job_set = set([s.lower() for s in job_skills])
-    if not job_set:
-        return 0
-    matches = len(candidate_set.intersection(job_set))
-    score = int((matches / len(job_set)) * 100)
-    return min(score, 100)
+def parse_resume_file(file_path):
+    """Parse resume - uses Gemini if available"""
+    if file_path.endswith('.pdf'):
+        text = extract_text_from_pdf(file_path)
+    elif file_path.endswith('.docx'):
+        text = extract_text_from_docx(file_path)
+    else:
+        text = ""
+    
+    if not text:
+        return {'error': 'Could not extract text from file'}
+    
+    # Try Gemini first
+    gemini_result = parse_with_gemini(text)
+    
+    if gemini_result:
+        # Use Gemini results
+        skills = gemini_result.get('skills', [])
+        if isinstance(skills, str):
+            skills = [s.strip() for s in skills.split(',')]
+        
+        return {
+            'name': gemini_result.get('name', extract_name(text)),
+            'email': gemini_result.get('email', extract_email(text)),
+            'phone': gemini_result.get('phone', extract_phone(text)),
+            'skills': skills if skills else extract_skills_from_text(text),
+            'work_history': gemini_result.get('work_history', extract_work_history(text)),
+            'certifications': gemini_result.get('certifications', extract_certifications(text)),
+            'resume_text': text[:1000],
+            'ai_used': True
+        }
+    else:
+        # Fallback to basic parsing
+        return {
+            'name': extract_name(text),
+            'email': extract_email(text),
+            'phone': extract_phone(text),
+            'skills': extract_skills_from_text(text),
+            'work_history': extract_work_history(text),
+            'certifications': extract_certifications(text),
+            'resume_text': text[:1000],
+            'ai_used': False
+        }
 
-# ============ RESUME PARSING ============
+# ============ HELPER FUNCTIONS ============
 def extract_text_from_pdf(file_path):
     try:
         text = ""
@@ -215,56 +223,32 @@ def extract_name(text):
         return lines[0].strip()
     return "Unknown"
 
-def parse_resume_file(file_path):
-    """Parse resume - uses Gemini if available"""
-    if file_path.endswith('.pdf'):
-        text = extract_text_from_pdf(file_path)
-    elif file_path.endswith('.docx'):
-        text = extract_text_from_docx(file_path)
-    else:
-        text = ""
-    
-    if not text:
-        return {'error': 'Could not extract text from file'}
-    
-    print(f"Parsing resume, Gemini enabled: {GEMINI_ENABLED}")
-    
-    # Try Gemini first
-    gemini_result = parse_with_gemini(text)
-    
-    if gemini_result:
-        print("✅ Using Gemini results")
-        skills = gemini_result.get('skills', [])
-        work_history = gemini_result.get('work_history', [])
-        if isinstance(work_history, list):
-            work_history = ' | '.join([f"{w.get('title', '')} at {w.get('company', '')}" for w in work_history[:3]])
-        certifications = gemini_result.get('certifications', [])
-        if isinstance(certifications, list):
-            certifications = ', '.join(certifications[:5])
-        
-        return {
-            'name': gemini_result.get('name', extract_name(text)),
-            'email': gemini_result.get('email', extract_email(text)),
-            'phone': gemini_result.get('phone', extract_phone(text)),
-            'skills': skills if skills else extract_skills_from_text(text),
-            'work_history': work_history if work_history else "",
-            'certifications': certifications if certifications else "",
-            'resume_text': text[:1000],
-            'ai_used': True
-        }
-    else:
-        print("⚠️ Using fallback parser")
-        skills = extract_skills_from_text(text)
-        return {
-            'name': extract_name(text),
-            'email': extract_email(text),
-            'phone': extract_phone(text),
-            'skills': skills,
-            'work_history': "",
-            'certifications': "",
-            'resume_text': text[:1000],
-            'ai_used': False
-        }
+def extract_work_history(text):
+    lines = text.split('\n')
+    experience = []
+    keywords = ['experience', 'work', 'employment', 'job', 'position', 'role']
+    for line in lines[:50]:
+        line_lower = line.lower()
+        if any(kw in line_lower for kw in keywords):
+            clean_line = re.sub(r'\s+', ' ', line).strip()
+            if 10 < len(clean_line) < 300:
+                experience.append(clean_line)
+    return ' | '.join(experience[:3]) if experience else ""
+
+def extract_certifications(text):
+    cert_keywords = ['certified', 'certification', 'certificate', 'PMP', 'CISSP', 'AWS']
+    found = []
+    text_lower = text.lower()
+    for keyword in cert_keywords:
+        if keyword.lower() in text_lower:
+            sentences = re.split(r'[.!?]+', text)
+            for sentence in sentences:
+                if keyword.lower() in sentence.lower():
+                    clean = re.sub(r'\s+', ' ', sentence).strip()
+                    if len(clean) < 100:
+                        found.append(clean)
+                        break
+    return ' | '.join(found[:3]) if found else ""
 
 # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
@@ -281,9 +265,7 @@ HTML_TEMPLATE = '''
         .header { background: linear-gradient(135deg, #1A4D4A 0%, #0F3533 100%); color: white; padding: 30px; border-radius: 16px; margin-bottom: 30px; }
         .header h1 { font-size: 2em; margin-bottom: 10px; }
         
-        .ai-badge { display: inline-block; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
-        .ai-enabled { background: #27AE60; }
-        .ai-disabled { background: #E74C3C; }
+        .badge-ai { display: inline-block; background: #27AE60; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
         
         .tabs { display: flex; gap: 5px; margin-bottom: 30px; background: white; padding: 10px; border-radius: 12px; flex-wrap: wrap; }
         .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #7F8C8D; border-radius: 8px; }
@@ -305,13 +287,11 @@ HTML_TEMPLATE = '''
         .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .match-high { color: #27AE60; font-weight: bold; }
-        .match-medium { color: #F39C12; font-weight: bold; }
-        .match-low { color: #E74C3C; font-weight: bold; }
-        
         .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; }
         
         @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } }
+        .text-center { text-align: center; }
+        .mt-20 { margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -319,12 +299,12 @@ HTML_TEMPLATE = '''
         <div class="header">
             <h1>🎯 ShahnaIT Scout 
                 {% if gemini_enabled %}
-                <span class="ai-badge ai-enabled">🤖 AI ENHANCED</span>
+                <span class="badge-ai">🤖 AI ENHANCED</span>
                 {% else %}
-                <span class="ai-badge ai-disabled">⚠️ AI DISABLED - Add API Key</span>
+                <span class="badge-ai" style="background:#E74C3C;">⚠️ AI DISABLED</span>
                 {% endif %}
             </h1>
-            <p>Intelligent Recruitment Platform with {% if gemini_enabled %}Gemini AI{% else %}Basic{% endif %} Parsing</p>
+            <p>Intelligent Recruitment Platform with {% if gemini_enabled %}Gemini AI{% else %}Smart{% endif %} Parsing</p>
         </div>
         
         <div class="tabs">
@@ -347,7 +327,7 @@ HTML_TEMPLATE = '''
                 {% if gemini_enabled %}
                 <p style="color: #27AE60; margin-bottom: 10px;">✅ Gemini AI is ACTIVE - Your resume will be parsed with AI!</p>
                 {% else %}
-                <p style="color: #E74C3C; margin-bottom: 10px;">❌ Gemini AI is DISABLED - Add GEMINI_API_KEY to Railway variables</p>
+                <p style="color: #E74C3C; margin-bottom: 10px;">❌ Gemini AI is DISABLED - Add GEMINI_API_KEY to Railway</p>
                 {% endif %}
                 <input type="file" id="resume-file" accept=".pdf,.docx">
                 <button class="btn-primary" onclick="uploadResume()">🔍 Parse Resume</button>
@@ -397,7 +377,7 @@ HTML_TEMPLATE = '''
                     <div class="card">
                         <h3>${escapeHtml(job.title)}</h3>
                         ${job.company ? `<p><strong>Company:</strong> ${escapeHtml(job.company)}</p>` : ''}
-                        ${job.required_skills ? `<p><strong>🔧 Required Skills:</strong> ${job.required_skills.split(',').map(s => `<span class="skill-tag">${s.trim()}</span>`).join('')}</p>` : ''}
+                        ${job.required_skills ? `<p><strong>🔧 Skills:</strong> ${job.required_skills.split(',').map(s => `<span class="skill-tag">${s.trim()}</span>`).join('')}</p>` : ''}
                         <small>📅 Created: ${new Date(job.created_at).toLocaleDateString()}</small>
                     </div>
                 `).join('');
@@ -458,13 +438,13 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
-                let aiBadge = result.ai_used ? '<span style="background:#27AE60; padding:2px 8px; border-radius:12px; margin-left:10px; font-size:12px;">🤖 AI Parsed</span>' : '<span style="background:#E74C3C; padding:2px 8px; border-radius:12px; margin-left:10px; font-size:12px;">⚠️ Basic Parse</span>';
+                let aiBadge = result.ai_used ? '<span style="background:#27AE60; padding:2px 8px; border-radius:12px; margin-left:10px; font-size:12px;">🤖 AI</span>' : '';
                 
                 let jobSelector = '';
                 if (jobsData.length > 0) {
                     jobSelector = `
-                        <select id="job-select" style="margin: 15px 0;">
-                            <option value="">Select job for match score (optional)</option>
+                        <select id="job-select" style="margin: 15px 0; width: 100%; padding: 10px;">
+                            <option value="">Select job for match score</option>
                             ${jobsData.map(job => `<option value="${job.id}">${job.title}</option>`).join('')}
                         </select>
                     `;
@@ -472,7 +452,7 @@ HTML_TEMPLATE = '''
                 
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>✅ Resume Parsed Successfully! ${aiBadge}</h4>
+                        <h4>✅ Resume Parsed! ${aiBadge}</h4>
                         <p><strong>Name:</strong> ${escapeHtml(result.name || 'Not found')}</p>
                         <p><strong>Email:</strong> ${escapeHtml(result.email || 'Not found')}</p>
                         <p><strong>Phone:</strong> ${escapeHtml(result.phone || 'Not found')}</p>
@@ -494,13 +474,6 @@ HTML_TEMPLATE = '''
             const dataToSave = { ...candidateData };
             if (jobId) {
                 dataToSave.job_id = parseInt(jobId);
-                const selectedJob = jobsData.find(j => j.id == jobId);
-                if (selectedJob && selectedJob.required_skills && candidateData.skills) {
-                    const jobSkills = selectedJob.required_skills.split(',').map(s => s.trim().toLowerCase());
-                    const candidateSkillsLower = candidateData.skills.map(s => s.toLowerCase());
-                    const matches = jobSkills.filter(skill => candidateSkillsLower.includes(skill));
-                    dataToSave.match_score = Math.round((matches.length / jobSkills.length) * 100);
-                }
             }
             
             try {
