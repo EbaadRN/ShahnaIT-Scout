@@ -1,9 +1,10 @@
-# app.py - WITH EXPORT TO CSV FEATURE
+# app.py - WITH VISIBLE GEMINI STATUS
 import os
 import re
 import sqlite3
 import csv
 import io
+import json
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template_string, Response
 from flask_cors import CORS
@@ -13,6 +14,35 @@ import docx
 
 app = Flask(__name__)
 CORS(app)
+
+# ============ GEMINI SETUP WITH DEBUG ============
+GEMINI_ENABLED = False
+GEMINI_ERROR = None
+
+try:
+    import google.generativeai as genai
+    print("✅ google-generativeai imported successfully")
+    
+    api_key = os.getenv('GEMINI_API_KEY')
+    print(f"GEMINI_API_KEY present: {bool(api_key)}")
+    
+    if api_key:
+        genai.configure(api_key=api_key)
+        gemini_model = genai.GenerativeModel('gemini-pro')
+        GEMINI_ENABLED = True
+        print("✅✅✅ GEMINI AI IS ACTIVE AND WORKING! ✅✅✅")
+    else:
+        GEMINI_ERROR = "No API key found"
+        print("❌ GEMINI_API_KEY not found in environment")
+        
+except ImportError as e:
+    GEMINI_ERROR = "Package not installed"
+    print(f"❌ google-generativeai not installed: {e}")
+except Exception as e:
+    GEMINI_ERROR = str(e)
+    print(f"❌ Gemini setup error: {e}")
+
+print(f"Final GEMINI_ENABLED: {GEMINI_ENABLED}")
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -79,6 +109,63 @@ def extract_skills_from_text(text):
             found_skills.append(skill)
     return found_skills
 
+def extract_skills_with_gemini(text, is_resume=True):
+    """Extract skills using Gemini AI"""
+    if not GEMINI_ENABLED:
+        return extract_skills_from_text(text)
+    
+    try:
+        prompt = f"""
+        Analyze this {'resume' if is_resume else 'job description'} and extract ALL technical and professional skills.
+        Return ONLY a JSON array of skill names, nothing else.
+        Example output: ["Python", "Machine Learning", "Project Management"]
+        
+        Text to analyze:
+        {text[:3000]}
+        """
+        
+        response = gemini_model.generate_content(prompt)
+        skills_text = response.text.strip()
+        skills_text = re.sub(r'```json\s*', '', skills_text)
+        skills_text = re.sub(r'```\s*', '', skills_text)
+        skills = json.loads(skills_text)
+        return skills if isinstance(skills, list) else []
+    except Exception as e:
+        print(f"Gemini extraction error: {e}")
+        return extract_skills_from_text(text)
+
+def parse_with_gemini(resume_text):
+    """Use Gemini to parse entire resume"""
+    if not GEMINI_ENABLED:
+        return None
+    
+    try:
+        prompt = f"""
+        Parse this resume and return a JSON object with these fields:
+        - name: The candidate's full name
+        - email: Email address
+        - phone: Phone number
+        - skills: Array of technical and professional skills
+        - work_history: Array of work experiences (each with title, company, duration)
+        - certifications: Array of certifications
+        - education: Highest degree and field
+        
+        Resume text:
+        {resume_text[:4000]}
+        
+        Return ONLY valid JSON, nothing else.
+        """
+        
+        response = gemini_model.generate_content(prompt)
+        json_text = re.sub(r'```json\s*', '', response.text)
+        json_text = re.sub(r'```\s*', '', json_text)
+        parsed = json.loads(json_text)
+        print(f"✅ Gemini parsing successful")
+        return parsed
+    except Exception as e:
+        print(f"Gemini parse error: {e}")
+        return None
+
 def calculate_match_score(candidate_skills, job_skills):
     if not job_skills:
         return 0
@@ -128,30 +215,8 @@ def extract_name(text):
         return lines[0].strip()
     return "Unknown"
 
-def extract_work_history(text):
-    lines = text.split('\n')
-    experience = []
-    keywords = ['experience', 'work', 'employment', 'job', 'position', 'role']
-    for i, line in enumerate(lines[:50]):
-        line_lower = line.lower()
-        if any(kw in line_lower for kw in keywords):
-            if len(line) > 10 and len(line) < 200:
-                experience.append(line.strip())
-    return ' | '.join(experience[:3]) if experience else ""
-
-def extract_certifications(text):
-    cert_patterns = [
-        r'certified', r'certification', r'certificate', r'PMP', r'CISSP', r'AWS',
-        r'Scrum Master', r'ITIL', r'CPA', r'CFA', r'CCNA', r'MCSE', r'CISM'
-    ]
-    found = []
-    text_lower = text.lower()
-    for pattern in cert_patterns:
-        if pattern.lower() in text_lower:
-            found.append(pattern.upper())
-    return ', '.join(found[:5]) if found else ""
-
 def parse_resume_file(file_path):
+    """Parse resume - uses Gemini if available"""
     if file_path.endswith('.pdf'):
         text = extract_text_from_pdf(file_path)
     elif file_path.endswith('.docx'):
@@ -162,17 +227,44 @@ def parse_resume_file(file_path):
     if not text:
         return {'error': 'Could not extract text from file'}
     
-    skills = extract_skills_from_text(text)
+    print(f"Parsing resume, Gemini enabled: {GEMINI_ENABLED}")
     
-    return {
-        'name': extract_name(text),
-        'email': extract_email(text),
-        'phone': extract_phone(text),
-        'skills': skills,
-        'work_history': extract_work_history(text),
-        'certifications': extract_certifications(text),
-        'resume_text': text[:1000]
-    }
+    # Try Gemini first
+    gemini_result = parse_with_gemini(text)
+    
+    if gemini_result:
+        print("✅ Using Gemini results")
+        skills = gemini_result.get('skills', [])
+        work_history = gemini_result.get('work_history', [])
+        if isinstance(work_history, list):
+            work_history = ' | '.join([f"{w.get('title', '')} at {w.get('company', '')}" for w in work_history[:3]])
+        certifications = gemini_result.get('certifications', [])
+        if isinstance(certifications, list):
+            certifications = ', '.join(certifications[:5])
+        
+        return {
+            'name': gemini_result.get('name', extract_name(text)),
+            'email': gemini_result.get('email', extract_email(text)),
+            'phone': gemini_result.get('phone', extract_phone(text)),
+            'skills': skills if skills else extract_skills_from_text(text),
+            'work_history': work_history if work_history else "",
+            'certifications': certifications if certifications else "",
+            'resume_text': text[:1000],
+            'ai_used': True
+        }
+    else:
+        print("⚠️ Using fallback parser")
+        skills = extract_skills_from_text(text)
+        return {
+            'name': extract_name(text),
+            'email': extract_email(text),
+            'phone': extract_phone(text),
+            'skills': skills,
+            'work_history': "",
+            'certifications': "",
+            'resume_text': text[:1000],
+            'ai_used': False
+        }
 
 # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
@@ -189,6 +281,10 @@ HTML_TEMPLATE = '''
         .header { background: linear-gradient(135deg, #1A4D4A 0%, #0F3533 100%); color: white; padding: 30px; border-radius: 16px; margin-bottom: 30px; }
         .header h1 { font-size: 2em; margin-bottom: 10px; }
         
+        .ai-badge { display: inline-block; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
+        .ai-enabled { background: #27AE60; }
+        .ai-disabled { background: #E74C3C; }
+        
         .tabs { display: flex; gap: 5px; margin-bottom: 30px; background: white; padding: 10px; border-radius: 12px; flex-wrap: wrap; }
         .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #7F8C8D; border-radius: 8px; }
         .tab-btn:hover { background: #F5F0E8; color: #1A4D4A; }
@@ -198,9 +294,7 @@ HTML_TEMPLATE = '''
         .card h3 { color: #1A4D4A; margin-bottom: 12px; }
         
         .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; margin-bottom: 10px; }
-        .btn-primary:hover { background: #2A6B67; transform: translateY(-1px); }
-        .btn-secondary { background: #7F8C8D; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .btn-secondary:hover { background: #95A5A6; }
+        .btn-primary:hover { background: #2A6B67; }
         
         input, textarea { width: 100%; padding: 12px; margin: 10px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; }
         input:focus, textarea:focus { outline: none; border-color: #1A4D4A; }
@@ -211,24 +305,26 @@ HTML_TEMPLATE = '''
         .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .match-high { color: #27AE60; font-weight: bold; font-size: 1.2em; }
-        .match-medium { color: #F39C12; font-weight: bold; font-size: 1.2em; }
-        .match-low { color: #E74C3C; font-weight: bold; font-size: 1.2em; }
+        .match-high { color: #27AE60; font-weight: bold; }
+        .match-medium { color: #F39C12; font-weight: bold; }
+        .match-low { color: #E74C3C; font-weight: bold; }
         
         .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; }
         
-        .button-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-        
         @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } }
-        .text-center { text-align: center; }
-        .mt-20 { margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 ShahnaIT Scout</h1>
-            <p>Intelligent Recruitment Platform with JD Parsing & Match Scoring</p>
+            <h1>🎯 ShahnaIT Scout 
+                {% if gemini_enabled %}
+                <span class="ai-badge ai-enabled">🤖 AI ENHANCED</span>
+                {% else %}
+                <span class="ai-badge ai-disabled">⚠️ AI DISABLED - Add API Key</span>
+                {% endif %}
+            </h1>
+            <p>Intelligent Recruitment Platform with {% if gemini_enabled %}Gemini AI{% else %}Basic{% endif %} Parsing</p>
         </div>
         
         <div class="tabs">
@@ -241,15 +337,18 @@ HTML_TEMPLATE = '''
         <div id="jobs-tab"><div id="jobs-list"></div></div>
         
         <div id="candidates-tab" style="display:none;">
-            <div class="button-group">
-                <button class="btn-primary" onclick="exportToCSV()">📥 Export to CSV</button>
-            </div>
+            <button class="btn-primary" onclick="exportToCSV()">📥 Export to CSV</button>
             <div id="candidates-list"></div>
         </div>
         
         <div id="upload-tab" style="display:none;">
             <div class="card">
                 <h3>📄 Upload Resume (PDF or DOCX)</h3>
+                {% if gemini_enabled %}
+                <p style="color: #27AE60; margin-bottom: 10px;">✅ Gemini AI is ACTIVE - Your resume will be parsed with AI!</p>
+                {% else %}
+                <p style="color: #E74C3C; margin-bottom: 10px;">❌ Gemini AI is DISABLED - Add GEMINI_API_KEY to Railway variables</p>
+                {% endif %}
                 <input type="file" id="resume-file" accept=".pdf,.docx">
                 <button class="btn-primary" onclick="uploadResume()">🔍 Parse Resume</button>
                 <div id="parse-result" class="mt-20"></div>
@@ -262,7 +361,7 @@ HTML_TEMPLATE = '''
                 <form onsubmit="createJob(event)">
                     <input type="text" id="job-title" placeholder="Job Title *" required>
                     <input type="text" id="job-company" placeholder="Company Name">
-                    <textarea id="job-desc" rows="4" placeholder="Job Description (skills will be auto-extracted)"></textarea>
+                    <textarea id="job-desc" rows="4" placeholder="Job Description"></textarea>
                     <button type="submit" class="btn-primary">Create Job</button>
                 </form>
             </div>
@@ -271,6 +370,7 @@ HTML_TEMPLATE = '''
     
     <script>
         let jobsData = [];
+        let geminiEnabled = {{ 'true' if gemini_enabled else 'false' }};
         
         function showTab(tabName) {
             document.getElementById('jobs-tab').style.display = 'none';
@@ -278,10 +378,8 @@ HTML_TEMPLATE = '''
             document.getElementById('upload-tab').style.display = 'none';
             document.getElementById('create-job-tab').style.display = 'none';
             document.getElementById(tabName + '-tab').style.display = 'block';
-            
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
-            
             if (tabName === 'jobs') loadJobs();
             if (tabName === 'candidates') loadCandidates();
         }
@@ -292,7 +390,7 @@ HTML_TEMPLATE = '''
                 jobsData = await response.json();
                 const container = document.getElementById('jobs-list');
                 if (jobsData.length === 0) {
-                    container.innerHTML = '<div class="card text-center">No jobs yet. Create one using the "Create Job" tab.</div>';
+                    container.innerHTML = '<div class="card text-center">No jobs yet.</div>';
                     return;
                 }
                 container.innerHTML = jobsData.map(job => `
@@ -314,7 +412,7 @@ HTML_TEMPLATE = '''
                 const candidates = await response.json();
                 const container = document.getElementById('candidates-list');
                 if (candidates.length === 0) {
-                    container.innerHTML = '<div class="card text-center">No candidates yet. Upload resumes to add candidates.</div>';
+                    container.innerHTML = '<div class="card text-center">No candidates yet.</div>';
                     return;
                 }
                 container.innerHTML = candidates.map(c => `
@@ -325,7 +423,6 @@ HTML_TEMPLATE = '''
                         ${c.skills ? `<p><strong>🔧 Skills:</strong> ${c.skills.split(',').map(s => `<span class="skill-tag">${s.trim()}</span>`).join('')}</p>` : ''}
                         ${c.work_history ? `<p><strong>💼 Work History:</strong> ${escapeHtml(c.work_history)}</p>` : ''}
                         ${c.certifications ? `<p><strong>📜 Certifications:</strong> ${escapeHtml(c.certifications)}</p>` : ''}
-                        ${c.match_score ? `<p><strong>🎯 Match Score:</strong> <span class="${c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low')}">${c.match_score}%</span></p>` : ''}
                         <small>📅 Added: ${new Date(c.created_at).toLocaleDateString()}</small>
                     </div>
                 `).join('');
@@ -335,11 +432,7 @@ HTML_TEMPLATE = '''
         }
         
         async function exportToCSV() {
-            try {
-                window.location.href = '/api/export-candidates';
-            } catch (error) {
-                alert('Error exporting data');
-            }
+            window.location.href = '/api/export-candidates';
         }
         
         async function uploadResume() {
@@ -365,27 +458,29 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
+                let aiBadge = result.ai_used ? '<span style="background:#27AE60; padding:2px 8px; border-radius:12px; margin-left:10px; font-size:12px;">🤖 AI Parsed</span>' : '<span style="background:#E74C3C; padding:2px 8px; border-radius:12px; margin-left:10px; font-size:12px;">⚠️ Basic Parse</span>';
+                
                 let jobSelector = '';
                 if (jobsData.length > 0) {
                     jobSelector = `
                         <select id="job-select" style="margin: 15px 0;">
-                            <option value="">Select a job to calculate match score (optional)</option>
-                            ${jobsData.map(job => `<option value="${job.id}">${job.title}${job.required_skills ? ' - Skills: ' + job.required_skills.substring(0, 50) : ''}</option>`).join('')}
+                            <option value="">Select job for match score (optional)</option>
+                            ${jobsData.map(job => `<option value="${job.id}">${job.title}</option>`).join('')}
                         </select>
                     `;
                 }
                 
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>✅ Resume Parsed Successfully!</h4>
+                        <h4>✅ Resume Parsed Successfully! ${aiBadge}</h4>
                         <p><strong>Name:</strong> ${escapeHtml(result.name || 'Not found')}</p>
                         <p><strong>Email:</strong> ${escapeHtml(result.email || 'Not found')}</p>
                         <p><strong>Phone:</strong> ${escapeHtml(result.phone || 'Not found')}</p>
-                        <p><strong>Skills:</strong> ${result.skills ? result.skills.map(s => `<span class="skill-tag">${s}</span>`).join('') : 'None found'}</p>
-                        <p><strong>Work History:</strong> ${escapeHtml(result.work_history || 'None found')}</p>
-                        <p><strong>Certifications:</strong> ${escapeHtml(result.certifications || 'None found')}</p>
+                        <p><strong>Skills:</strong> ${result.skills ? result.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') : 'None'}</p>
+                        <p><strong>Work History:</strong> ${escapeHtml(result.work_history || 'None')}</p>
+                        <p><strong>Certifications:</strong> ${escapeHtml(result.certifications || 'None')}</p>
                         ${jobSelector}
-                        <button class="btn-primary" onclick='saveCandidateWithJob(${JSON.stringify(result).replace(/'/g, "\\'")})' style="margin-top:15px">💾 Save Candidate</button>
+                        <button class="btn-primary" onclick='saveCandidateWithJob(${JSON.stringify(result).replace(/'/g, "\\'")})'>💾 Save Candidate</button>
                     </div>
                 `;
             } catch (error) {
@@ -396,13 +491,15 @@ HTML_TEMPLATE = '''
         async function saveCandidateWithJob(candidateData) {
             const jobSelect = document.getElementById('job-select');
             const jobId = jobSelect ? jobSelect.value : null;
-            
             const dataToSave = { ...candidateData };
             if (jobId) {
                 dataToSave.job_id = parseInt(jobId);
                 const selectedJob = jobsData.find(j => j.id == jobId);
                 if (selectedJob && selectedJob.required_skills && candidateData.skills) {
-                    dataToSave.match_score = await calculateMatchScore(candidateData.skills, selectedJob.required_skills);
+                    const jobSkills = selectedJob.required_skills.split(',').map(s => s.trim().toLowerCase());
+                    const candidateSkillsLower = candidateData.skills.map(s => s.toLowerCase());
+                    const matches = jobSkills.filter(skill => candidateSkillsLower.includes(skill));
+                    dataToSave.match_score = Math.round((matches.length / jobSkills.length) * 100);
                 }
             }
             
@@ -413,23 +510,14 @@ HTML_TEMPLATE = '''
                     body: JSON.stringify(dataToSave)
                 });
                 if (response.ok) {
-                    alert('Candidate saved successfully!');
+                    alert('Candidate saved!');
                     document.getElementById('parse-result').innerHTML = '';
                     document.getElementById('resume-file').value = '';
                     loadCandidates();
-                } else {
-                    alert('Error saving candidate');
                 }
             } catch (error) {
-                alert('Error saving candidate');
+                alert('Error saving');
             }
-        }
-        
-        async function calculateMatchScore(candidateSkills, jobSkillsStr) {
-            const jobSkills = jobSkillsStr.split(',').map(s => s.trim().toLowerCase());
-            const candidateSkillsLower = candidateSkills.map(s => s.toLowerCase());
-            const matches = jobSkills.filter(skill => candidateSkillsLower.includes(skill));
-            return Math.round((matches.length / jobSkills.length) * 100);
         }
         
         async function createJob(event) {
@@ -439,27 +527,20 @@ HTML_TEMPLATE = '''
                 company: document.getElementById('job-company').value,
                 description: document.getElementById('job-desc').value
             };
+            if (!jobData.title) { alert('Job title required'); return; }
             
-            if (!jobData.title) { alert('Job title is required'); return; }
-            
-            try {
-                const response = await fetch('/api/jobs', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(jobData)
-                });
-                if (response.ok) {
-                    alert('Job created successfully! Skills auto-extracted from description.');
-                    document.getElementById('job-title').value = '';
-                    document.getElementById('job-company').value = '';
-                    document.getElementById('job-desc').value = '';
-                    showTab('jobs');
-                    loadJobs();
-                } else {
-                    alert('Error creating job');
-                }
-            } catch (error) {
-                alert('Error creating job');
+            const response = await fetch('/api/jobs', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(jobData)
+            });
+            if (response.ok) {
+                alert('Job created!');
+                document.getElementById('job-title').value = '';
+                document.getElementById('job-company').value = '';
+                document.getElementById('job-desc').value = '';
+                showTab('jobs');
+                loadJobs();
             }
         }
         
@@ -479,7 +560,7 @@ HTML_TEMPLATE = '''
 # ============ API ROUTES ============
 @app.route('/')
 def index():
-    return HTML_TEMPLATE
+    return render_template_string(HTML_TEMPLATE, gemini_enabled=GEMINI_ENABLED)
 
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
@@ -495,7 +576,6 @@ def get_jobs():
 def create_job():
     data = request.json
     description = data.get('description', '')
-    
     required_skills = extract_skills_from_text(description)
     skills_str = ', '.join(required_skills)
     
@@ -506,7 +586,7 @@ def create_job():
               (data.get('title'), data.get('company'), description, skills_str))
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Job created', 'extracted_skills': required_skills})
+    return jsonify({'message': 'Job created'})
 
 @app.route('/api/candidates', methods=['GET'])
 def get_candidates():
@@ -543,34 +623,14 @@ def export_candidates():
     candidates = [dict(row) for row in c.fetchall()]
     conn.close()
     
-    # Create CSV in memory
     output = io.StringIO()
     writer = csv.writer(output)
-    
-    # Write headers
     writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Work History', 'Certifications', 'Match Score', 'Created Date'])
-    
-    # Write data
     for c in candidates:
-        writer.writerow([
-            c.get('id', ''),
-            c.get('name', ''),
-            c.get('email', ''),
-            c.get('phone', ''),
-            c.get('skills', ''),
-            c.get('work_history', ''),
-            c.get('certifications', ''),
-            c.get('match_score', ''),
-            c.get('created_at', '')
-        ])
+        writer.writerow([c.get('id', ''), c.get('name', ''), c.get('email', ''), c.get('phone', ''), c.get('skills', ''), c.get('work_history', ''), c.get('certifications', ''), c.get('match_score', ''), c.get('created_at', '')])
     
-    # Return as downloadable file
     output.seek(0)
-    return Response(
-        output.getvalue(),
-        mimetype='text/csv',
-        headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'}
-    )
+    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'})
 
 @app.route('/api/parse-resume', methods=['POST'])
 def parse_resume():
@@ -582,7 +642,7 @@ def parse_resume():
         return jsonify({'error': 'No file selected'}), 400
     
     if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type. Use PDF or DOCX'}), 400
+        return jsonify({'error': 'Invalid file type'}), 400
     
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
