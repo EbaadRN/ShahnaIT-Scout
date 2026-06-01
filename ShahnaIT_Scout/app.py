@@ -110,7 +110,10 @@ def manage_candidates():
         next_id += 1
         return jsonify({'success': True, 'candidate_id': candidate['id']})
     return jsonify(candidates)
-
+# Create tables
+with app.app_context():
+    db.create_all()
+    print("Database tables created")
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port, debug=False)
