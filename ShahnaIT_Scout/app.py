@@ -1307,9 +1307,6 @@ def view_candidate_document(candidate_id, doc_id):
         as_attachment=False,
         download_name=doc['filename']
     )
-
-@app.route('/api/candidates/parse-with-gemini', methods=['POST'])
-def parse_candidate_with_gemini():
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
