@@ -1,4 +1,4 @@
-# app.py - WITH DETAILED ANALYSIS FORMAT
+# app.py - COMPLETE FIXED VERSION with ALL Features
 import os
 import re
 import sqlite3
@@ -34,34 +34,23 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
 else:
     print("❌ No valid GROQ_API_KEY found")
 
-def call_groq_api(prompt, max_tokens=2000):
+def call_groq_api(prompt, max_tokens=2500):
     """Call Groq API for AI analysis"""
     if not GROQ_API_KEY:
         return None
     
     url = "https://api.groq.com/openai/v1/chat/completions"
-    
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.3-70b-versatile",
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
+        "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.1,
         "max_tokens": max_tokens
     }
     
     try:
-        print(f"Calling Groq API for detailed analysis...")
+        print(f"Calling Groq API...")
         response = requests.post(url, json=payload, headers=headers, timeout=45)
-        
         if response.status_code == 200:
             data = response.json()
             result_text = data['choices'][0]['message']['content']
@@ -90,34 +79,18 @@ JOB DESCRIPTION:
 RESUME:
 {resume_text}
 
-Return ONLY valid JSON with these exact fields (no other text before or after):
+Return ONLY valid JSON with these exact fields:
 
 {{
     "executive_summary": {{
         "overall_relevance": "Very High/High/Medium/Low",
-        "verdict_table": {{
-            "Overall Relevance": "text",
-            "Domain Experience": "text with emoji",
-            "Experience Level": "text",
-            "Certifications": "text",
-            "Missing Requirements": "text",
-            "Location": "text",
-            "Rate": "text",
-            "Genuineness": "text"
-        }},
-        "final_verdict": "Strong shortlist candidate / Proceed with caution / Not recommended"
+        "final_verdict": "text"
     }},
     "relevance_analysis": {{
         "mandatory_experience": [
-            {{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low", "notes": "text"}}
-        ],
-        "clouds": [
             {{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low"}}
         ],
         "technical_skills": [
-            {{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low"}}
-        ],
-        "certifications": [
             {{"requirement": "text", "match": "✅/⚠️/❌"}}
         ]
     }},
@@ -126,31 +99,20 @@ Return ONLY valid JSON with these exact fields (no other text before or after):
         "analysis": "text",
         "pre_screen_question": "text"
     }},
-    "certifications_assessment": {{
-        "summary": "text",
-        "comparison_note": "text"
-    }},
     "genuineness_assessment": {{
         "score": 0,
         "positives": ["positive1", "positive2"],
-        "minor_concerns": [{{"concern": "text", "severity": "Low/Medium", "question": "text"}}],
-        "red_flags": [],
-        "final_score": 0
+        "minor_concerns": [{{"concern": "text", "severity": "Low/Medium"}}]
     }},
     "final_verdict": {{
         "decision": "Proceed to interview / Reject / Need more info",
         "risk_level": "Low/Medium/High",
-        "go_no_go_summary": [
-            {{"criteria": "text", "status": "✅/⚠️/❌"}}
-        ],
         "final_call": "text"
     }},
     "pre_screening_questions": ["question1", "question2", "question3", "question4", "question5"],
     "match_score": 0,
     "recommendation": "hire/interview/reject"
-}}
-
-Be thorough and specific. For confidence ratings, use evidence from the resume."""
+}}"""
     
     response_text = call_groq_api(prompt, max_tokens=2500)
     
@@ -163,14 +125,12 @@ Be thorough and specific. For confidence ratings, use evidence from the resume."
                 response_text = response_text[3:]
             if response_text.endswith('```'):
                 response_text = response_text[:-3]
-            
             result = json.loads(response_text)
             print(f"✅ Detailed Groq analysis successful")
             return result
         except json.JSONDecodeError as e:
             print(f"JSON parse error: {e}")
             return None
-    
     return None
 
 def parse_resume_with_groq(resume_text):
@@ -179,7 +139,6 @@ def parse_resume_with_groq(resume_text):
         return None
     
     resume_text = resume_text[:2500]
-    
     prompt = f"""Extract information from this resume. Return ONLY valid JSON.
 
 Resume: {resume_text}
@@ -200,13 +159,29 @@ Return JSON: {{"name": "", "email": "", "phone": "", "skills": [], "work_history
             return json.loads(response_text)
         except:
             return None
-    
     return None
 
-# ============ DATABASE SETUP ============
+# ============ DATABASE SETUP WITH AUTO-FIX ============
 def init_db():
     conn = sqlite3.connect('shahnai.db')
     c = conn.cursor()
+    
+    # Drop and recreate candidates table with correct schema
+    c.execute('DROP TABLE IF EXISTS candidates')
+    c.execute('''CREATE TABLE candidates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT,
+        email TEXT,
+        phone TEXT,
+        skills TEXT,
+        work_history TEXT,
+        certifications TEXT,
+        resume_text TEXT,
+        match_score INTEGER,
+        recommendation TEXT,
+        detailed_analysis TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS jobs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -218,32 +193,9 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     
-    c.execute('''CREATE TABLE IF NOT EXISTS candidates (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        email TEXT,
-        phone TEXT,
-        skills TEXT,
-        work_history TEXT,
-        certifications TEXT,
-        education TEXT,
-        resume_text TEXT,
-        job_id INTEGER,
-        match_score INTEGER,
-        recommendation TEXT,
-        detailed_analysis TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )''')
-    
-    # Check if detailed_analysis column exists, if not add it
-    try:
-        c.execute('ALTER TABLE candidates ADD COLUMN detailed_analysis TEXT')
-    except sqlite3.OperationalError:
-        pass  # Column already exists
-    
     conn.commit()
     conn.close()
-    print("✅ Database initialized")
+    print("✅ Database initialized with correct schema")
 
 init_db()
 
@@ -252,8 +204,8 @@ COMMON_SKILLS = [
     'Python', 'Java', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue', 'Node.js',
     'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes',
     'Machine Learning', 'AI', 'Data Science', 'Excel', 'Tableau', 'Power BI',
-    'HTML', 'CSS', 'Git', 'REST API', 'GraphQL', 'C++', 'C#', '.NET', 'PHP', 'Ruby',
-    'Salesforce', 'Apex', 'LWC', 'Sales Cloud', 'Service Cloud', 'Experience Cloud'
+    'HTML', 'CSS', 'Git', 'REST API', 'GraphQL', 'Power Apps', 'Power Automate', 'Azure DevOps',
+    'Salesforce', 'Apex', 'LWC', 'Sales Cloud', 'Service Cloud'
 ]
 
 def extract_skills_from_text(text):
@@ -290,7 +242,7 @@ def extract_email(text):
     return emails[0] if emails else ""
 
 def extract_phone(text):
-    pattern = r'\b\d{10}\b|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'
+    pattern = r'\b\d{10}\b|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\+\d{2}\s?\d{10}\b'
     phones = re.findall(pattern, text)
     return phones[0] if phones else ""
 
@@ -312,15 +264,14 @@ def extract_work_history(text):
     return ' | '.join(experience[:3]) if experience else ""
 
 def extract_certifications(text):
-    certs = ['PMP', 'CISSP', 'AWS', 'Scrum', 'ITIL', 'CPA', 'CFA', 'CCNA', 'MCSE', 
-             'Platform Developer', 'Administrator', 'Salesforce Certified']
+    certs = ['PMP', 'CISSP', 'AWS', 'Scrum', 'ITIL', 'CPA', 'CFA', 'CCNA', 'MCSE']
     found = []
     for cert in certs:
         if cert.lower() in text.lower():
             found.append(cert)
     return ', '.join(found) if found else ""
 
-def parse_resume_file(file_path, jd_text=None):
+def parse_resume_file(file_path):
     if file_path.endswith('.pdf'):
         text = extract_text_from_pdf(file_path)
     else:
@@ -388,7 +339,6 @@ HTML_TEMPLATE = '''
         .alert-success { background: #27AE60; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         .alert-error { background: #E74C3C; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         .alert-info { background: #3498DB; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
-        .alert-warning { background: #F39C12; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         
         .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -404,19 +354,12 @@ HTML_TEMPLATE = '''
         .recommend-reject { background: #E74C3C; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
         
         .analysis-section { background: #F8F9FA; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #1A4D4A; }
-        .verdict-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-        .verdict-table td { padding: 8px; border-bottom: 1px solid #E0E0E0; }
-        .verdict-table td:first-child { font-weight: bold; width: 40%; }
-        
-        .requirement-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #E0E0E0; }
-        .match-badge { font-size: 14px; }
+        .pre-screen-questions { background: #E8F5E9; padding: 15px; border-radius: 10px; margin: 15px 0; }
+        .pre-screen-questions li { margin: 8px 0; margin-left: 20px; }
         
         .flex { display: flex; gap: 20px; flex-wrap: wrap; }
         .flex-2 { flex: 2; }
         .flex-1 { flex: 1; }
-        
-        .pre-screen-questions { background: #E8F5E9; padding: 15px; border-radius: 10px; margin: 15px 0; }
-        .pre-screen-questions li { margin: 8px 0; margin-left: 20px; }
         
         @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } .flex { flex-direction: column; } }
         .text-center { text-align: center; }
@@ -482,7 +425,7 @@ HTML_TEMPLATE = '''
         <div id="analyze-tab" style="display:none;">
             <div class="card">
                 <h3>🔍 Detailed AI-Powered Resume-JD Match Analysis</h3>
-                <p>Get comprehensive analysis including executive summary, relevance assessment, certification gap analysis, genuineness assessment, and pre-screening questions.</p>
+                <p>Get comprehensive analysis including executive summary, relevance assessment, domain analysis, genuineness assessment, and pre-screening questions.</p>
                 <div class="flex">
                     <div class="flex-1">
                         <label>📋 Select Job</label>
@@ -623,7 +566,8 @@ HTML_TEMPLATE = '''
                 document.getElementById('resume-file').value = '';
                 loadCandidates();
             } else {
-                alert('Error saving candidate');
+                const error = await response.json();
+                alert('Error saving candidate: ' + (error.error || 'Unknown error'));
             }
         }
         
@@ -656,7 +600,6 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
-                // Build detailed HTML from the analysis
                 let analysisHtml = '';
                 
                 if (result.executive_summary) {
@@ -671,7 +614,6 @@ HTML_TEMPLATE = '''
                 
                 if (result.relevance_analysis) {
                     analysisHtml += `<div class="analysis-section"><h4>📋 Relevance Analysis</h4>`;
-                    
                     if (result.relevance_analysis.mandatory_experience) {
                         analysisHtml += `<p><strong>Mandatory Experience:</strong></p><ul>`;
                         result.relevance_analysis.mandatory_experience.forEach(item => {
@@ -679,7 +621,6 @@ HTML_TEMPLATE = '''
                         });
                         analysisHtml += `</ul>`;
                     }
-                    
                     if (result.relevance_analysis.technical_skills) {
                         analysisHtml += `<p><strong>Technical Skills:</strong></p><ul>`;
                         result.relevance_analysis.technical_skills.forEach(item => {
@@ -687,7 +628,6 @@ HTML_TEMPLATE = '''
                         });
                         analysisHtml += `</ul>`;
                     }
-                    
                     analysisHtml += `</div>`;
                 }
                 
@@ -706,7 +646,7 @@ HTML_TEMPLATE = '''
                     analysisHtml += `
                         <div class="analysis-section">
                             <h4>🔍 Genuineness Assessment</h4>
-                            <p><strong>Score:</strong> ${result.genuineness_assessment.score || result.genuineness_assessment.final_score || 'N/A'}/10</p>
+                            <p><strong>Score:</strong> ${result.genuineness_assessment.score || 'N/A'}/10</p>
                             ${result.genuineness_assessment.positives ? `<p><strong>✅ Positives:</strong></p><ul>${result.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
                             ${result.genuineness_assessment.minor_concerns ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${result.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
                         </div>
@@ -742,208 +682,4 @@ HTML_TEMPLATE = '''
                     <div class="alert-success">
                         <h4>📊 Detailed Groq AI Analysis Complete</h4>
                         <p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p>
-                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review')}</span></p>
-                        ${analysisHtml}
-                        <p style="margin-top: 10px; color: #27AE60;"><small>✅ Analysis has been automatically saved to the candidate record.</small></p>
-                    </div>
-                `;
-                
-                loadCandidates();
-                
-            } catch (error) {
-                resultDiv.innerHTML = '<div class="alert-error">Analysis failed. Check API key.</div>';
-            }
-        }
-        
-        async function exportToCSV() { window.location.href = '/api/export-candidates'; }
-        
-        async function createJob(event) {
-            event.preventDefault();
-            const data = {
-                title: document.getElementById('job-title').value,
-                company: document.getElementById('job-company').value,
-                description: document.getElementById('job-desc').value,
-                requirements: document.getElementById('job-reqs').value
-            };
-            if (!data.title) { alert('Job title required'); return; }
-            
-            const response = await fetch('/api/jobs', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            });
-            if (response.ok) {
-                alert('Job created!');
-                document.getElementById('job-title').value = '';
-                document.getElementById('job-company').value = '';
-                document.getElementById('job-desc').value = '';
-                document.getElementById('job-reqs').value = '';
-                showTab('jobs');
-                loadJobs();
-            } else {
-                alert('Error creating job');
-            }
-        }
-        
-        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-        
-        loadJobs();
-        loadCandidates();
-    </script>
-</body>
-</html>
-'''
-
-# ============ API ROUTES ============
-@app.route('/')
-def index():
-    return render_template_string(HTML_TEMPLATE, groq_enabled=GROQ_ENABLED)
-
-@app.route('/api/jobs', methods=['GET'])
-def get_jobs():
-    conn = sqlite3.connect('shahnai.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM jobs ORDER BY created_at DESC')
-    jobs = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(jobs)
-
-@app.route('/api/jobs', methods=['POST'])
-def create_job():
-    data = request.json
-    desc = data.get('description', '')
-    skills = extract_skills_from_text(desc)
-    conn = sqlite3.connect('shahnai.db')
-    c = conn.cursor()
-    c.execute('INSERT INTO jobs (title, company, description, requirements, required_skills) VALUES (?, ?, ?, ?, ?)',
-              (data.get('title'), data.get('company'), desc, data.get('requirements', ''), ', '.join(skills)))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Job created'})
-
-@app.route('/api/candidates', methods=['GET'])
-def get_candidates():
-    conn = sqlite3.connect('shahnai.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
-    candidates = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(candidates)
-
-@app.route('/api/candidates', methods=['POST'])
-def create_candidate():
-    data = request.json
-    skills = ', '.join(data.get('skills', [])) if isinstance(data.get('skills'), list) else data.get('skills', '')
-    
-    conn = sqlite3.connect('shahnai.db')
-    c = conn.cursor()
-    c.execute('''INSERT INTO candidates (name, email, phone, skills, work_history, certifications, resume_text) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
-              (data.get('name'), data.get('email'), data.get('phone'), skills,
-               data.get('work_history'), data.get('certifications'), data.get('resume_text', '')))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Candidate saved'})
-
-@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
-def update_candidate(candidate_id):
-    data = request.json
-    conn = sqlite3.connect('shahnai.db')
-    c = conn.cursor()
-    c.execute('''UPDATE candidates 
-                 SET match_score = ?, recommendation = ?, detailed_analysis = ?
-                 WHERE id = ?''',
-              (data.get('match_score'), data.get('recommendation'), data.get('detailed_analysis'), candidate_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Candidate updated'})
-
-@app.route('/api/analyze-match', methods=['POST'])
-def analyze_match():
-    data = request.json
-    resume_text = data.get('resume_text', '')
-    jd_text = data.get('jd_text', '')
-    job_id = data.get('job_id')
-    candidate_id = data.get('candidate_id')
-    
-    if not resume_text or not jd_text:
-        return jsonify({'error': 'Missing text'}), 400
-    
-    if not GROQ_API_KEY:
-        return jsonify({'error': 'Groq API key missing. Add GROQ_API_KEY to Railway variables.'}), 503
-    
-    result = analyze_with_groq_detailed(resume_text, jd_text)
-    
-    if result:
-        match_score = result.get('match_score', 0)
-        recommendation = result.get('recommendation', 'review')
-        
-        # Save analysis to candidate
-        if candidate_id:
-            detailed_json = json.dumps(result, indent=2)
-            conn = sqlite3.connect('shahnai.db')
-            c = conn.cursor()
-            c.execute('''UPDATE candidates 
-                         SET match_score = ?, recommendation = ?, detailed_analysis = ?
-                         WHERE id = ?''',
-                      (match_score, recommendation, detailed_json, candidate_id))
-            conn.commit()
-            conn.close()
-            print(f"✅ Detailed analysis saved to candidate {candidate_id}")
-        
-        return jsonify(result)
-    else:
-        return jsonify({'error': 'Groq analysis failed. Check API key.'}), 500
-
-@app.route('/api/export-candidates', methods=['GET'])
-def export_candidates():
-    conn = sqlite3.connect('shahnai.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
-    candidates = [dict(row) for row in c.fetchall()]
-    conn.close()
-    
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Work History', 'Certifications', 
-                     'Match Score', 'Recommendation', 'Created Date'])
-    for c in candidates:
-        writer.writerow([
-            c.get('id', ''), c.get('name', ''), c.get('email', ''), c.get('phone', ''),
-            c.get('skills', ''), c.get('work_history', ''), c.get('certifications', ''),
-            c.get('match_score', ''), c.get('recommendation', ''), c.get('created_at', '')
-        ])
-    
-    output.seek(0)
-    return Response(
-        output.getvalue(),
-        mimetype='text/csv',
-        headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'}
-    )
-
-@app.route('/api/parse-resume', methods=['POST'])
-def parse_resume():
-    if 'resume' not in request.files:
-        return jsonify({'error': 'No file'}), 400
-    
-    file = request.files['resume']
-    if file.filename == '':
-        return jsonify({'error': 'No file'}), 400
-    
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type'}), 400
-    
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-    
-    result = parse_resume_file(filepath)
-    os.remove(filepath)
-    
-    return jsonify(result)
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review')}</span></
