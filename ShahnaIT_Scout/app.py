@@ -24,7 +24,7 @@ ALLOWED_EXTENSIONS = {'pdf', 'docx'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ============ GEMINI SETUP - HTTP DIRECT API (NO SDK) ============
+# ============ GEMINI SETUP - HTTP DIRECT API ============
 GEMINI_ENABLED = False
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
@@ -34,52 +34,13 @@ if GEMINI_API_KEY:
 else:
     print("❌ No GEMINI_API_KEY found")
 
-def call_gemini_api(prompt, max_retries=2):
-    """Call Gemini API directly via HTTP - lighter and more reliable"""
-    if not GEMINI_API_KEY:
-        return None
-    
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    
-    payload = {
-        "contents": [{
-            "parts": [{"text": prompt}]
-        }],
-        "generationConfig": {
-            "temperature": 0.1,
-            "maxOutputTokens": 2000
-        }
-    }
-    
-    for attempt in range(max_retries):
-        try:
-            response = requests.post(url, json=payload, timeout=45)
-            if response.status_code == 200:
-                data = response.json()
-                if 'candidates' in data and len(data['candidates']) > 0:
-                    text_response = data['candidates'][0]['content']['parts'][0]['text']
-                    return text_response
-                else:
-                    print(f"No candidates in response: {data}")
-            else:
-                print(f"API error (attempt {attempt+1}): {response.status_code}")
-                if response.status_code == 429:  # Rate limit
-                    import time
-                    time.sleep(2)
-        except requests.exceptions.Timeout:
-            print(f"Timeout on attempt {attempt+1}")
-        except Exception as e:
-            print(f"Gemini API error: {e}")
-    
-    return None
-
 def analyze_with_gemini(resume_text, jd_text):
     """Comprehensive JD vs Resume analysis using HTTP Gemini API"""
     if not GEMINI_API_KEY:
         return None
     
     # Truncate texts to avoid token limits
-    resume_text = resume_text[:2500]
+    resume_text = resume_text[:2000]
     jd_text = jd_text[:2000]
     
     prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description.
@@ -90,69 +51,127 @@ JOB DESCRIPTION:
 RESUME:
 {resume_text}
 
-Return ONLY valid JSON with these exact fields (no other text):
+Return ONLY valid JSON with these exact fields (no other text before or after the JSON):
 {{
-    "match_score": <number 0-100>,
-    "relevance_feedback": "<detailed 2-3 sentence analysis of how well candidate matches the role>",
-    "genuineness_score": <number 0-100>,
-    "genuineness_feedback": "<brief assessment of profile authenticity>",
-    "strengths": ["strength1", "strength2", "strength3"],
-    "gaps": ["gap1", "gap2"],
-    "recommendation": "<hire/interview/reject>"
-}}"""
+    "match_score": 75,
+    "relevance_feedback": "The candidate has strong experience in required technologies...",
+    "genuineness_score": 85,
+    "genuineness_feedback": "Profile appears authentic with consistent work history...",
+    "strengths": ["React expertise", "Cloud experience", "Leadership"],
+    "gaps": ["Missing Python", "Limited database experience"],
+    "recommendation": "interview"
+}}
+
+Do not include any text before or after the JSON. Just the JSON object."""
     
-    response_text = call_gemini_api(prompt)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
     
-    if response_text:
-        try:
-            # Clean the response
-            response_text = response_text.strip()
-            if response_text.startswith('```json'):
-                response_text = response_text[7:]
-            if response_text.startswith('```'):
-                response_text = response_text[3:]
-            if response_text.endswith('```'):
-                response_text = response_text[:-3]
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 1000,
+            "responseMimeType": "application/json"
+        }
+    }
+    
+    try:
+        print(f"Calling Gemini API for analysis...")
+        response = requests.post(url, json=payload, timeout=30)
+        print(f"Response status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()
             
-            result = json.loads(response_text)
-            print(f"✅ Gemini analysis successful - Match: {result.get('match_score', 0)}%")
-            return result
-        except json.JSONDecodeError as e:
-            print(f"JSON parse error: {e}")
-            print(f"Raw response: {response_text[:200]}")
+            if 'candidates' in data and len(data['candidates']) > 0:
+                text_response = data['candidates'][0]['content']['parts'][0]['text']
+                print(f"Raw response received")
+                
+                # Clean the response
+                text_response = text_response.strip()
+                if text_response.startswith('```json'):
+                    text_response = text_response[7:]
+                if text_response.startswith('```'):
+                    text_response = text_response[3:]
+                if text_response.endswith('```'):
+                    text_response = text_response[:-3]
+                
+                # Try to parse JSON
+                result = json.loads(text_response)
+                
+                # Ensure all fields exist
+                default_result = {
+                    'match_score': 0,
+                    'relevance_feedback': 'Analysis completed but no specific feedback generated.',
+                    'genuineness_score': 50,
+                    'genuineness_feedback': 'Unable to assess authenticity fully.',
+                    'strengths': [],
+                    'gaps': [],
+                    'recommendation': 'review'
+                }
+                default_result.update(result)
+                
+                print(f"✅ Gemini analysis successful - Match: {default_result['match_score']}%")
+                return default_result
+            else:
+                print(f"No candidates in response")
+                return None
+        else:
+            print(f"API error: {response.status_code}")
             return None
-    
-    return None
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error: {e}")
+        return None
+    except Exception as e:
+        print(f"Gemini API error: {e}")
+        return None
 
 def parse_resume_with_gemini(resume_text):
     """Simple resume parsing using HTTP Gemini API"""
     if not GEMINI_API_KEY:
         return None
     
-    resume_text = resume_text[:3000]
+    resume_text = resume_text[:2000]
     
     prompt = f"""Extract information from this resume. Return ONLY valid JSON.
 
 Resume: {resume_text}
 
-Return: {{"name": "", "email": "", "phone": "", "skills": [], "work_history": "", "certifications": ""}}"""
+Return JSON: {{"name": "", "email": "", "phone": "", "skills": [], "work_history": "", "certifications": ""}}"""
     
-    response_text = call_gemini_api(prompt)
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
     
-    if response_text:
-        try:
-            response_text = response_text.strip()
-            if response_text.startswith('```json'):
-                response_text = response_text[7:]
-            if response_text.startswith('```'):
-                response_text = response_text[3:]
-            if response_text.endswith('```'):
-                response_text = response_text[:-3]
-            return json.loads(response_text)
-        except:
-            return None
+    payload = {
+        "contents": [{
+            "parts": [{"text": prompt}]
+        }],
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 500,
+            "responseMimeType": "application/json"
+        }
+    }
     
-    return None
+    try:
+        response = requests.post(url, json=payload, timeout=30)
+        if response.status_code == 200:
+            data = response.json()
+            if 'candidates' in data and len(data['candidates']) > 0:
+                text_response = data['candidates'][0]['content']['parts'][0]['text']
+                text_response = text_response.strip()
+                if text_response.startswith('```json'):
+                    text_response = text_response[7:]
+                if text_response.startswith('```'):
+                    text_response = text_response[3:]
+                if text_response.endswith('```'):
+                    text_response = text_response[:-3]
+                return json.loads(text_response)
+        return None
+    except Exception as e:
+        print(f"Gemini parse error: {e}")
+        return None
 
 # ============ DATABASE SETUP ============
 def init_db():
@@ -370,7 +389,6 @@ HTML_TEMPLATE = '''
         .header h1 { font-size: 2em; margin-bottom: 10px; }
         
         .badge-ai { display: inline-block; background: #27AE60; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
-        .badge-fallback { background: #F39C12; }
         
         .tabs { display: flex; gap: 5px; margin-bottom: 30px; background: white; padding: 10px; border-radius: 12px; flex-wrap: wrap; }
         .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #7F8C8D; border-radius: 8px; transition: all 0.3s; }
@@ -384,7 +402,6 @@ HTML_TEMPLATE = '''
         .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; margin-bottom: 10px; transition: all 0.3s; }
         .btn-primary:hover { background: #2A6B67; transform: translateY(-1px); }
         .btn-secondary { background: #7F8C8D; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; }
-        .btn-secondary:hover { background: #95A5A6; }
         
         input, textarea, select { width: 100%; padding: 12px; margin: 10px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #1A4D4A; }
@@ -392,15 +409,14 @@ HTML_TEMPLATE = '''
         .alert-success { background: #27AE60; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         .alert-error { background: #E74C3C; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         .alert-info { background: #3498DB; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
-        .alert-warning { background: #F39C12; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         
         .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
         .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; }
-        .match-high { color: #27AE60; font-weight: bold; font-size: 1.2em; }
-        .match-medium { color: #F39C12; font-weight: bold; font-size: 1.2em; }
-        .match-low { color: #E74C3C; font-weight: bold; font-size: 1.2em; }
+        .match-high { color: #27AE60; font-weight: bold; font-size: 1.1em; }
+        .match-medium { color: #F39C12; font-weight: bold; font-size: 1.1em; }
+        .match-low { color: #E74C3C; font-weight: bold; font-size: 1.1em; }
         
         .flex { display: flex; gap: 20px; flex-wrap: wrap; }
         .flex-2 { flex: 2; }
@@ -433,25 +449,20 @@ HTML_TEMPLATE = '''
             <button class="tab-btn" onclick="showTab('analyze')">🔍 Analyze Match</button>
         </div>
         
-        <!-- Jobs Tab -->
         <div id="jobs-tab"><div id="jobs-list" class="mt-20"></div></div>
         
-        <!-- Candidates Tab -->
         <div id="candidates-tab" style="display:none;">
-            <div class="flex">
-                <button class="btn-primary" onclick="exportToCSV()">📥 Export to CSV</button>
-            </div>
+            <button class="btn-primary" onclick="exportToCSV()">📥 Export to CSV</button>
             <div id="candidates-list" class="mt-20"></div>
         </div>
         
-        <!-- Upload Resume Tab -->
         <div id="upload-tab" style="display:none;">
             <div class="card">
                 <h3>📄 Upload Resume (PDF or DOCX)</h3>
                 {% if gemini_enabled %}
                 <div class="alert-info" style="background:#27AE60;">✅ Gemini AI is ACTIVE - Enhanced parsing enabled</div>
                 {% else %}
-                <div class="alert-warning">⚠️ Gemini AI is DISABLED - Add GEMINI_API_KEY to Railway variables</div>
+                <div class="alert-info" style="background:#F39C12;">⚠️ Gemini AI is DISABLED - Add GEMINI_API_KEY to Railway variables</div>
                 {% endif %}
                 <input type="file" id="resume-file" accept=".pdf,.docx">
                 <select id="upload-job-select" style="margin: 10px 0;">
@@ -462,7 +473,6 @@ HTML_TEMPLATE = '''
             </div>
         </div>
         
-        <!-- Create Job Tab -->
         <div id="create-job-tab" style="display:none;">
             <div class="card">
                 <h3>➕ Create New Job Posting</h3>
@@ -476,7 +486,6 @@ HTML_TEMPLATE = '''
             </div>
         </div>
         
-        <!-- Analyze Match Tab -->
         <div id="analyze-tab" style="display:none;">
             <div class="card">
                 <h3>🔍 AI-Powered Resume-JD Match Analysis</h3>
@@ -543,7 +552,6 @@ HTML_TEMPLATE = '''
                     </div>
                 `).join('');
                 
-                // Update dropdowns
                 const jobOptions = '<option value="">-- Select a Job --</option>' + jobsData.map(job => `<option value="${job.id}">${escapeHtml(job.title)}</option>`).join('');
                 const jobSelects = ['analyze-job-select', 'upload-job-select'];
                 jobSelects.forEach(id => {
@@ -581,7 +589,6 @@ HTML_TEMPLATE = '''
                     </div>`;
                 }).join('');
                 
-                // Update candidate dropdown
                 const candidateSelect = document.getElementById('analyze-candidate-select');
                 if (candidateSelect) {
                     candidateSelect.innerHTML = '<option value="">-- Select a Candidate --</option>' + 
