@@ -1,4 +1,4 @@
-# app.py - COMPLETE FIXED VERSION with Working Save
+# app.py - COMPLETE FIXED VERSION with Working Save Button
 import os
 import re
 import sqlite3
@@ -206,7 +206,7 @@ COMMON_SKILLS = [
     'Machine Learning', 'AI', 'Data Science', 'Excel', 'Tableau', 'Power BI',
     'HTML', 'CSS', 'Git', 'REST API', 'GraphQL', 'Power Apps', 'Power Automate', 'Azure DevOps',
     'Salesforce', 'Apex', 'LWC', 'Sales Cloud', 'Service Cloud', 'Model-Driven Apps', 'Canvas Apps',
-    'Dataverse', 'SharePoint', 'Power Fx', 'ALM', 'Application Lifecycle Management'
+    'Dataverse', 'SharePoint', 'Power Fx', 'ALM'
 ]
 
 def extract_skills_from_text(text):
@@ -329,6 +329,7 @@ HTML_TEMPLATE = '''
         
         .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1A4D4A; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .card.no-cursor { cursor: default; }
         .card h3 { color: #1A4D4A; margin-bottom: 12px; }
         .card h4 { color: #1A4D4A; margin: 15px 0 10px 0; }
         .card p { color: #2C3E50; line-height: 1.5; }
@@ -418,7 +419,7 @@ HTML_TEMPLATE = '''
         </div>
         
         <div id="upload-tab" style="display:none;">
-            <div class="card" style="cursor: default;">
+            <div class="card no-cursor">
                 <h3>📄 Upload Resume (PDF or DOCX)</h3>
                 {% if groq_enabled %}
                 <div class="alert-info" style="background:#27AE60;">⚡ Groq AI is ACTIVE - Detailed analysis ready</div>
@@ -432,7 +433,7 @@ HTML_TEMPLATE = '''
         </div>
         
         <div id="create-job-tab" style="display:none;">
-            <div class="card" style="cursor: default;">
+            <div class="card no-cursor">
                 <h3>➕ Create New Job Posting</h3>
                 <form onsubmit="createJob(event)">
                     <input type="text" id="job-title" placeholder="Job Title *" required>
@@ -445,7 +446,7 @@ HTML_TEMPLATE = '''
         </div>
         
         <div id="analyze-tab" style="display:none;">
-            <div class="card" style="cursor: default;">
+            <div class="card no-cursor">
                 <h3>🔍 Detailed AI-Powered Resume-JD Match Analysis</h3>
                 <p>Get comprehensive analysis including executive summary, relevance assessment, domain analysis, genuineness assessment, and pre-screening questions.</p>
                 <div class="flex">
@@ -502,11 +503,11 @@ HTML_TEMPLATE = '''
                 jobsData = await response.json();
                 const container = document.getElementById('jobs-list');
                 if (!jobsData.length) {
-                    container.innerHTML = '<div class="card" style="cursor: default;">No jobs yet. Create one.</div>';
+                    container.innerHTML = '<div class="card no-cursor">No jobs yet. Create one.</div>';
                     return;
                 }
                 container.innerHTML = jobsData.map(job => `
-                    <div class="card" style="cursor: default;">
+                    <div class="card no-cursor">
                         <h3>${escapeHtml(job.title)}</h3>
                         ${job.company ? `<p>🏢 ${escapeHtml(job.company)}</p>` : ''}
                         ${job.required_skills ? `<p>🔧 ${job.required_skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}</p>` : ''}
@@ -528,7 +529,7 @@ HTML_TEMPLATE = '''
                 candidatesData = await response.json();
                 const container = document.getElementById('candidates-list');
                 if (!candidatesData.length) {
-                    container.innerHTML = '<div class="card" style="cursor: default;">No candidates yet. Upload resumes.</div>';
+                    container.innerHTML = '<div class="card no-cursor">No candidates yet. Upload resumes.</div>';
                     return;
                 }
                 container.innerHTML = candidatesData.map(c => {
@@ -650,34 +651,34 @@ HTML_TEMPLATE = '''
             }
             
             modalBody.innerHTML = `
-                <div class="card" style="cursor: default;">
+                <div class="card no-cursor">
                     <h3>📧 Contact Information</h3>
                     <p><strong>Email:</strong> ${escapeHtml(candidate.email || 'Not provided')}</p>
                     <p><strong>Phone:</strong> ${escapeHtml(candidate.phone || 'Not provided')}</p>
                 </div>
                 
-                <div class="card" style="cursor: default;">
+                <div class="card no-cursor">
                     <h3>🔧 Skills</h3>
                     <p>${candidate.skills ? candidate.skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('') : 'No skills listed'}</p>
                 </div>
                 
-                <div class="card" style="cursor: default;">
+                <div class="card no-cursor">
                     <h3>💼 Work History</h3>
                     <p>${escapeHtml(candidate.work_history || 'No work history available')}</p>
                 </div>
                 
-                <div class="card" style="cursor: default;">
+                <div class="card no-cursor">
                     <h3>📜 Certifications</h3>
                     <p>${escapeHtml(candidate.certifications || 'No certifications listed')}</p>
                 </div>
                 
-                <div class="card" style="cursor: default;">
+                <div class="card no-cursor">
                     <h3>📊 Match Score & Recommendation</h3>
                     <p><strong>Match Score:</strong> <span class="${candidate.match_score >= 70 ? 'match-high' : (candidate.match_score >= 40 ? 'match-medium' : 'match-low')}">${candidate.match_score || 0}%</span></p>
                     <p><strong>Recommendation:</strong> <span class="${candidate.recommendation === 'hire' ? 'recommend-hire' : (candidate.recommendation === 'interview' ? 'recommend-interview' : 'recommend-reject')}">${escapeHtml(candidate.recommendation || 'Not reviewed')}</span></p>
                 </div>
                 
-                <div class="card" style="cursor: default;">
+                <div class="card no-cursor">
                     <h3>📅 Added On</h3>
                     <p>${new Date(candidate.created_at).toLocaleString()}</p>
                 </div>
@@ -721,6 +722,9 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
+                // Store the current result globally for the save button
+                window.currentParsedResult = result;
+                
                 resultDiv.innerHTML = `
                     <div class="alert-success">
                         <h4>✅ Resume Parsed ${result.ai_used ? '⚡ Groq AI' : '⚙️ Basic'}</h4>
@@ -728,7 +732,7 @@ HTML_TEMPLATE = '''
                         <p><strong>Email:</strong> ${escapeHtml(result.email)}</p>
                         <p><strong>Phone:</strong> ${escapeHtml(result.phone)}</p>
                         <p><strong>Skills:</strong> ${result.skills ? result.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') : 'None'}</p>
-                        <button class="btn-primary" onclick='saveCandidate(${JSON.stringify(result).replace(/'/g, "\\'")})'>💾 Save Candidate</button>
+                        <button class="btn-primary" onclick="saveCurrentCandidate()">💾 Save Candidate</button>
                     </div>
                 `;
             } catch (error) {
@@ -736,7 +740,13 @@ HTML_TEMPLATE = '''
             }
         }
         
-        async function saveCandidate(data) {
+        async function saveCurrentCandidate() {
+            const data = window.currentParsedResult;
+            if (!data) {
+                alert('No resume data to save. Please parse a resume first.');
+                return;
+            }
+            
             const response = await fetch('/api/candidates', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -746,6 +756,7 @@ HTML_TEMPLATE = '''
                 alert('Candidate saved successfully!');
                 document.getElementById('parse-result').innerHTML = '';
                 document.getElementById('resume-file').value = '';
+                window.currentParsedResult = null;
                 loadCandidates();
             } else {
                 const error = await response.json();
@@ -967,7 +978,7 @@ def create_candidate():
                data.get('work_history', ''), data.get('certifications', ''), data.get('resume_text', '')))
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Candidate saved'})
+    return jsonify({'message': 'Candidate saved', 'id': c.lastrowid})
 
 @app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
 def update_candidate(candidate_id):
