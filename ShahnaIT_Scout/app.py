@@ -1,4 +1,4 @@
-# app.py - COMPLETE FIXED VERSION with ALL Features
+# app.py - COMPLETE FIXED VERSION with ALL Features & Readable Colors
 import os
 import re
 import sqlite3
@@ -322,18 +322,19 @@ HTML_TEMPLATE = '''
         .badge-ai { display: inline-block; background: #27AE60; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
         
         .tabs { display: flex; gap: 5px; margin-bottom: 30px; background: white; padding: 10px; border-radius: 12px; flex-wrap: wrap; }
-        .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #7F8C8D; border-radius: 8px; transition: all 0.3s; }
-        .tab-btn:hover { background: #F5F0E8; color: #1A4D4A; }
+        .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #555; border-radius: 8px; transition: all 0.3s; }
+        .tab-btn:hover { background: #E8E0D0; color: #1A4D4A; }
         .tab-btn.active { background: #1A4D4A; color: white; }
         
         .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1A4D4A; }
         .card h3 { color: #1A4D4A; margin-bottom: 12px; }
         .card h4 { color: #1A4D4A; margin: 15px 0 10px 0; }
+        .card p { color: #2C3E50; line-height: 1.5; }
         
         .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; margin-bottom: 10px; }
         .btn-primary:hover { background: #2A6B67; }
         
-        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; background: white; color: #2C3E50; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #1A4D4A; }
         
         .alert-success { background: #27AE60; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
@@ -343,23 +344,33 @@ HTML_TEMPLATE = '''
         .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; color: #2C3E50; }
+        .skill-tag { display: inline-block; background: #E8E0D0; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; color: #1A4D4A; font-weight: 500; }
         
-        .match-high { color: #1B5E20; font-weight: bold; background: #E8F5E9; display: inline-block; padding: 4px 12px; border-radius: 20px; }
-        .match-medium { color: #E65100; font-weight: bold; background: #FFF3E0; display: inline-block; padding: 4px 12px; border-radius: 20px; }
-        .match-low { color: #B71C1C; font-weight: bold; background: #FFEBEE; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        /* FIXED - High contrast color codes */
+        .match-high { background: #2E7D32; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        .match-medium { background: #E65100; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        .match-low { background: #C62828; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
         
-        .recommend-hire { background: #27AE60; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
-        .recommend-interview { background: #F39C12; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
-        .recommend-reject { background: #E74C3C; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        .recommend-hire { background: #2E7D32; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        .recommend-interview { background: #E65100; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        .recommend-reject { background: #C62828; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        .recommend-review { background: #7F8C8D; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
         
-        .analysis-section { background: #F8F9FA; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #1A4D4A; }
-        .pre-screen-questions { background: #E8F5E9; padding: 15px; border-radius: 10px; margin: 15px 0; }
-        .pre-screen-questions li { margin: 8px 0; margin-left: 20px; }
+        .analysis-section { background: white; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #1A4D4A; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .analysis-section h4 { color: #1A4D4A; margin-bottom: 15px; font-size: 1.1em; }
+        .analysis-section p { color: #2C3E50; margin: 8px 0; line-height: 1.5; }
+        .analysis-section ul { margin-left: 20px; margin-top: 8px; }
+        .analysis-section li { color: #2C3E50; margin: 6px 0; line-height: 1.4; }
+        
+        .pre-screen-questions { background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #2E7D32; }
+        .pre-screen-questions h4 { color: #1B5E20; margin-bottom: 12px; }
+        .pre-screen-questions li { color: #2C3E50; margin: 8px 0; margin-left: 20px; line-height: 1.4; }
         
         .flex { display: flex; gap: 20px; flex-wrap: wrap; }
         .flex-2 { flex: 2; }
         .flex-1 { flex: 1; }
+        
+        label { color: #1A4D4A; font-weight: 600; margin-bottom: 5px; display: block; }
         
         @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } .flex { flex-direction: column; } }
         .text-center { text-align: center; }
