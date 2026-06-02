@@ -1,4 +1,4 @@
-# app.py - COMPLETE VERSION with Clickable Candidate Profiles & Stored Analysis
+# app.py - COMPLETE FIXED VERSION with Working Save
 import os
 import re
 import sqlite3
@@ -71,9 +71,7 @@ def analyze_with_groq_detailed(resume_text, jd_text, candidate_name=""):
     resume_text = resume_text[:3000]
     jd_text = jd_text[:2500]
     
-    name_instruction = f"Analyzing resume for: {candidate_name}" if candidate_name else ""
-    
-    prompt = f"""You are an expert recruitment analyst. {name_instruction} Analyze this resume against the job description in EXTREME DETAIL.
+    prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description in EXTREME DETAIL.
 
 JOB DESCRIPTION:
 {jd_text}
@@ -179,8 +177,8 @@ def init_db():
         work_history TEXT,
         certifications TEXT,
         resume_text TEXT,
-        match_score INTEGER,
-        recommendation TEXT,
+        match_score INTEGER DEFAULT 0,
+        recommendation TEXT DEFAULT 'review',
         detailed_analysis TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
@@ -207,7 +205,8 @@ COMMON_SKILLS = [
     'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes',
     'Machine Learning', 'AI', 'Data Science', 'Excel', 'Tableau', 'Power BI',
     'HTML', 'CSS', 'Git', 'REST API', 'GraphQL', 'Power Apps', 'Power Automate', 'Azure DevOps',
-    'Salesforce', 'Apex', 'LWC', 'Sales Cloud', 'Service Cloud'
+    'Salesforce', 'Apex', 'LWC', 'Sales Cloud', 'Service Cloud', 'Model-Driven Apps', 'Canvas Apps',
+    'Dataverse', 'SharePoint', 'Power Fx', 'ALM', 'Application Lifecycle Management'
 ]
 
 def extract_skills_from_text(text):
@@ -370,7 +369,6 @@ HTML_TEMPLATE = '''
         .pre-screen-questions h4 { color: #1B5E20; margin-bottom: 12px; }
         .pre-screen-questions li { color: #2C3E50; margin: 8px 0; margin-left: 20px; line-height: 1.4; }
         
-        /* Modal styles for candidate details */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
         .modal-content { background-color: #F5F0E8; margin: 30px auto; padding: 0; border-radius: 16px; width: 90%; max-width: 800px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
         .modal-header { background: #1A4D4A; color: white; padding: 20px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
@@ -420,7 +418,7 @@ HTML_TEMPLATE = '''
         </div>
         
         <div id="upload-tab" style="display:none;">
-            <div class="card">
+            <div class="card" style="cursor: default;">
                 <h3>📄 Upload Resume (PDF or DOCX)</h3>
                 {% if groq_enabled %}
                 <div class="alert-info" style="background:#27AE60;">⚡ Groq AI is ACTIVE - Detailed analysis ready</div>
@@ -434,7 +432,7 @@ HTML_TEMPLATE = '''
         </div>
         
         <div id="create-job-tab" style="display:none;">
-            <div class="card">
+            <div class="card" style="cursor: default;">
                 <h3>➕ Create New Job Posting</h3>
                 <form onsubmit="createJob(event)">
                     <input type="text" id="job-title" placeholder="Job Title *" required>
@@ -447,7 +445,7 @@ HTML_TEMPLATE = '''
         </div>
         
         <div id="analyze-tab" style="display:none;">
-            <div class="card">
+            <div class="card" style="cursor: default;">
                 <h3>🔍 Detailed AI-Powered Resume-JD Match Analysis</h3>
                 <p>Get comprehensive analysis including executive summary, relevance assessment, domain analysis, genuineness assessment, and pre-screening questions.</p>
                 <div class="flex">
@@ -504,11 +502,11 @@ HTML_TEMPLATE = '''
                 jobsData = await response.json();
                 const container = document.getElementById('jobs-list');
                 if (!jobsData.length) {
-                    container.innerHTML = '<div class="card">No jobs yet. Create one.</div>';
+                    container.innerHTML = '<div class="card" style="cursor: default;">No jobs yet. Create one.</div>';
                     return;
                 }
                 container.innerHTML = jobsData.map(job => `
-                    <div class="card">
+                    <div class="card" style="cursor: default;">
                         <h3>${escapeHtml(job.title)}</h3>
                         ${job.company ? `<p>🏢 ${escapeHtml(job.company)}</p>` : ''}
                         ${job.required_skills ? `<p>🔧 ${job.required_skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}</p>` : ''}
@@ -530,7 +528,7 @@ HTML_TEMPLATE = '''
                 candidatesData = await response.json();
                 const container = document.getElementById('candidates-list');
                 if (!candidatesData.length) {
-                    container.innerHTML = '<div class="card">No candidates yet. Upload resumes.</div>';
+                    container.innerHTML = '<div class="card" style="cursor: default;">No candidates yet. Upload resumes.</div>';
                     return;
                 }
                 container.innerHTML = candidatesData.map(c => {
@@ -568,7 +566,7 @@ HTML_TEMPLATE = '''
             modalTitle.innerHTML = `👤 ${escapeHtml(candidate.name || 'Unknown')}`;
             
             let analysisHtml = '';
-            if (candidate.detailed_analysis) {
+            if (candidate.detailed_analysis && candidate.detailed_analysis !== 'null') {
                 try {
                     const analysis = JSON.parse(candidate.detailed_analysis);
                     
@@ -584,14 +582,14 @@ HTML_TEMPLATE = '''
                     
                     if (analysis.relevance_analysis) {
                         analysisHtml += `<div class="analysis-section"><h4>📋 Relevance Analysis</h4>`;
-                        if (analysis.relevance_analysis.mandatory_experience) {
+                        if (analysis.relevance_analysis.mandatory_experience && analysis.relevance_analysis.mandatory_experience.length) {
                             analysisHtml += `<p><strong>Mandatory Experience:</strong></p><ul>`;
                             analysis.relevance_analysis.mandatory_experience.forEach(item => {
                                 analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)} (${escapeHtml(item.confidence || 'N/A')})</li>`;
                             });
                             analysisHtml += `</ul>`;
                         }
-                        if (analysis.relevance_analysis.technical_skills) {
+                        if (analysis.relevance_analysis.technical_skills && analysis.relevance_analysis.technical_skills.length) {
                             analysisHtml += `<p><strong>Technical Skills:</strong></p><ul>`;
                             analysis.relevance_analysis.technical_skills.forEach(item => {
                                 analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)}</li>`;
@@ -617,8 +615,8 @@ HTML_TEMPLATE = '''
                             <div class="analysis-section">
                                 <h4>🔍 Genuineness Assessment</h4>
                                 <p><strong>Score:</strong> ${analysis.genuineness_assessment.score || 'N/A'}/10</p>
-                                ${analysis.genuineness_assessment.positives ? `<p><strong>✅ Positives:</strong></p><ul>${analysis.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
-                                ${analysis.genuineness_assessment.minor_concerns ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${analysis.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
+                                ${analysis.genuineness_assessment.positives && analysis.genuineness_assessment.positives.length ? `<p><strong>✅ Positives:</strong></p><ul>${analysis.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
+                                ${analysis.genuineness_assessment.minor_concerns && analysis.genuineness_assessment.minor_concerns.length ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${analysis.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
                             </div>
                         `;
                     }
@@ -648,7 +646,7 @@ HTML_TEMPLATE = '''
                     analysisHtml = '<div class="alert-info">Analysis data available but format may be corrupted.</div>';
                 }
             } else {
-                analysisHtml = '<div class="alert-info">No detailed analysis available yet. Run the Detailed Analysis for this candidate.</div>';
+                analysisHtml = '<div class="alert-info">No detailed analysis available yet. Go to Detailed Analysis tab to analyze this candidate against a job.</div>';
             }
             
             modalBody.innerHTML = `
@@ -745,7 +743,7 @@ HTML_TEMPLATE = '''
                 body: JSON.stringify(data)
             });
             if (response.ok) {
-                alert('Candidate saved!');
+                alert('Candidate saved successfully!');
                 document.getElementById('parse-result').innerHTML = '';
                 document.getElementById('resume-file').value = '';
                 loadCandidates();
@@ -799,14 +797,14 @@ HTML_TEMPLATE = '''
                 
                 if (result.relevance_analysis) {
                     analysisHtml += `<div class="analysis-section"><h4>📋 Relevance Analysis</h4>`;
-                    if (result.relevance_analysis.mandatory_experience) {
+                    if (result.relevance_analysis.mandatory_experience && result.relevance_analysis.mandatory_experience.length) {
                         analysisHtml += `<p><strong>Mandatory Experience:</strong></p><ul>`;
                         result.relevance_analysis.mandatory_experience.forEach(item => {
                             analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)} (${escapeHtml(item.confidence || 'N/A')})</li>`;
                         });
                         analysisHtml += `</ul>`;
                     }
-                    if (result.relevance_analysis.technical_skills) {
+                    if (result.relevance_analysis.technical_skills && result.relevance_analysis.technical_skills.length) {
                         analysisHtml += `<p><strong>Technical Skills:</strong></p><ul>`;
                         result.relevance_analysis.technical_skills.forEach(item => {
                             analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)}</li>`;
@@ -832,8 +830,8 @@ HTML_TEMPLATE = '''
                         <div class="analysis-section">
                             <h4>🔍 Genuineness Assessment</h4>
                             <p><strong>Score:</strong> ${result.genuineness_assessment.score || 'N/A'}/10</p>
-                            ${result.genuineness_assessment.positives ? `<p><strong>✅ Positives:</strong></p><ul>${result.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
-                            ${result.genuineness_assessment.minor_concerns ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${result.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
+                            ${result.genuineness_assessment.positives && result.genuineness_assessment.positives.length ? `<p><strong>✅ Positives:</strong></p><ul>${result.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
+                            ${result.genuineness_assessment.minor_concerns && result.genuineness_assessment.minor_concerns.length ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${result.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
                         </div>
                     `;
                 }
@@ -1032,11 +1030,12 @@ def export_candidates():
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Match Score', 'Recommendation', 'Created Date'])
+    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Work History', 'Certifications', 'Match Score', 'Recommendation', 'Created Date'])
     for c in candidates:
         writer.writerow([
             c.get('id', ''), c.get('name', ''), c.get('email', ''), c.get('phone', ''),
-            c.get('skills', ''), c.get('match_score', ''), c.get('recommendation', ''), c.get('created_at', '')
+            c.get('skills', ''), c.get('work_history', ''), c.get('certifications', ''),
+            c.get('match_score', ''), c.get('recommendation', ''), c.get('created_at', '')
         ])
     
     output.seek(0)
