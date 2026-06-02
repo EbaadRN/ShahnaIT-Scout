@@ -682,4 +682,203 @@ HTML_TEMPLATE = '''
                     <div class="alert-success">
                         <h4>📊 Detailed Groq AI Analysis Complete</h4>
                         <p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p>
-                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review')}</span></
+                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review')}</span></p>
+                        ${analysisHtml}
+                        <p style="margin-top: 10px; color: #27AE60;"><small>✅ Analysis has been automatically saved to the candidate record.</small></p>
+                    </div>
+                `;
+                
+                loadCandidates();
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="alert-error">Analysis failed. Check API key.</div>';
+            }
+        }
+        
+        async function exportToCSV() { window.location.href = '/api/export-candidates'; }
+        
+        async function createJob(event) {
+            event.preventDefault();
+            const data = {
+                title: document.getElementById('job-title').value,
+                company: document.getElementById('job-company').value,
+                description: document.getElementById('job-desc').value,
+                requirements: document.getElementById('job-reqs').value
+            };
+            if (!data.title) { alert('Job title required'); return; }
+            
+            const response = await fetch('/api/jobs', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+            if (response.ok) {
+                alert('Job created!');
+                document.getElementById('job-title').value = '';
+                document.getElementById('job-company').value = '';
+                document.getElementById('job-desc').value = '';
+                document.getElementById('job-reqs').value = '';
+                showTab('jobs');
+                loadJobs();
+            } else {
+                alert('Error creating job');
+            }
+        }
+        
+        function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        
+        loadJobs();
+        loadCandidates();
+    </script>
+</body>
+</html>
+'''
+
+# ============ API ROUTES ============
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE, groq_enabled=GROQ_ENABLED)
+
+@app.route('/api/jobs', methods=['GET'])
+def get_jobs():
+    conn = sqlite3.connect('shahnai.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM jobs ORDER BY created_at DESC')
+    jobs = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(jobs)
+
+@app.route('/api/jobs', methods=['POST'])
+def create_job():
+    data = request.json
+    desc = data.get('description', '')
+    skills = extract_skills_from_text(desc)
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('INSERT INTO jobs (title, company, description, requirements, required_skills) VALUES (?, ?, ?, ?, ?)',
+              (data.get('title'), data.get('company'), desc, data.get('requirements', ''), ', '.join(skills)))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Job created'})
+
+@app.route('/api/candidates', methods=['GET'])
+def get_candidates():
+    conn = sqlite3.connect('shahnai.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(candidates)
+
+@app.route('/api/candidates', methods=['POST'])
+def create_candidate():
+    data = request.json
+    skills = ', '.join(data.get('skills', [])) if isinstance(data.get('skills'), list) else data.get('skills', '')
+    
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('''INSERT INTO candidates (name, email, phone, skills, resume_text) 
+                 VALUES (?, ?, ?, ?, ?)''',
+              (data.get('name'), data.get('email'), data.get('phone'), skills, data.get('resume_text', '')))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Candidate saved'})
+
+@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
+def update_candidate(candidate_id):
+    data = request.json
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('''UPDATE candidates 
+                 SET match_score = ?, recommendation = ?, detailed_analysis = ?
+                 WHERE id = ?''',
+              (data.get('match_score'), data.get('recommendation'), data.get('detailed_analysis'), candidate_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Candidate updated'})
+
+@app.route('/api/analyze-match', methods=['POST'])
+def analyze_match():
+    data = request.json
+    resume_text = data.get('resume_text', '')
+    jd_text = data.get('jd_text', '')
+    job_id = data.get('job_id')
+    candidate_id = data.get('candidate_id')
+    
+    if not resume_text or not jd_text:
+        return jsonify({'error': 'Missing text'}), 400
+    
+    if not GROQ_API_KEY:
+        return jsonify({'error': 'Groq API key missing. Add GROQ_API_KEY to Railway variables.'}), 503
+    
+    result = analyze_with_groq_detailed(resume_text, jd_text)
+    
+    if result:
+        match_score = result.get('match_score', 0)
+        recommendation = result.get('recommendation', 'review')
+        
+        if candidate_id:
+            detailed_json = json.dumps(result, indent=2)
+            conn = sqlite3.connect('shahnai.db')
+            c = conn.cursor()
+            c.execute('''UPDATE candidates 
+                         SET match_score = ?, recommendation = ?, detailed_analysis = ?
+                         WHERE id = ?''',
+                      (match_score, recommendation, detailed_json, candidate_id))
+            conn.commit()
+            conn.close()
+            print(f"✅ Detailed analysis saved to candidate {candidate_id}")
+        
+        return jsonify(result)
+    else:
+        return jsonify({'error': 'Groq analysis failed. Check API key.'}), 500
+
+@app.route('/api/export-candidates', methods=['GET'])
+def export_candidates():
+    conn = sqlite3.connect('shahnai.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Match Score', 'Recommendation', 'Created Date'])
+    for c in candidates:
+        writer.writerow([
+            c.get('id', ''), c.get('name', ''), c.get('email', ''), c.get('phone', ''),
+            c.get('skills', ''), c.get('match_score', ''), c.get('recommendation', ''), c.get('created_at', '')
+        ])
+    
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'}
+    )
+
+@app.route('/api/parse-resume', methods=['POST'])
+def parse_resume():
+    if 'resume' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    
+    file = request.files['resume']
+    if file.filename == '':
+        return jsonify({'error': 'No file'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file type'}), 400
+    
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+    
+    result = parse_resume_file(filepath)
+    os.remove(filepath)
+    
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
