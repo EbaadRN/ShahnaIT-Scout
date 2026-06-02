@@ -1,4 +1,4 @@
-# app.py - COMPLETE FIXED VERSION with Working Save Button
+# app.py - COMPLETE WORKING VERSION with Fixed Save Button
 import os
 import re
 import sqlite3
@@ -30,12 +30,11 @@ GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
     GROQ_ENABLED = True
-    print("✅✅✅ Groq API configured - Ready for fast AI analysis ✅✅✅")
+    print("✅✅✅ Groq API configured")
 else:
     print("❌ No valid GROQ_API_KEY found")
 
 def call_groq_api(prompt, max_tokens=2500):
-    """Call Groq API for AI analysis"""
     if not GROQ_API_KEY:
         return None
     
@@ -49,29 +48,23 @@ def call_groq_api(prompt, max_tokens=2500):
     }
     
     try:
-        print(f"Calling Groq API...")
         response = requests.post(url, json=payload, headers=headers, timeout=45)
         if response.status_code == 200:
             data = response.json()
-            result_text = data['choices'][0]['message']['content']
-            print(f"✅ Groq API call successful")
-            return result_text
-        else:
-            print(f"Groq API error: {response.status_code}")
-            return None
+            return data['choices'][0]['message']['content']
+        return None
     except Exception as e:
         print(f"Groq API error: {e}")
         return None
 
 def analyze_with_groq_detailed(resume_text, jd_text, candidate_name=""):
-    """Comprehensive JD vs Resume analysis with detailed format"""
     if not GROQ_API_KEY:
         return None
     
     resume_text = resume_text[:3000]
     jd_text = jd_text[:2500]
     
-    prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description in EXTREME DETAIL.
+    prompt = f"""Analyze this resume against the job description.
 
 JOB DESCRIPTION:
 {jd_text}
@@ -79,74 +72,22 @@ JOB DESCRIPTION:
 RESUME:
 {resume_text}
 
-Return ONLY valid JSON with these exact fields:
-
+Return ONLY JSON:
 {{
-    "executive_summary": {{
-        "overall_relevance": "Very High/High/Medium/Low",
-        "final_verdict": "text"
-    }},
+    "executive_summary": {{"overall_relevance": "text", "final_verdict": "text"}},
     "relevance_analysis": {{
-        "mandatory_experience": [
-            {{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low"}}
-        ],
-        "technical_skills": [
-            {{"requirement": "text", "match": "✅/⚠️/❌"}}
-        ]
+        "mandatory_experience": [{{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low"}}],
+        "technical_skills": [{{"requirement": "text", "match": "✅/⚠️/❌"}}]
     }},
-    "domain_assessment": {{
-        "status": "✅ Met / ⚠️ Needs confirmation / ❌ Not met",
-        "analysis": "text",
-        "pre_screen_question": "text"
-    }},
-    "genuineness_assessment": {{
-        "score": 0,
-        "positives": ["positive1", "positive2"],
-        "minor_concerns": [{{"concern": "text", "severity": "Low/Medium"}}]
-    }},
-    "final_verdict": {{
-        "decision": "Proceed to interview / Reject / Need more info",
-        "risk_level": "Low/Medium/High",
-        "final_call": "text"
-    }},
-    "pre_screening_questions": ["question1", "question2", "question3", "question4", "question5"],
+    "domain_assessment": {{"status": "text", "analysis": "text", "pre_screen_question": "text"}},
+    "genuineness_assessment": {{"score": 0, "positives": [], "minor_concerns": []}},
+    "final_verdict": {{"decision": "text", "risk_level": "Low/Medium/High", "final_call": "text"}},
+    "pre_screening_questions": [],
     "match_score": 0,
     "recommendation": "hire/interview/reject"
 }}"""
     
     response_text = call_groq_api(prompt, max_tokens=2500)
-    
-    if response_text:
-        try:
-            response_text = response_text.strip()
-            if response_text.startswith('```json'):
-                response_text = response_text[7:]
-            if response_text.startswith('```'):
-                response_text = response_text[3:]
-            if response_text.endswith('```'):
-                response_text = response_text[:-3]
-            result = json.loads(response_text)
-            print(f"✅ Detailed Groq analysis successful")
-            return result
-        except json.JSONDecodeError as e:
-            print(f"JSON parse error: {e}")
-            return None
-    return None
-
-def parse_resume_with_groq(resume_text):
-    """Parse resume using Groq API"""
-    if not GROQ_API_KEY:
-        return None
-    
-    resume_text = resume_text[:2500]
-    prompt = f"""Extract information from this resume. Return ONLY valid JSON.
-
-Resume: {resume_text}
-
-Return JSON: {{"name": "", "email": "", "phone": "", "skills": [], "work_history": "", "certifications": ""}}"""
-    
-    response_text = call_groq_api(prompt, max_tokens=500)
-    
     if response_text:
         try:
             response_text = response_text.strip()
@@ -161,12 +102,34 @@ Return JSON: {{"name": "", "email": "", "phone": "", "skills": [], "work_history
             return None
     return None
 
-# ============ DATABASE SETUP WITH AUTO-FIX ============
+def parse_resume_with_groq(resume_text):
+    if not GROQ_API_KEY:
+        return None
+    
+    prompt = f"""Extract from resume. Return ONLY JSON: Resume: {resume_text[:2500]}
+
+Return: {{"name": "", "email": "", "phone": "", "skills": [], "work_history": "", "certifications": ""}}"""
+    
+    response_text = call_groq_api(prompt, max_tokens=500)
+    if response_text:
+        try:
+            response_text = response_text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            return json.loads(response_text)
+        except:
+            return None
+    return None
+
+# ============ DATABASE SETUP ============
 def init_db():
     conn = sqlite3.connect('shahnai.db')
     c = conn.cursor()
     
-    # Drop and recreate candidates table with correct schema
     c.execute('DROP TABLE IF EXISTS candidates')
     c.execute('''CREATE TABLE candidates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,29 +158,22 @@ def init_db():
     
     conn.commit()
     conn.close()
-    print("✅ Database initialized with correct schema")
+    print("✅ Database initialized")
 
 init_db()
 
-# ============ BASIC PARSING FALLBACK ============
+# ============ BASIC PARSING ============
 COMMON_SKILLS = [
     'Python', 'Java', 'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue', 'Node.js',
-    'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes',
-    'Machine Learning', 'AI', 'Data Science', 'Excel', 'Tableau', 'Power BI',
-    'HTML', 'CSS', 'Git', 'REST API', 'GraphQL', 'Power Apps', 'Power Automate', 'Azure DevOps',
-    'Salesforce', 'Apex', 'LWC', 'Sales Cloud', 'Service Cloud', 'Model-Driven Apps', 'Canvas Apps',
-    'Dataverse', 'SharePoint', 'Power Fx', 'ALM'
+    'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'AWS', 'Azure', 'Docker', 'Kubernetes',
+    'Power Apps', 'Power Automate', 'Azure DevOps', 'Dataverse', 'SharePoint', 'Git'
 ]
 
 def extract_skills_from_text(text):
     if not text:
         return []
     text_lower = text.lower()
-    found = []
-    for skill in COMMON_SKILLS:
-        if skill.lower() in text_lower:
-            found.append(skill)
-    return found
+    return [s for s in COMMON_SKILLS if s.lower() in text_lower]
 
 def extract_text_from_pdf(file_path):
     try:
@@ -249,14 +205,12 @@ def extract_phone(text):
 
 def extract_name(text):
     lines = text.strip().split('\n')
-    if lines and len(lines[0]) < 50 and len(lines[0]) > 2:
-        return lines[0].strip()
-    return "Unknown"
+    return lines[0].strip() if lines and len(lines[0]) < 50 else "Unknown"
 
 def extract_work_history(text):
     lines = text.split('\n')
     experience = []
-    keywords = ['experience', 'work', 'employment', 'job', 'position', 'role', 'senior']
+    keywords = ['experience', 'work', 'employment', 'job', 'position', 'role']
     for line in lines[:50]:
         if any(kw in line.lower() for kw in keywords):
             clean = re.sub(r'\s+', ' ', line).strip()
@@ -265,12 +219,8 @@ def extract_work_history(text):
     return ' | '.join(experience[:3]) if experience else ""
 
 def extract_certifications(text):
-    certs = ['PMP', 'CISSP', 'AWS', 'Scrum', 'ITIL', 'CPA', 'CFA', 'CCNA', 'MCSE']
-    found = []
-    for cert in certs:
-        if cert.lower() in text.lower():
-            found.append(cert)
-    return ', '.join(found) if found else ""
+    certs = ['PMP', 'CISSP', 'AWS', 'Scrum', 'ITIL']
+    return ', '.join([c for c in certs if c.lower() in text.lower()])
 
 def parse_resume_file(file_path):
     if file_path.endswith('.pdf'):
@@ -310,12 +260,12 @@ HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ShahnaIT Scout - Recruitment Platform</title>
+    <title>ShahnaIT Scout</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #F5F0E8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2C3E50; }
-        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         
         .header { background: linear-gradient(135deg, #1A4D4A 0%, #0F3533 100%); color: white; padding: 30px; border-radius: 16px; margin-bottom: 30px; }
         .header h1 { font-size: 2em; margin-bottom: 10px; }
@@ -323,23 +273,19 @@ HTML_TEMPLATE = '''
         .badge-ai { display: inline-block; background: #27AE60; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
         
         .tabs { display: flex; gap: 5px; margin-bottom: 30px; background: white; padding: 10px; border-radius: 12px; flex-wrap: wrap; }
-        .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #555; border-radius: 8px; transition: all 0.3s; }
+        .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #555; border-radius: 8px; }
         .tab-btn:hover { background: #E8E0D0; color: #1A4D4A; }
         .tab-btn.active { background: #1A4D4A; color: white; }
         
-        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1A4D4A; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1A4D4A; cursor: pointer; transition: transform 0.2s; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .card.no-cursor { cursor: default; }
+        .card.no-click { cursor: default; }
         .card h3 { color: #1A4D4A; margin-bottom: 12px; }
-        .card h4 { color: #1A4D4A; margin: 15px 0 10px 0; }
-        .card p { color: #2C3E50; line-height: 1.5; }
         
-        .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; margin-bottom: 10px; }
+        .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin: 10px 5px; }
         .btn-primary:hover { background: #2A6B67; }
-        .btn-close { background: #7F8C8D; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; margin-top: 15px; }
-        .btn-close:hover { background: #95A5A6; }
         
-        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; background: white; color: #2C3E50; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #1A4D4A; }
         
         .alert-success { background: #27AE60; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
@@ -349,45 +295,26 @@ HTML_TEMPLATE = '''
         .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .skill-tag { display: inline-block; background: #E8E0D0; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; color: #1A4D4A; font-weight: 500; }
+        .skill-tag { display: inline-block; background: #E8E0D0; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; color: #1A4D4A; }
+        .match-high { background: #2E7D32; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+        .match-medium { background: #E65100; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; }
+        .match-low { background: #C62828; color: white; padding: 4px 12px; border-radius: 20px; display: inline-block; }
         
-        .match-high { background: #2E7D32; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        .match-medium { background: #E65100; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        .match-low { background: #C62828; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        .analysis-section { background: white; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #1A4D4A; }
+        .pre-screen-questions { background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 15px 0; }
         
-        .recommend-hire { background: #2E7D32; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        .recommend-interview { background: #E65100; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        .recommend-reject { background: #C62828; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        .recommend-review { background: #7F8C8D; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        
-        .analysis-section { background: white; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #1A4D4A; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .analysis-section h4 { color: #1A4D4A; margin-bottom: 15px; font-size: 1.1em; }
-        .analysis-section p { color: #2C3E50; margin: 8px 0; line-height: 1.5; }
-        .analysis-section ul { margin-left: 20px; margin-top: 8px; }
-        .analysis-section li { color: #2C3E50; margin: 6px 0; line-height: 1.4; }
-        
-        .pre-screen-questions { background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #2E7D32; }
-        .pre-screen-questions h4 { color: #1B5E20; margin-bottom: 12px; }
-        .pre-screen-questions li { color: #2C3E50; margin: 8px 0; margin-left: 20px; line-height: 1.4; }
-        
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
-        .modal-content { background-color: #F5F0E8; margin: 30px auto; padding: 0; border-radius: 16px; width: 90%; max-width: 800px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        .modal-header { background: #1A4D4A; color: white; padding: 20px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h2 { margin: 0; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
+        .modal-content { background: #F5F0E8; margin: 30px auto; border-radius: 16px; width: 90%; max-width: 800px; }
+        .modal-header { background: #1A4D4A; color: white; padding: 20px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; }
         .modal-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
-        .close { color: white; font-size: 28px; font-weight: bold; cursor: pointer; }
-        .close:hover { color: #ccc; }
+        .close { color: white; font-size: 28px; cursor: pointer; }
         
         .flex { display: flex; gap: 20px; flex-wrap: wrap; }
-        .flex-2 { flex: 2; }
         .flex-1 { flex: 1; }
         
-        label { color: #1A4D4A; font-weight: 600; margin-bottom: 5px; display: block; }
-        
-        @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } .flex { flex-direction: column; } }
+        @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } }
         .text-center { text-align: center; }
         .mt-20 { margin-top: 20px; }
-        .mb-20 { margin-bottom: 20px; }
     </style>
 </head>
 <body>
@@ -400,7 +327,7 @@ HTML_TEMPLATE = '''
                 <span class="badge-ai" style="background:#E74C3C;">⚠️ AI DISABLED</span>
                 {% endif %}
             </h1>
-            <p>Intelligent Recruitment Platform with Detailed AI Analysis, JD Matching & Profile Authenticity Scoring</p>
+            <p>Intelligent Recruitment Platform with AI Analysis</p>
         </div>
         
         <div class="tabs">
@@ -408,77 +335,65 @@ HTML_TEMPLATE = '''
             <button class="tab-btn" onclick="showTab('candidates')">👥 Candidates</button>
             <button class="tab-btn" onclick="showTab('upload')">📄 Upload Resume</button>
             <button class="tab-btn" onclick="showTab('create-job')">➕ Create Job</button>
-            <button class="tab-btn" onclick="showTab('analyze')">🔍 Detailed Analysis</button>
+            <button class="tab-btn" onclick="showTab('analyze')">🔍 Analyze Match</button>
         </div>
         
         <div id="jobs-tab"><div id="jobs-list" class="mt-20"></div></div>
         
         <div id="candidates-tab" style="display:none;">
-            <button class="btn-primary" onclick="exportToCSV()">📥 Export to CSV</button>
+            <button class="btn-primary" onclick="exportToCSV()">📥 Export CSV</button>
             <div id="candidates-list" class="mt-20"></div>
         </div>
         
         <div id="upload-tab" style="display:none;">
-            <div class="card no-cursor">
-                <h3>📄 Upload Resume (PDF or DOCX)</h3>
-                {% if groq_enabled %}
-                <div class="alert-info" style="background:#27AE60;">⚡ Groq AI is ACTIVE - Detailed analysis ready</div>
-                {% else %}
-                <div class="alert-info" style="background:#F39C12;">⚠️ Add GROQ_API_KEY to Railway</div>
-                {% endif %}
+            <div class="card no-click">
+                <h3>📄 Upload Resume (PDF/DOCX)</h3>
                 <input type="file" id="resume-file" accept=".pdf,.docx">
-                <button class="btn-primary" onclick="uploadResume()">🔍 Parse Resume</button>
+                <button class="btn-primary" id="parseBtn">🔍 Parse Resume</button>
                 <div id="parse-result" class="mt-20"></div>
             </div>
         </div>
         
         <div id="create-job-tab" style="display:none;">
-            <div class="card no-cursor">
-                <h3>➕ Create New Job Posting</h3>
-                <form onsubmit="createJob(event)">
+            <div class="card no-click">
+                <h3>➕ Create New Job</h3>
+                <form id="jobForm">
                     <input type="text" id="job-title" placeholder="Job Title *" required>
                     <input type="text" id="job-company" placeholder="Company Name">
                     <textarea id="job-desc" rows="5" placeholder="Job Description"></textarea>
-                    <textarea id="job-reqs" rows="3" placeholder="Requirements"></textarea>
                     <button type="submit" class="btn-primary">Create Job</button>
                 </form>
             </div>
         </div>
         
         <div id="analyze-tab" style="display:none;">
-            <div class="card no-cursor">
-                <h3>🔍 Detailed AI-Powered Resume-JD Match Analysis</h3>
-                <p>Get comprehensive analysis including executive summary, relevance assessment, domain analysis, genuineness assessment, and pre-screening questions.</p>
+            <div class="card no-click">
+                <h3>🔍 AI-Powered Resume-JD Analysis</h3>
                 <div class="flex">
                     <div class="flex-1">
-                        <label>📋 Select Job</label>
-                        <select id="analyze-job-select" class="mb-20">
-                            <option value="">-- Select a Job --</option>
+                        <select id="analyze-job-select">
+                            <option value="">-- Select Job --</option>
                         </select>
                     </div>
                     <div class="flex-1">
-                        <label>👤 Select Candidate</label>
-                        <select id="analyze-candidate-select" class="mb-20">
-                            <option value="">-- Select a Candidate --</option>
+                        <select id="analyze-candidate-select">
+                            <option value="">-- Select Candidate --</option>
                         </select>
                     </div>
                 </div>
-                <button class="btn-primary" onclick="analyzeMatch()">🤖 Run Detailed AI Analysis</button>
+                <button class="btn-primary" id="analyzeBtn">🤖 Run AI Analysis</button>
                 <div id="analyze-result" class="mt-20"></div>
             </div>
         </div>
     </div>
     
-    <!-- Modal for Candidate Details -->
     <div id="candidateModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Candidate Details</h2>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
-            <div class="modal-body" id="modalBody">
-                Loading...
-            </div>
+            <div class="modal-body" id="modalBody">Loading...</div>
         </div>
     </div>
     
@@ -494,7 +409,6 @@ HTML_TEMPLATE = '''
             if (tabName === 'jobs') loadJobs();
             if (tabName === 'candidates') loadCandidates();
             if (tabName === 'analyze') { loadJobs(); loadCandidates(); }
-            if (tabName === 'upload') loadJobs();
         }
         
         async function loadJobs() {
@@ -503,21 +417,19 @@ HTML_TEMPLATE = '''
                 jobsData = await response.json();
                 const container = document.getElementById('jobs-list');
                 if (!jobsData.length) {
-                    container.innerHTML = '<div class="card no-cursor">No jobs yet. Create one.</div>';
+                    container.innerHTML = '<div class="card no-click">No jobs yet. Create one.</div>';
                     return;
                 }
                 container.innerHTML = jobsData.map(job => `
-                    <div class="card no-cursor">
+                    <div class="card no-click">
                         <h3>${escapeHtml(job.title)}</h3>
                         ${job.company ? `<p>🏢 ${escapeHtml(job.company)}</p>` : ''}
-                        ${job.required_skills ? `<p>🔧 ${job.required_skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}</p>` : ''}
                         <small>📅 ${new Date(job.created_at).toLocaleDateString()}</small>
                     </div>
                 `).join('');
                 
                 const options = '<option value="">-- Select Job --</option>' + jobsData.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
-                const jobSelect = document.getElementById('analyze-job-select');
-                if (jobSelect) jobSelect.innerHTML = options;
+                document.getElementById('analyze-job-select').innerHTML = options;
             } catch (error) {
                 document.getElementById('jobs-list').innerHTML = '<div class="alert-error">Error loading jobs</div>';
             }
@@ -529,28 +441,20 @@ HTML_TEMPLATE = '''
                 candidatesData = await response.json();
                 const container = document.getElementById('candidates-list');
                 if (!candidatesData.length) {
-                    container.innerHTML = '<div class="card no-cursor">No candidates yet. Upload resumes.</div>';
+                    container.innerHTML = '<div class="card no-click">No candidates yet. Upload resumes.</div>';
                     return;
                 }
-                container.innerHTML = candidatesData.map(c => {
-                    const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
-                    const recClass = c.recommendation === 'hire' ? 'recommend-hire' : (c.recommendation === 'interview' ? 'recommend-interview' : 'recommend-reject');
-                    return `
+                container.innerHTML = candidatesData.map(c => `
                     <div class="card" onclick="viewCandidate(${c.id})">
                         <h3>👤 ${escapeHtml(c.name || 'Unknown')}</h3>
                         ${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}
-                        ${c.phone ? `<p>📞 ${escapeHtml(c.phone)}</p>` : ''}
-                        ${c.skills ? `<p>🔧 ${c.skills.split(',').slice(0,5).map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}${c.skills.split(',').length > 5 ? '...' : ''}</p>` : ''}
-                        ${c.match_score ? `<p>🎯 Match Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
-                        ${c.recommendation ? `<p>📌 Recommendation: <span class="${recClass}">${escapeHtml(c.recommendation)}</span></p>` : ''}
+                        ${c.skills ? `<p>🔧 ${c.skills.split(',').slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}</p>` : ''}
                         <small>📅 ${new Date(c.created_at).toLocaleDateString()}</small>
-                    </div>`;
-                }).join('');
+                    </div>
+                `).join('');
                 
-                const select = document.getElementById('analyze-candidate-select');
-                if (select) {
-                    select.innerHTML = '<option value="">-- Select Candidate --</option>' + candidatesData.map(c => `<option value="${c.id}">${escapeHtml(c.name || 'Unknown')}</option>`).join('');
-                }
+                const options = '<option value="">-- Select Candidate --</option>' + candidatesData.map(c => `<option value="${c.id}">${escapeHtml(c.name || 'Unknown')}</option>`).join('');
+                document.getElementById('analyze-candidate-select').innerHTML = options;
             } catch (error) {
                 document.getElementById('candidates-list').innerHTML = '<div class="alert-error">Error loading candidates</div>';
             }
@@ -560,150 +464,41 @@ HTML_TEMPLATE = '''
             const candidate = candidatesData.find(c => c.id == candidateId);
             if (!candidate) return;
             
-            const modal = document.getElementById('candidateModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-            
-            modalTitle.innerHTML = `👤 ${escapeHtml(candidate.name || 'Unknown')}`;
+            document.getElementById('modalTitle').innerHTML = `👤 ${escapeHtml(candidate.name || 'Unknown')}`;
             
             let analysisHtml = '';
             if (candidate.detailed_analysis && candidate.detailed_analysis !== 'null') {
                 try {
                     const analysis = JSON.parse(candidate.detailed_analysis);
-                    
                     if (analysis.executive_summary) {
-                        analysisHtml += `
-                            <div class="analysis-section">
-                                <h4>📊 Executive Summary</h4>
-                                <p><strong>Overall Relevance:</strong> ${escapeHtml(analysis.executive_summary.overall_relevance || 'N/A')}</p>
-                                <p><strong>Final Verdict:</strong> ${escapeHtml(analysis.executive_summary.final_verdict || 'N/A')}</p>
-                            </div>
-                        `;
+                        analysisHtml += `<div class="analysis-section"><h4>📊 Summary</h4><p>${escapeHtml(analysis.executive_summary.final_verdict || '')}</p></div>`;
                     }
-                    
-                    if (analysis.relevance_analysis) {
-                        analysisHtml += `<div class="analysis-section"><h4>📋 Relevance Analysis</h4>`;
-                        if (analysis.relevance_analysis.mandatory_experience && analysis.relevance_analysis.mandatory_experience.length) {
-                            analysisHtml += `<p><strong>Mandatory Experience:</strong></p><ul>`;
-                            analysis.relevance_analysis.mandatory_experience.forEach(item => {
-                                analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)} (${escapeHtml(item.confidence || 'N/A')})</li>`;
-                            });
-                            analysisHtml += `</ul>`;
-                        }
-                        if (analysis.relevance_analysis.technical_skills && analysis.relevance_analysis.technical_skills.length) {
-                            analysisHtml += `<p><strong>Technical Skills:</strong></p><ul>`;
-                            analysis.relevance_analysis.technical_skills.forEach(item => {
-                                analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)}</li>`;
-                            });
-                            analysisHtml += `</ul>`;
-                        }
-                        analysisHtml += `</div>`;
-                    }
-                    
-                    if (analysis.domain_assessment) {
-                        analysisHtml += `
-                            <div class="analysis-section">
-                                <h4>🏢 Domain Assessment</h4>
-                                <p><strong>Status:</strong> ${escapeHtml(analysis.domain_assessment.status || 'N/A')}</p>
-                                <p>${escapeHtml(analysis.domain_assessment.analysis || '')}</p>
-                                ${analysis.domain_assessment.pre_screen_question ? `<p><strong>Pre-screen Question:</strong> ${escapeHtml(analysis.domain_assessment.pre_screen_question)}</p>` : ''}
-                            </div>
-                        `;
-                    }
-                    
-                    if (analysis.genuineness_assessment) {
-                        analysisHtml += `
-                            <div class="analysis-section">
-                                <h4>🔍 Genuineness Assessment</h4>
-                                <p><strong>Score:</strong> ${analysis.genuineness_assessment.score || 'N/A'}/10</p>
-                                ${analysis.genuineness_assessment.positives && analysis.genuineness_assessment.positives.length ? `<p><strong>✅ Positives:</strong></p><ul>${analysis.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
-                                ${analysis.genuineness_assessment.minor_concerns && analysis.genuineness_assessment.minor_concerns.length ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${analysis.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
-                            </div>
-                        `;
-                    }
-                    
                     if (analysis.pre_screening_questions && analysis.pre_screening_questions.length) {
-                        analysisHtml += `
-                            <div class="pre-screen-questions">
-                                <h4>📝 Pre-Screening Questions</h4>
-                                <ul>
-                                    ${analysis.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}
-                                </ul>
-                            </div>
-                        `;
+                        analysisHtml += `<div class="pre-screen-questions"><h4>📝 Questions</h4><ul>${analysis.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>`;
                     }
-                    
-                    if (analysis.final_verdict) {
-                        analysisHtml += `
-                            <div class="analysis-section">
-                                <h4>⚖️ Final Verdict</h4>
-                                <p><strong>Decision:</strong> <span class="${analysis.final_verdict.decision === 'Proceed to interview' ? 'recommend-hire' : 'recommend-reject'}">${escapeHtml(analysis.final_verdict.decision || 'N/A')}</span></p>
-                                <p><strong>Risk Level:</strong> ${escapeHtml(analysis.final_verdict.risk_level || 'N/A')}</p>
-                                <p><strong>Final Call:</strong> ${escapeHtml(analysis.final_verdict.final_call || 'N/A')}</p>
-                            </div>
-                        `;
-                    }
-                } catch(e) {
-                    analysisHtml = '<div class="alert-info">Analysis data available but format may be corrupted.</div>';
-                }
+                } catch(e) { analysisHtml = '<div class="alert-info">Analysis available</div>'; }
             } else {
-                analysisHtml = '<div class="alert-info">No detailed analysis available yet. Go to Detailed Analysis tab to analyze this candidate against a job.</div>';
+                analysisHtml = '<div class="alert-info">No analysis yet. Run analysis in Analyze Match tab.</div>';
             }
             
-            modalBody.innerHTML = `
-                <div class="card no-cursor">
-                    <h3>📧 Contact Information</h3>
-                    <p><strong>Email:</strong> ${escapeHtml(candidate.email || 'Not provided')}</p>
-                    <p><strong>Phone:</strong> ${escapeHtml(candidate.phone || 'Not provided')}</p>
-                </div>
-                
-                <div class="card no-cursor">
-                    <h3>🔧 Skills</h3>
-                    <p>${candidate.skills ? candidate.skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('') : 'No skills listed'}</p>
-                </div>
-                
-                <div class="card no-cursor">
-                    <h3>💼 Work History</h3>
-                    <p>${escapeHtml(candidate.work_history || 'No work history available')}</p>
-                </div>
-                
-                <div class="card no-cursor">
-                    <h3>📜 Certifications</h3>
-                    <p>${escapeHtml(candidate.certifications || 'No certifications listed')}</p>
-                </div>
-                
-                <div class="card no-cursor">
-                    <h3>📊 Match Score & Recommendation</h3>
-                    <p><strong>Match Score:</strong> <span class="${candidate.match_score >= 70 ? 'match-high' : (candidate.match_score >= 40 ? 'match-medium' : 'match-low')}">${candidate.match_score || 0}%</span></p>
-                    <p><strong>Recommendation:</strong> <span class="${candidate.recommendation === 'hire' ? 'recommend-hire' : (candidate.recommendation === 'interview' ? 'recommend-interview' : 'recommend-reject')}">${escapeHtml(candidate.recommendation || 'Not reviewed')}</span></p>
-                </div>
-                
-                <div class="card no-cursor">
-                    <h3>📅 Added On</h3>
-                    <p>${new Date(candidate.created_at).toLocaleString()}</p>
-                </div>
-                
-                <h3 style="margin-top: 20px; color: #1A4D4A;">🤖 AI Analysis Results</h3>
+            document.getElementById('modalBody').innerHTML = `
+                <div class="card no-click"><h3>📧 Contact</h3><p>Email: ${escapeHtml(candidate.email || 'N/A')}<br>Phone: ${escapeHtml(candidate.phone || 'N/A')}</p></div>
+                <div class="card no-click"><h3>🔧 Skills</h3><p>${candidate.skills ? candidate.skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('') : 'None'}</p></div>
+                <div class="card no-click"><h3>💼 Work History</h3><p>${escapeHtml(candidate.work_history || 'N/A')}</p></div>
+                <div class="card no-click"><h3>📜 Certifications</h3><p>${escapeHtml(candidate.certifications || 'N/A')}</p></div>
+                <h3 style="color:#1A4D4A;">🤖 AI Analysis</h3>
                 ${analysisHtml}
-                
-                <button class="btn-close" onclick="closeModal()">Close</button>
+                <button class="btn-primary" onclick="closeModal()">Close</button>
             `;
-            
-            modal.style.display = 'block';
+            document.getElementById('candidateModal').style.display = 'block';
         }
         
         function closeModal() {
             document.getElementById('candidateModal').style.display = 'none';
         }
         
-        window.onclick = function(event) {
-            const modal = document.getElementById('candidateModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
-            }
-        }
-        
-        async function uploadResume() {
+        // Parse Button
+        document.getElementById('parseBtn').onclick = async function() {
             const file = document.getElementById('resume-file').files[0];
             if (!file) { alert('Select a file'); return; }
             
@@ -711,7 +506,7 @@ HTML_TEMPLATE = '''
             formData.append('resume', file);
             
             const resultDiv = document.getElementById('parse-result');
-            resultDiv.innerHTML = '<div class="spinner"></div><p class="text-center">Parsing with Groq AI...</p>';
+            resultDiv.innerHTML = '<div class="spinner"></div><p class="text-center">Parsing...</p>';
             
             try {
                 const response = await fetch('/api/parse-resume', { method: 'POST', body: formData });
@@ -722,49 +517,40 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
-                // Store the current result globally for the save button
-                window.currentParsedResult = result;
-                
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>✅ Resume Parsed ${result.ai_used ? '⚡ Groq AI' : '⚙️ Basic'}</h4>
+                        <h4>✅ Resume Parsed ${result.ai_used ? '⚡ AI' : ''}</h4>
                         <p><strong>Name:</strong> ${escapeHtml(result.name)}</p>
                         <p><strong>Email:</strong> ${escapeHtml(result.email)}</p>
                         <p><strong>Phone:</strong> ${escapeHtml(result.phone)}</p>
                         <p><strong>Skills:</strong> ${result.skills ? result.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') : 'None'}</p>
-                        <button class="btn-primary" onclick="saveCurrentCandidate()">💾 Save Candidate</button>
+                        <button class="btn-primary" onclick="saveCandidateToDB(${JSON.stringify(result).replace(/"/g, '&quot;')})">💾 Save Candidate</button>
                     </div>
                 `;
             } catch (error) {
-                resultDiv.innerHTML = '<div class="alert-error">Error parsing resume</div>';
+                resultDiv.innerHTML = '<div class="alert-error">Error parsing</div>';
             }
-        }
+        };
         
-        async function saveCurrentCandidate() {
-            const data = window.currentParsedResult;
-            if (!data) {
-                alert('No resume data to save. Please parse a resume first.');
-                return;
-            }
-            
+        // Save Candidate Function
+        window.saveCandidateToDB = async function(candidateData) {
             const response = await fetch('/api/candidates', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
+                body: JSON.stringify(candidateData)
             });
             if (response.ok) {
                 alert('Candidate saved successfully!');
                 document.getElementById('parse-result').innerHTML = '';
                 document.getElementById('resume-file').value = '';
-                window.currentParsedResult = null;
                 loadCandidates();
             } else {
-                const error = await response.json();
-                alert('Error saving candidate: ' + (error.error || 'Unknown error'));
+                alert('Error saving candidate');
             }
-        }
+        };
         
-        async function analyzeMatch() {
+        // Analyze Button
+        document.getElementById('analyzeBtn').onclick = async function() {
             const jobId = document.getElementById('analyze-job-select').value;
             const candidateId = document.getElementById('analyze-candidate-select').value;
             if (!jobId || !candidateId) { alert('Select both Job and Candidate'); return; }
@@ -773,18 +559,15 @@ HTML_TEMPLATE = '''
             const candidate = candidatesData.find(c => c.id == candidateId);
             
             const resultDiv = document.getElementById('analyze-result');
-            resultDiv.innerHTML = '<div class="spinner"></div><p>Running detailed Groq AI analysis...</p>';
+            resultDiv.innerHTML = '<div class="spinner"></div><p>Running AI analysis...</p>';
             
             try {
                 const response = await fetch('/api/analyze-match', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
-                        job_id: jobId,
-                        candidate_id: candidateId,
-                        jd_text: job.description || '', 
-                        resume_text: candidate.resume_text || '',
-                        candidate_name: candidate.name || ''
+                        job_id: jobId, candidate_id: candidateId,
+                        jd_text: job.description || '', resume_text: candidate.resume_text || ''
                     })
                 });
                 const result = await response.json();
@@ -794,109 +577,30 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
-                let analysisHtml = `<h3 style="color: #1A4D4A; margin-bottom: 15px;">👤 Analysis for: ${escapeHtml(candidate.name || 'Candidate')}</h3>`;
-                
-                if (result.executive_summary) {
-                    analysisHtml += `
-                        <div class="analysis-section">
-                            <h4>📊 Executive Summary</h4>
-                            <p><strong>Overall Relevance:</strong> ${escapeHtml(result.executive_summary.overall_relevance || 'N/A')}</p>
-                            <p><strong>Final Verdict:</strong> ${escapeHtml(result.executive_summary.final_verdict || 'N/A')}</p>
-                        </div>
-                    `;
-                }
-                
-                if (result.relevance_analysis) {
-                    analysisHtml += `<div class="analysis-section"><h4>📋 Relevance Analysis</h4>`;
-                    if (result.relevance_analysis.mandatory_experience && result.relevance_analysis.mandatory_experience.length) {
-                        analysisHtml += `<p><strong>Mandatory Experience:</strong></p><ul>`;
-                        result.relevance_analysis.mandatory_experience.forEach(item => {
-                            analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)} (${escapeHtml(item.confidence || 'N/A')})</li>`;
-                        });
-                        analysisHtml += `</ul>`;
-                    }
-                    if (result.relevance_analysis.technical_skills && result.relevance_analysis.technical_skills.length) {
-                        analysisHtml += `<p><strong>Technical Skills:</strong></p><ul>`;
-                        result.relevance_analysis.technical_skills.forEach(item => {
-                            analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)}</li>`;
-                        });
-                        analysisHtml += `</ul>`;
-                    }
-                    analysisHtml += `</div>`;
-                }
-                
-                if (result.domain_assessment) {
-                    analysisHtml += `
-                        <div class="analysis-section">
-                            <h4>🏢 Domain Assessment</h4>
-                            <p><strong>Status:</strong> ${escapeHtml(result.domain_assessment.status || 'N/A')}</p>
-                            <p>${escapeHtml(result.domain_assessment.analysis || '')}</p>
-                            ${result.domain_assessment.pre_screen_question ? `<p><strong>Pre-screen Question:</strong> ${escapeHtml(result.domain_assessment.pre_screen_question)}</p>` : ''}
-                        </div>
-                    `;
-                }
-                
-                if (result.genuineness_assessment) {
-                    analysisHtml += `
-                        <div class="analysis-section">
-                            <h4>🔍 Genuineness Assessment</h4>
-                            <p><strong>Score:</strong> ${result.genuineness_assessment.score || 'N/A'}/10</p>
-                            ${result.genuineness_assessment.positives && result.genuineness_assessment.positives.length ? `<p><strong>✅ Positives:</strong></p><ul>${result.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
-                            ${result.genuineness_assessment.minor_concerns && result.genuineness_assessment.minor_concerns.length ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${result.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
-                        </div>
-                    `;
-                }
-                
-                if (result.pre_screening_questions && result.pre_screening_questions.length) {
-                    analysisHtml += `
-                        <div class="pre-screen-questions">
-                            <h4>📝 Pre-Screening Questions</h4>
-                            <ul>
-                                ${result.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}
-                            </ul>
-                        </div>
-                    `;
-                }
-                
-                if (result.final_verdict) {
-                    analysisHtml += `
-                        <div class="analysis-section">
-                            <h4>⚖️ Final Verdict</h4>
-                            <p><strong>Decision:</strong> <span class="${result.final_verdict.decision === 'Proceed to interview' ? 'recommend-hire' : 'recommend-reject'}">${escapeHtml(result.final_verdict.decision || 'N/A')}</span></p>
-                            <p><strong>Risk Level:</strong> ${escapeHtml(result.final_verdict.risk_level || 'N/A')}</p>
-                            <p><strong>Final Call:</strong> ${escapeHtml(result.final_verdict.final_call || 'N/A')}</p>
-                        </div>
-                    `;
-                }
-                
                 const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-                const recClass = result.recommendation === 'hire' ? 'recommend-hire' : (result.recommendation === 'interview' ? 'recommend-interview' : 'recommend-reject');
-                
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>📊 Detailed Groq AI Analysis Complete</h4>
+                        <h4>📊 Analysis Complete</h4>
                         <p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p>
-                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review')}</span></p>
-                        ${analysisHtml}
-                        <p style="margin-top: 10px; color: #27AE60;"><small>✅ Analysis has been automatically saved to the candidate record. Click on the candidate name in Candidates tab to view stored analysis.</small></p>
+                        <p><strong>📌 Recommendation:</strong> ${escapeHtml(result.recommendation || 'Review')}</p>
+                        ${result.executive_summary ? `<div class="analysis-section"><p>${escapeHtml(result.executive_summary.final_verdict || '')}</p></div>` : ''}
+                        <p><small>✅ Analysis saved to candidate record</small></p>
                     </div>
                 `;
-                
                 loadCandidates();
             } catch (error) {
-                resultDiv.innerHTML = '<div class="alert-error">Analysis failed. Check API key.</div>';
+                resultDiv.innerHTML = '<div class="alert-error">Analysis failed</div>';
             }
-        }
+        };
         
-        async function exportToCSV() { window.location.href = '/api/export-candidates'; }
+        window.exportToCSV = function() { window.location.href = '/api/export-candidates'; };
         
-        async function createJob(event) {
-            event.preventDefault();
+        document.getElementById('jobForm').onsubmit = async function(e) {
+            e.preventDefault();
             const data = {
                 title: document.getElementById('job-title').value,
                 company: document.getElementById('job-company').value,
-                description: document.getElementById('job-desc').value,
-                requirements: document.getElementById('job-reqs').value
+                description: document.getElementById('job-desc').value
             };
             if (!data.title) { alert('Job title required'); return; }
             
@@ -910,13 +614,10 @@ HTML_TEMPLATE = '''
                 document.getElementById('job-title').value = '';
                 document.getElementById('job-company').value = '';
                 document.getElementById('job-desc').value = '';
-                document.getElementById('job-reqs').value = '';
                 showTab('jobs');
                 loadJobs();
-            } else {
-                alert('Error creating job');
             }
-        }
+        };
         
         function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         
@@ -949,8 +650,8 @@ def create_job():
     skills = extract_skills_from_text(desc)
     conn = sqlite3.connect('shahnai.db')
     c = conn.cursor()
-    c.execute('INSERT INTO jobs (title, company, description, requirements, required_skills) VALUES (?, ?, ?, ?, ?)',
-              (data.get('title'), data.get('company'), desc, data.get('requirements', ''), ', '.join(skills)))
+    c.execute('INSERT INTO jobs (title, company, description, required_skills) VALUES (?, ?, ?, ?)',
+              (data.get('title'), data.get('company'), desc, ', '.join(skills)))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Job created'})
@@ -978,57 +679,34 @@ def create_candidate():
                data.get('work_history', ''), data.get('certifications', ''), data.get('resume_text', '')))
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Candidate saved', 'id': c.lastrowid})
-
-@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
-def update_candidate(candidate_id):
-    data = request.json
-    conn = sqlite3.connect('shahnai.db')
-    c = conn.cursor()
-    c.execute('''UPDATE candidates 
-                 SET match_score = ?, recommendation = ?, detailed_analysis = ?
-                 WHERE id = ?''',
-              (data.get('match_score'), data.get('recommendation'), data.get('detailed_analysis'), candidate_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Candidate updated'})
+    return jsonify({'message': 'Candidate saved'})
 
 @app.route('/api/analyze-match', methods=['POST'])
 def analyze_match():
     data = request.json
     resume_text = data.get('resume_text', '')
     jd_text = data.get('jd_text', '')
-    job_id = data.get('job_id')
     candidate_id = data.get('candidate_id')
-    candidate_name = data.get('candidate_name', '')
     
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
     if not GROQ_API_KEY:
-        return jsonify({'error': 'Groq API key missing. Add GROQ_API_KEY to Railway variables.'}), 503
+        return jsonify({'error': 'Groq API key missing'}), 503
     
-    result = analyze_with_groq_detailed(resume_text, jd_text, candidate_name)
+    result = analyze_with_groq_detailed(resume_text, jd_text)
     
-    if result:
-        match_score = result.get('match_score', 0)
-        recommendation = result.get('recommendation', 'review')
-        
-        if candidate_id:
-            detailed_json = json.dumps(result, indent=2)
-            conn = sqlite3.connect('shahnai.db')
-            c = conn.cursor()
-            c.execute('''UPDATE candidates 
-                         SET match_score = ?, recommendation = ?, detailed_analysis = ?
-                         WHERE id = ?''',
-                      (match_score, recommendation, detailed_json, candidate_id))
-            conn.commit()
-            conn.close()
-            print(f"✅ Detailed analysis saved to candidate {candidate_id}")
-        
+    if result and candidate_id:
+        detailed_json = json.dumps(result, indent=2)
+        conn = sqlite3.connect('shahnai.db')
+        c = conn.cursor()
+        c.execute('UPDATE candidates SET match_score = ?, recommendation = ?, detailed_analysis = ? WHERE id = ?',
+                  (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, candidate_id))
+        conn.commit()
+        conn.close()
         return jsonify(result)
-    else:
-        return jsonify({'error': 'Groq analysis failed. Check API key.'}), 500
+    
+    return jsonify({'error': 'Analysis failed'}), 500
 
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
@@ -1041,20 +719,12 @@ def export_candidates():
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Work History', 'Certifications', 'Match Score', 'Recommendation', 'Created Date'])
+    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Match Score', 'Recommendation', 'Created Date'])
     for c in candidates:
-        writer.writerow([
-            c.get('id', ''), c.get('name', ''), c.get('email', ''), c.get('phone', ''),
-            c.get('skills', ''), c.get('work_history', ''), c.get('certifications', ''),
-            c.get('match_score', ''), c.get('recommendation', ''), c.get('created_at', '')
-        ])
+        writer.writerow([c.get('id'), c.get('name'), c.get('email'), c.get('phone'), c.get('skills'), c.get('match_score'), c.get('recommendation'), c.get('created_at')])
     
     output.seek(0)
-    return Response(
-        output.getvalue(),
-        mimetype='text/csv',
-        headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'}
-    )
+    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
 
 @app.route('/api/parse-resume', methods=['POST'])
 def parse_resume():
