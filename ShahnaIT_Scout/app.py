@@ -1,4 +1,4 @@
-# app.py - COMPLETE WORKING VERSION with Gemini API
+# app.py - COMPLETE WITH GROQ API (Faster, No Billing Issues)
 import os
 import re
 import sqlite3
@@ -24,102 +24,136 @@ ALLOWED_EXTENSIONS = {'pdf', 'docx'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ============ GEMINI SETUP ============
-GEMINI_ENABLED = False
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+# ============ GROQ API SETUP ============
+GROQ_ENABLED = False
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
-if GEMINI_API_KEY and GEMINI_API_KEY.startswith('AQ.'):
-    GEMINI_ENABLED = True
-    print("✅✅✅ Gemini API key found (new format) ✅✅✅")
+if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
+    GROQ_ENABLED = True
+    print("✅✅✅ Groq API configured - Ready for fast AI analysis ✅✅✅")
 else:
-    print("❌ No valid GEMINI_API_KEY found")
+    print("❌ No valid GROQ_API_KEY found")
 
-def analyze_with_gemini(resume_text, jd_text):
-    """JD vs Resume analysis using Gemini API"""
-    if not GEMINI_API_KEY:
+def call_groq_api(prompt, max_tokens=1000):
+    """Call Groq API for AI analysis"""
+    if not GROQ_API_KEY:
         return None
     
-    # Truncate texts
-    resume_text = resume_text[:2000]
-    jd_text = jd_text[:2000]
+    url = "https://api.groq.com/openai/v1/chat/completions"
     
-    prompt = f"""Analyze this resume against the job description. Return ONLY JSON.
-
-JOB: {jd_text}
-
-RESUME: {resume_text}
-
-Return JSON: {{"match_score":0-100, "relevance_feedback":"text", "genuineness_score":0-100, "genuineness_feedback":"text", "strengths":[], "gaps":[], "recommendation":"hire/interview/reject"}}"""
-    
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-    
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 500}
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
     }
     
-    headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 0.1,
+        "max_tokens": max_tokens
+    }
     
     try:
+        print(f"Calling Groq API...")
         response = requests.post(url, json=payload, headers=headers, timeout=30)
         
         if response.status_code == 200:
             data = response.json()
-            if 'candidates' in data and data['candidates']:
-                text_response = data['candidates'][0]['content']['parts'][0]['text']
-                text_response = text_response.strip()
-                if text_response.startswith('```json'):
-                    text_response = text_response[7:]
-                if text_response.startswith('```'):
-                    text_response = text_response[3:]
-                if text_response.endswith('```'):
-                    text_response = text_response[:-3]
-                result = json.loads(text_response)
-                print(f"✅ Gemini analysis successful")
-                return result
+            result_text = data['choices'][0]['message']['content']
+            print(f"✅ Groq API call successful")
+            return result_text
         else:
-            print(f"API Error: {response.status_code}")
+            print(f"Groq API error: {response.status_code} - {response.text[:100]}")
             return None
     except Exception as e:
-        print(f"Gemini error: {e}")
+        print(f"Groq API error: {e}")
         return None
 
-def parse_resume_with_gemini(resume_text):
-    """Parse resume using Gemini"""
-    if not GEMINI_API_KEY:
+def analyze_with_groq(resume_text, jd_text):
+    """JD vs Resume analysis using Groq API"""
+    if not GROQ_API_KEY:
         return None
     
-    resume_text = resume_text[:2000]
+    # Truncate texts to avoid token limits
+    resume_text = resume_text[:2500]
+    jd_text = jd_text[:2000]
     
-    prompt = f"""Extract from this resume. Return ONLY JSON.
+    prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description.
+
+JOB DESCRIPTION:
+{jd_text}
+
+RESUME:
+{resume_text}
+
+Return ONLY valid JSON with these exact fields (no other text before or after the JSON):
+{{
+    "match_score": 75,
+    "relevance_feedback": "The candidate has strong experience in required technologies...",
+    "genuineness_score": 85,
+    "genuineness_feedback": "Profile appears authentic with consistent work history...",
+    "strengths": ["React expertise", "Cloud experience", "Leadership"],
+    "gaps": ["Missing Python", "Limited database experience"],
+    "recommendation": "interview"
+}}
+
+Do not include any text before or after the JSON. Just the JSON object."""
+    
+    response_text = call_groq_api(prompt, max_tokens=1000)
+    
+    if response_text:
+        try:
+            response_text = response_text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            
+            result = json.loads(response_text)
+            print(f"✅ Groq analysis successful - Match: {result.get('match_score', 0)}%")
+            return result
+        except json.JSONDecodeError as e:
+            print(f"JSON parse error: {e}")
+            return None
+    
+    return None
+
+def parse_resume_with_groq(resume_text):
+    """Parse resume using Groq API"""
+    if not GROQ_API_KEY:
+        return None
+    
+    resume_text = resume_text[:2500]
+    
+    prompt = f"""Extract information from this resume. Return ONLY valid JSON.
 
 Resume: {resume_text}
 
-Return: {{"name":"", "email":"", "phone":"", "skills":[], "work_history":"", "certifications":""}}"""
+Return JSON: {{"name": "", "email": "", "phone": "", "skills": [], "work_history": "", "certifications": ""}}"""
     
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    response_text = call_groq_api(prompt, max_tokens=500)
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": 0.1, "maxOutputTokens": 500}}
-    headers = {"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY}
+    if response_text:
+        try:
+            response_text = response_text.strip()
+            if response_text.startswith('```json'):
+                response_text = response_text[7:]
+            if response_text.startswith('```'):
+                response_text = response_text[3:]
+            if response_text.endswith('```'):
+                response_text = response_text[:-3]
+            return json.loads(response_text)
+        except:
+            return None
     
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
-        if response.status_code == 200:
-            data = response.json()
-            if 'candidates' in data and data['candidates']:
-                text_response = data['candidates'][0]['content']['parts'][0]['text']
-                text_response = text_response.strip()
-                if text_response.startswith('```json'):
-                    text_response = text_response[7:]
-                if text_response.startswith('```'):
-                    text_response = text_response[3:]
-                if text_response.endswith('```'):
-                    text_response = text_response[:-3]
-                return json.loads(text_response)
-        return None
-    except Exception as e:
-        print(f"Gemini parse error: {e}")
-        return None
+    return None
 
 # ============ DATABASE SETUP ============
 def init_db():
@@ -255,19 +289,19 @@ def parse_resume_file(file_path, jd_text=None):
         'ai_used': False
     }
     
-    if GEMINI_API_KEY:
-        gemini_result = parse_resume_with_gemini(text)
-        if gemini_result:
-            result['name'] = gemini_result.get('name', result['name'])
-            result['email'] = gemini_result.get('email', result['email'])
-            result['phone'] = gemini_result.get('phone', result['phone'])
-            result['skills'] = gemini_result.get('skills', result['skills'])
-            result['work_history'] = gemini_result.get('work_history', result['work_history'])
-            result['certifications'] = gemini_result.get('certifications', result['certifications'])
+    if GROQ_API_KEY:
+        groq_result = parse_resume_with_groq(text)
+        if groq_result:
+            result['name'] = groq_result.get('name', result['name'])
+            result['email'] = groq_result.get('email', result['email'])
+            result['phone'] = groq_result.get('phone', result['phone'])
+            result['skills'] = groq_result.get('skills', result['skills'])
+            result['work_history'] = groq_result.get('work_history', result['work_history'])
+            result['certifications'] = groq_result.get('certifications', result['certifications'])
             result['ai_used'] = True
     
-    if jd_text and GEMINI_API_KEY:
-        analysis = analyze_with_gemini(text, jd_text)
+    if jd_text and GROQ_API_KEY:
+        analysis = analyze_with_groq(text, jd_text)
         if analysis:
             result['match_score'] = analysis.get('match_score', 0)
             result['relevance_feedback'] = analysis.get('relevance_feedback', '')
@@ -337,13 +371,13 @@ HTML_TEMPLATE = '''
     <div class="container">
         <div class="header">
             <h1>🎯 ShahnaIT Scout 
-                {% if gemini_enabled %}
-                <span class="badge-ai">🤖 AI ENHANCED</span>
+                {% if groq_enabled %}
+                <span class="badge-ai">⚡ GROQ AI ENHANCED</span>
                 {% else %}
                 <span class="badge-ai" style="background:#E74C3C;">⚠️ AI DISABLED</span>
                 {% endif %}
             </h1>
-            <p>Intelligent Recruitment Platform with AI Resume Analysis, JD Matching & Profile Authenticity Scoring</p>
+            <p>Intelligent Recruitment Platform with Groq AI Analysis, JD Matching & Profile Authenticity Scoring</p>
         </div>
         
         <div class="tabs">
@@ -364,10 +398,10 @@ HTML_TEMPLATE = '''
         <div id="upload-tab" style="display:none;">
             <div class="card">
                 <h3>📄 Upload Resume (PDF or DOCX)</h3>
-                {% if gemini_enabled %}
-                <div class="alert-info" style="background:#27AE60;">✅ Gemini AI is ACTIVE</div>
+                {% if groq_enabled %}
+                <div class="alert-info" style="background:#27AE60;">⚡ Groq AI is ACTIVE - Fast & Free</div>
                 {% else %}
-                <div class="alert-info" style="background:#F39C12;">⚠️ Add GEMINI_API_KEY to Railway</div>
+                <div class="alert-info" style="background:#F39C12;">⚠️ Add GROQ_API_KEY to Railway</div>
                 {% endif %}
                 <input type="file" id="resume-file" accept=".pdf,.docx">
                 <select id="upload-job-select" style="margin: 10px 0;">
@@ -408,7 +442,7 @@ HTML_TEMPLATE = '''
                         </select>
                     </div>
                 </div>
-                <button class="btn-primary" onclick="analyzeMatch()">🤖 Run AI Analysis</button>
+                <button class="btn-primary" onclick="analyzeMatch()">🤖 Run Groq AI Analysis</button>
                 <div id="analyze-result" class="mt-20"></div>
             </div>
         </div>
@@ -501,7 +535,7 @@ HTML_TEMPLATE = '''
             if (job && job.description) formData.append('jd_text', job.description);
             
             const resultDiv = document.getElementById('parse-result');
-            resultDiv.innerHTML = '<div class="spinner"></div><p class="text-center">Parsing...</p>';
+            resultDiv.innerHTML = '<div class="spinner"></div><p class="text-center">Parsing with Groq AI...</p>';
             
             try {
                 const response = await fetch('/api/parse-resume', { method: 'POST', body: formData });
@@ -514,7 +548,7 @@ HTML_TEMPLATE = '''
                 
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>✅ Resume Parsed ${result.ai_used ? '🤖' : '⚙️'}</h4>
+                        <h4>✅ Resume Parsed ${result.ai_used ? '⚡ Groq AI' : '⚙️ Basic'}</h4>
                         <p><strong>Name:</strong> ${escapeHtml(result.name)}</p>
                         <p><strong>Email:</strong> ${escapeHtml(result.email)}</p>
                         <p><strong>Phone:</strong> ${escapeHtml(result.phone)}</p>
@@ -552,7 +586,7 @@ HTML_TEMPLATE = '''
             const candidate = candidatesData.find(c => c.id == candidateId);
             
             const resultDiv = document.getElementById('analyze-result');
-            resultDiv.innerHTML = '<div class="spinner"></div><p>Running AI analysis...</p>';
+            resultDiv.innerHTML = '<div class="spinner"></div><p>Running Groq AI analysis...</p>';
             
             try {
                 const response = await fetch('/api/analyze-match', {
@@ -569,13 +603,14 @@ HTML_TEMPLATE = '''
                 
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>📊 Analysis Complete</h4>
+                        <h4>📊 Groq AI Analysis Complete</h4>
                         <p><strong>🎯 Match Score:</strong> <span class="${result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low')}">${result.match_score}%</span></p>
                         <p><strong>✅ Genuineness:</strong> ${result.genuineness_score}%</p>
                         <p><strong>📌 Recommendation:</strong> ${escapeHtml(result.recommendation)}</p>
                         <p><strong>💪 Strengths:</strong> ${result.strengths ? result.strengths.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') : 'None'}</p>
                         <p><strong>⚠️ Gaps:</strong> ${result.gaps ? result.gaps.map(g => `<span class="skill-tag">${escapeHtml(g)}</span>`).join('') : 'None'}</p>
                         <p><strong>📝 Feedback:</strong> ${escapeHtml(result.relevance_feedback)}</p>
+                        <p><strong>🔍 Authenticity:</strong> ${escapeHtml(result.genuineness_feedback)}</p>
                     </div>
                 `;
             } catch (error) {
@@ -623,7 +658,7 @@ HTML_TEMPLATE = '''
 # ============ API ROUTES ============
 @app.route('/')
 def index():
-    return render_template_string(HTML_TEMPLATE, gemini_enabled=GEMINI_ENABLED)
+    return render_template_string(HTML_TEMPLATE, groq_enabled=GROQ_ENABLED)
 
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
@@ -689,15 +724,15 @@ def analyze_match():
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
-    if not GEMINI_API_KEY:
-        return jsonify({'error': 'Gemini API key missing. Add GEMINI_API_KEY to Railway variables.'}), 503
+    if not GROQ_API_KEY:
+        return jsonify({'error': 'Groq API key missing. Add GROQ_API_KEY to Railway variables.'}), 503
     
-    result = analyze_with_gemini(resume_text, jd_text)
+    result = analyze_with_groq(resume_text, jd_text)
     
     if result:
         return jsonify(result)
     else:
-        return jsonify({'error': 'Gemini analysis failed. Check API key and billing.'}), 500
+        return jsonify({'error': 'Groq analysis failed. Check API key.'}), 500
 
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
