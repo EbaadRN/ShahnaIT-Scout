@@ -1,4 +1,4 @@
-# app.py - COMPLETE WITH GROQ API (Faster, No Billing Issues)
+# app.py - WITH DETAILED ANALYSIS FORMAT
 import os
 import re
 import sqlite3
@@ -34,7 +34,7 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
 else:
     print("❌ No valid GROQ_API_KEY found")
 
-def call_groq_api(prompt, max_tokens=1000):
+def call_groq_api(prompt, max_tokens=2000):
     """Call Groq API for AI analysis"""
     if not GROQ_API_KEY:
         return None
@@ -59,8 +59,8 @@ def call_groq_api(prompt, max_tokens=1000):
     }
     
     try:
-        print(f"Calling Groq API...")
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        print(f"Calling Groq API for detailed analysis...")
+        response = requests.post(url, json=payload, headers=headers, timeout=45)
         
         if response.status_code == 200:
             data = response.json()
@@ -68,22 +68,21 @@ def call_groq_api(prompt, max_tokens=1000):
             print(f"✅ Groq API call successful")
             return result_text
         else:
-            print(f"Groq API error: {response.status_code} - {response.text[:100]}")
+            print(f"Groq API error: {response.status_code}")
             return None
     except Exception as e:
         print(f"Groq API error: {e}")
         return None
 
-def analyze_with_groq(resume_text, jd_text):
-    """JD vs Resume analysis using Groq API"""
+def analyze_with_groq_detailed(resume_text, jd_text):
+    """Comprehensive JD vs Resume analysis with detailed format"""
     if not GROQ_API_KEY:
         return None
     
-    # Truncate texts to avoid token limits
-    resume_text = resume_text[:2500]
-    jd_text = jd_text[:2000]
+    resume_text = resume_text[:3000]
+    jd_text = jd_text[:2500]
     
-    prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description.
+    prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description in EXTREME DETAIL.
 
 JOB DESCRIPTION:
 {jd_text}
@@ -91,20 +90,69 @@ JOB DESCRIPTION:
 RESUME:
 {resume_text}
 
-Return ONLY valid JSON with these exact fields (no other text before or after the JSON):
+Return ONLY valid JSON with these exact fields (no other text before or after):
+
 {{
-    "match_score": 75,
-    "relevance_feedback": "The candidate has strong experience in required technologies...",
-    "genuineness_score": 85,
-    "genuineness_feedback": "Profile appears authentic with consistent work history...",
-    "strengths": ["React expertise", "Cloud experience", "Leadership"],
-    "gaps": ["Missing Python", "Limited database experience"],
-    "recommendation": "interview"
+    "executive_summary": {{
+        "overall_relevance": "Very High/High/Medium/Low",
+        "verdict_table": {{
+            "Overall Relevance": "text",
+            "Domain Experience": "text with emoji",
+            "Experience Level": "text",
+            "Certifications": "text",
+            "Missing Requirements": "text",
+            "Location": "text",
+            "Rate": "text",
+            "Genuineness": "text"
+        }},
+        "final_verdict": "Strong shortlist candidate / Proceed with caution / Not recommended"
+    }},
+    "relevance_analysis": {{
+        "mandatory_experience": [
+            {{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low", "notes": "text"}}
+        ],
+        "clouds": [
+            {{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low"}}
+        ],
+        "technical_skills": [
+            {{"requirement": "text", "match": "✅/⚠️/❌", "confidence": "High/Medium/Low"}}
+        ],
+        "certifications": [
+            {{"requirement": "text", "match": "✅/⚠️/❌"}}
+        ]
+    }},
+    "domain_assessment": {{
+        "status": "✅ Met / ⚠️ Needs confirmation / ❌ Not met",
+        "analysis": "text",
+        "pre_screen_question": "text"
+    }},
+    "certifications_assessment": {{
+        "summary": "text",
+        "comparison_note": "text"
+    }},
+    "genuineness_assessment": {{
+        "score": 0,
+        "positives": ["positive1", "positive2"],
+        "minor_concerns": [{{"concern": "text", "severity": "Low/Medium", "question": "text"}}],
+        "red_flags": [],
+        "final_score": 0
+    }},
+    "final_verdict": {{
+        "decision": "Proceed to interview / Reject / Need more info",
+        "risk_level": "Low/Medium/High",
+        "go_no_go_summary": [
+            {{"criteria": "text", "status": "✅/⚠️/❌"}}
+        ],
+        "final_call": "text"
+    }},
+    "pre_screening_questions": ["question1", "question2", "question3", "question4", "question5"],
+    "match_score": 0,
+    "recommendation": "hire/interview/reject"
 }}
 
-Do not include any text before or after the JSON. Just the JSON object."""
+Be thorough and specific. For confidence ratings, use evidence from the resume."""
     
-    response_text = call_groq_api(prompt, max_tokens=1000)
+    response_text = call_groq_api(prompt, max_tokens=2500)
     
     if response_text:
         try:
@@ -117,7 +165,7 @@ Do not include any text before or after the JSON. Just the JSON object."""
                 response_text = response_text[:-3]
             
             result = json.loads(response_text)
-            print(f"✅ Groq analysis successful - Match: {result.get('match_score', 0)}%")
+            print(f"✅ Detailed Groq analysis successful")
             return result
         except json.JSONDecodeError as e:
             print(f"JSON parse error: {e}")
@@ -182,14 +230,16 @@ def init_db():
         resume_text TEXT,
         job_id INTEGER,
         match_score INTEGER,
-        relevance_feedback TEXT,
-        genuineness_score INTEGER,
-        genuineness_feedback TEXT,
-        strengths TEXT,
-        gaps TEXT,
         recommendation TEXT,
+        detailed_analysis TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
+    
+    # Check if detailed_analysis column exists, if not add it
+    try:
+        c.execute('ALTER TABLE candidates ADD COLUMN detailed_analysis TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     conn.commit()
     conn.close()
@@ -203,7 +253,7 @@ COMMON_SKILLS = [
     'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes',
     'Machine Learning', 'AI', 'Data Science', 'Excel', 'Tableau', 'Power BI',
     'HTML', 'CSS', 'Git', 'REST API', 'GraphQL', 'C++', 'C#', '.NET', 'PHP', 'Ruby',
-    'Leadership', 'Project Management', 'Agile', 'Scrum', 'Communication'
+    'Salesforce', 'Apex', 'LWC', 'Sales Cloud', 'Service Cloud', 'Experience Cloud'
 ]
 
 def extract_skills_from_text(text):
@@ -262,7 +312,8 @@ def extract_work_history(text):
     return ' | '.join(experience[:3]) if experience else ""
 
 def extract_certifications(text):
-    certs = ['PMP', 'CISSP', 'AWS', 'Scrum', 'ITIL', 'CPA', 'CFA', 'CCNA', 'MCSE']
+    certs = ['PMP', 'CISSP', 'AWS', 'Scrum', 'ITIL', 'CPA', 'CFA', 'CCNA', 'MCSE', 
+             'Platform Developer', 'Administrator', 'Salesforce Certified']
     found = []
     for cert in certs:
         if cert.lower() in text.lower():
@@ -285,7 +336,7 @@ def parse_resume_file(file_path, jd_text=None):
         'skills': extract_skills_from_text(text),
         'work_history': extract_work_history(text),
         'certifications': extract_certifications(text),
-        'resume_text': text[:2000],
+        'resume_text': text[:3000],
         'ai_used': False
     }
     
@@ -300,17 +351,6 @@ def parse_resume_file(file_path, jd_text=None):
             result['certifications'] = groq_result.get('certifications', result['certifications'])
             result['ai_used'] = True
     
-    if jd_text and GROQ_API_KEY:
-        analysis = analyze_with_groq(text, jd_text)
-        if analysis:
-            result['match_score'] = analysis.get('match_score', 0)
-            result['relevance_feedback'] = analysis.get('relevance_feedback', '')
-            result['genuineness_score'] = analysis.get('genuineness_score', 0)
-            result['genuineness_feedback'] = analysis.get('genuineness_feedback', '')
-            result['strengths'] = analysis.get('strengths', [])
-            result['gaps'] = analysis.get('gaps', [])
-            result['recommendation'] = analysis.get('recommendation', 'review')
-    
     return result
 
 # ============ HTML TEMPLATE ============
@@ -323,7 +363,7 @@ HTML_TEMPLATE = '''
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #F5F0E8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2C3E50; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
         
         .header { background: linear-gradient(135deg, #1A4D4A 0%, #0F3533 100%); color: white; padding: 30px; border-radius: 16px; margin-bottom: 30px; }
         .header h1 { font-size: 2em; margin-bottom: 10px; }
@@ -337,10 +377,10 @@ HTML_TEMPLATE = '''
         
         .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1A4D4A; }
         .card h3 { color: #1A4D4A; margin-bottom: 12px; }
+        .card h4 { color: #1A4D4A; margin: 15px 0 10px 0; }
         
         .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 10px; margin-bottom: 10px; }
         .btn-primary:hover { background: #2A6B67; }
-        .btn-secondary { background: #7F8C8D; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; }
         
         input, textarea, select { width: 100%; padding: 12px; margin: 10px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #1A4D4A; }
@@ -348,18 +388,35 @@ HTML_TEMPLATE = '''
         .alert-success { background: #27AE60; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         .alert-error { background: #E74C3C; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         .alert-info { background: #3498DB; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
+        .alert-warning { background: #F39C12; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
         
         .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; }
-        .match-high { color: #27AE60; font-weight: bold; }
-        .match-medium { color: #F39C12; font-weight: bold; }
-        .match-low { color: #E74C3C; font-weight: bold; }
+        .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; color: #2C3E50; }
+        
+        .match-high { color: #1B5E20; font-weight: bold; background: #E8F5E9; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        .match-medium { color: #E65100; font-weight: bold; background: #FFF3E0; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        .match-low { color: #B71C1C; font-weight: bold; background: #FFEBEE; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        
+        .recommend-hire { background: #27AE60; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        .recommend-interview { background: #F39C12; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        .recommend-reject { background: #E74C3C; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        
+        .analysis-section { background: #F8F9FA; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #1A4D4A; }
+        .verdict-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .verdict-table td { padding: 8px; border-bottom: 1px solid #E0E0E0; }
+        .verdict-table td:first-child { font-weight: bold; width: 40%; }
+        
+        .requirement-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #E0E0E0; }
+        .match-badge { font-size: 14px; }
         
         .flex { display: flex; gap: 20px; flex-wrap: wrap; }
         .flex-2 { flex: 2; }
         .flex-1 { flex: 1; }
+        
+        .pre-screen-questions { background: #E8F5E9; padding: 15px; border-radius: 10px; margin: 15px 0; }
+        .pre-screen-questions li { margin: 8px 0; margin-left: 20px; }
         
         @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } .flex { flex-direction: column; } }
         .text-center { text-align: center; }
@@ -377,7 +434,7 @@ HTML_TEMPLATE = '''
                 <span class="badge-ai" style="background:#E74C3C;">⚠️ AI DISABLED</span>
                 {% endif %}
             </h1>
-            <p>Intelligent Recruitment Platform with Groq AI Analysis, JD Matching & Profile Authenticity Scoring</p>
+            <p>Intelligent Recruitment Platform with Detailed AI Analysis, JD Matching & Profile Authenticity Scoring</p>
         </div>
         
         <div class="tabs">
@@ -385,7 +442,7 @@ HTML_TEMPLATE = '''
             <button class="tab-btn" onclick="showTab('candidates')">👥 Candidates</button>
             <button class="tab-btn" onclick="showTab('upload')">📄 Upload Resume</button>
             <button class="tab-btn" onclick="showTab('create-job')">➕ Create Job</button>
-            <button class="tab-btn" onclick="showTab('analyze')">🔍 Analyze Match</button>
+            <button class="tab-btn" onclick="showTab('analyze')">🔍 Detailed Analysis</button>
         </div>
         
         <div id="jobs-tab"><div id="jobs-list" class="mt-20"></div></div>
@@ -399,14 +456,11 @@ HTML_TEMPLATE = '''
             <div class="card">
                 <h3>📄 Upload Resume (PDF or DOCX)</h3>
                 {% if groq_enabled %}
-                <div class="alert-info" style="background:#27AE60;">⚡ Groq AI is ACTIVE - Fast & Free</div>
+                <div class="alert-info" style="background:#27AE60;">⚡ Groq AI is ACTIVE - Detailed analysis ready</div>
                 {% else %}
                 <div class="alert-info" style="background:#F39C12;">⚠️ Add GROQ_API_KEY to Railway</div>
                 {% endif %}
                 <input type="file" id="resume-file" accept=".pdf,.docx">
-                <select id="upload-job-select" style="margin: 10px 0;">
-                    <option value="">-- Optional: Select Job for Match Analysis --</option>
-                </select>
                 <button class="btn-primary" onclick="uploadResume()">🔍 Parse Resume</button>
                 <div id="parse-result" class="mt-20"></div>
             </div>
@@ -427,7 +481,8 @@ HTML_TEMPLATE = '''
         
         <div id="analyze-tab" style="display:none;">
             <div class="card">
-                <h3>🔍 AI-Powered Resume-JD Match Analysis</h3>
+                <h3>🔍 Detailed AI-Powered Resume-JD Match Analysis</h3>
+                <p>Get comprehensive analysis including executive summary, relevance assessment, certification gap analysis, genuineness assessment, and pre-screening questions.</p>
                 <div class="flex">
                     <div class="flex-1">
                         <label>📋 Select Job</label>
@@ -442,7 +497,7 @@ HTML_TEMPLATE = '''
                         </select>
                     </div>
                 </div>
-                <button class="btn-primary" onclick="analyzeMatch()">🤖 Run Groq AI Analysis</button>
+                <button class="btn-primary" onclick="analyzeMatch()">🤖 Run Detailed AI Analysis</button>
                 <div id="analyze-result" class="mt-20"></div>
             </div>
         </div>
@@ -482,10 +537,8 @@ HTML_TEMPLATE = '''
                 `).join('');
                 
                 const options = '<option value="">-- Select Job --</option>' + jobsData.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
-                ['analyze-job-select', 'upload-job-select'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerHTML = options;
-                });
+                const jobSelect = document.getElementById('analyze-job-select');
+                if (jobSelect) jobSelect.innerHTML = options;
             } catch (error) {
                 document.getElementById('jobs-list').innerHTML = '<div class="alert-error">Error loading jobs</div>';
             }
@@ -502,13 +555,15 @@ HTML_TEMPLATE = '''
                 }
                 container.innerHTML = candidatesData.map(c => {
                     const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
+                    const recClass = c.recommendation === 'hire' ? 'recommend-hire' : (c.recommendation === 'interview' ? 'recommend-interview' : 'recommend-reject');
                     return `
                     <div class="card">
                         <h3>${escapeHtml(c.name || 'Unknown')}</h3>
                         ${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}
                         ${c.phone ? `<p>📞 ${escapeHtml(c.phone)}</p>` : ''}
                         ${c.skills ? `<p>🔧 ${c.skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}</p>` : ''}
-                        ${c.match_score ? `<p>🎯 Match: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
+                        ${c.match_score ? `<p>🎯 Match Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
+                        ${c.recommendation ? `<p>📌 Recommendation: <span class="${recClass}">${escapeHtml(c.recommendation)}</span></p>` : ''}
                         <small>📅 ${new Date(c.created_at).toLocaleDateString()}</small>
                     </div>`;
                 }).join('');
@@ -526,13 +581,8 @@ HTML_TEMPLATE = '''
             const file = document.getElementById('resume-file').files[0];
             if (!file) { alert('Select a file'); return; }
             
-            const jobSelect = document.getElementById('upload-job-select');
-            const jobId = jobSelect.value;
-            const job = jobsData.find(j => j.id == jobId);
-            
             const formData = new FormData();
             formData.append('resume', file);
-            if (job && job.description) formData.append('jd_text', job.description);
             
             const resultDiv = document.getElementById('parse-result');
             resultDiv.innerHTML = '<div class="spinner"></div><p class="text-center">Parsing with Groq AI...</p>';
@@ -553,9 +603,7 @@ HTML_TEMPLATE = '''
                         <p><strong>Email:</strong> ${escapeHtml(result.email)}</p>
                         <p><strong>Phone:</strong> ${escapeHtml(result.phone)}</p>
                         <p><strong>Skills:</strong> ${result.skills ? result.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') : 'None'}</p>
-                        ${result.match_score ? `<p><strong>🎯 Match Score:</strong> ${result.match_score}%</p>` : ''}
-                        ${result.recommendation ? `<p><strong>📌 Recommendation:</strong> ${escapeHtml(result.recommendation)}</p>` : ''}
-                        <button class="btn-primary" onclick='saveCandidate(${JSON.stringify(result).replace(/'/g, "\\'")})'>💾 Save</button>
+                        <button class="btn-primary" onclick='saveCandidate(${JSON.stringify(result).replace(/'/g, "\\'")})'>💾 Save Candidate</button>
                     </div>
                 `;
             } catch (error) {
@@ -574,6 +622,8 @@ HTML_TEMPLATE = '''
                 document.getElementById('parse-result').innerHTML = '';
                 document.getElementById('resume-file').value = '';
                 loadCandidates();
+            } else {
+                alert('Error saving candidate');
             }
         }
         
@@ -586,13 +636,18 @@ HTML_TEMPLATE = '''
             const candidate = candidatesData.find(c => c.id == candidateId);
             
             const resultDiv = document.getElementById('analyze-result');
-            resultDiv.innerHTML = '<div class="spinner"></div><p>Running Groq AI analysis...</p>';
+            resultDiv.innerHTML = '<div class="spinner"></div><p>Running detailed Groq AI analysis...</p>';
             
             try {
                 const response = await fetch('/api/analyze-match', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ jd_text: job.description || '', resume_text: candidate.resume_text || '' })
+                    body: JSON.stringify({ 
+                        job_id: jobId,
+                        candidate_id: candidateId,
+                        jd_text: job.description || '', 
+                        resume_text: candidate.resume_text || '' 
+                    })
                 });
                 const result = await response.json();
                 
@@ -601,18 +656,100 @@ HTML_TEMPLATE = '''
                     return;
                 }
                 
+                // Build detailed HTML from the analysis
+                let analysisHtml = '';
+                
+                if (result.executive_summary) {
+                    analysisHtml += `
+                        <div class="analysis-section">
+                            <h4>📊 Executive Summary</h4>
+                            <p><strong>Overall Relevance:</strong> ${escapeHtml(result.executive_summary.overall_relevance || 'N/A')}</p>
+                            <p><strong>Final Verdict:</strong> ${escapeHtml(result.executive_summary.final_verdict || 'N/A')}</p>
+                        </div>
+                    `;
+                }
+                
+                if (result.relevance_analysis) {
+                    analysisHtml += `<div class="analysis-section"><h4>📋 Relevance Analysis</h4>`;
+                    
+                    if (result.relevance_analysis.mandatory_experience) {
+                        analysisHtml += `<p><strong>Mandatory Experience:</strong></p><ul>`;
+                        result.relevance_analysis.mandatory_experience.forEach(item => {
+                            analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)} (${escapeHtml(item.confidence || 'N/A')})</li>`;
+                        });
+                        analysisHtml += `</ul>`;
+                    }
+                    
+                    if (result.relevance_analysis.technical_skills) {
+                        analysisHtml += `<p><strong>Technical Skills:</strong></p><ul>`;
+                        result.relevance_analysis.technical_skills.forEach(item => {
+                            analysisHtml += `<li>${escapeHtml(item.requirement)}: ${escapeHtml(item.match)}</li>`;
+                        });
+                        analysisHtml += `</ul>`;
+                    }
+                    
+                    analysisHtml += `</div>`;
+                }
+                
+                if (result.domain_assessment) {
+                    analysisHtml += `
+                        <div class="analysis-section">
+                            <h4>🏢 Domain Assessment</h4>
+                            <p><strong>Status:</strong> ${escapeHtml(result.domain_assessment.status || 'N/A')}</p>
+                            <p>${escapeHtml(result.domain_assessment.analysis || '')}</p>
+                            ${result.domain_assessment.pre_screen_question ? `<p><strong>Pre-screen Question:</strong> ${escapeHtml(result.domain_assessment.pre_screen_question)}</p>` : ''}
+                        </div>
+                    `;
+                }
+                
+                if (result.genuineness_assessment) {
+                    analysisHtml += `
+                        <div class="analysis-section">
+                            <h4>🔍 Genuineness Assessment</h4>
+                            <p><strong>Score:</strong> ${result.genuineness_assessment.score || result.genuineness_assessment.final_score || 'N/A'}/10</p>
+                            ${result.genuineness_assessment.positives ? `<p><strong>✅ Positives:</strong></p><ul>${result.genuineness_assessment.positives.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>` : ''}
+                            ${result.genuineness_assessment.minor_concerns ? `<p><strong>🟡 Minor Concerns:</strong></p><ul>${result.genuineness_assessment.minor_concerns.map(c => `<li>${escapeHtml(c.concern)} - ${escapeHtml(c.severity || 'Low')}</li>`).join('')}</ul>` : ''}
+                        </div>
+                    `;
+                }
+                
+                if (result.pre_screening_questions && result.pre_screening_questions.length) {
+                    analysisHtml += `
+                        <div class="pre-screen-questions">
+                            <h4>📝 Pre-Screening Questions</h4>
+                            <ul>
+                                ${result.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                if (result.final_verdict) {
+                    analysisHtml += `
+                        <div class="analysis-section">
+                            <h4>⚖️ Final Verdict</h4>
+                            <p><strong>Decision:</strong> <span class="${result.final_verdict.decision === 'Proceed to interview' ? 'recommend-hire' : 'recommend-reject'}">${escapeHtml(result.final_verdict.decision || 'N/A')}</span></p>
+                            <p><strong>Risk Level:</strong> ${escapeHtml(result.final_verdict.risk_level || 'N/A')}</p>
+                            <p><strong>Final Call:</strong> ${escapeHtml(result.final_verdict.final_call || 'N/A')}</p>
+                        </div>
+                    `;
+                }
+                
+                const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
+                const recClass = result.recommendation === 'hire' ? 'recommend-hire' : (result.recommendation === 'interview' ? 'recommend-interview' : 'recommend-reject');
+                
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>📊 Groq AI Analysis Complete</h4>
-                        <p><strong>🎯 Match Score:</strong> <span class="${result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low')}">${result.match_score}%</span></p>
-                        <p><strong>✅ Genuineness:</strong> ${result.genuineness_score}%</p>
-                        <p><strong>📌 Recommendation:</strong> ${escapeHtml(result.recommendation)}</p>
-                        <p><strong>💪 Strengths:</strong> ${result.strengths ? result.strengths.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') : 'None'}</p>
-                        <p><strong>⚠️ Gaps:</strong> ${result.gaps ? result.gaps.map(g => `<span class="skill-tag">${escapeHtml(g)}</span>`).join('') : 'None'}</p>
-                        <p><strong>📝 Feedback:</strong> ${escapeHtml(result.relevance_feedback)}</p>
-                        <p><strong>🔍 Authenticity:</strong> ${escapeHtml(result.genuineness_feedback)}</p>
+                        <h4>📊 Detailed Groq AI Analysis Complete</h4>
+                        <p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p>
+                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review')}</span></p>
+                        ${analysisHtml}
+                        <p style="margin-top: 10px; color: #27AE60;"><small>✅ Analysis has been automatically saved to the candidate record.</small></p>
                     </div>
                 `;
+                
+                loadCandidates();
+                
             } catch (error) {
                 resultDiv.innerHTML = '<div class="alert-error">Analysis failed. Check API key.</div>';
             }
@@ -643,6 +780,8 @@ HTML_TEMPLATE = '''
                 document.getElementById('job-reqs').value = '';
                 showTab('jobs');
                 loadJobs();
+            } else {
+                alert('Error creating job');
             }
         }
         
@@ -697,29 +836,37 @@ def get_candidates():
 def create_candidate():
     data = request.json
     skills = ', '.join(data.get('skills', [])) if isinstance(data.get('skills'), list) else data.get('skills', '')
-    strengths = ', '.join(data.get('strengths', [])) if isinstance(data.get('strengths'), list) else data.get('strengths', '')
-    gaps = ', '.join(data.get('gaps', [])) if isinstance(data.get('gaps'), list) else data.get('gaps', '')
     
     conn = sqlite3.connect('shahnai.db')
     c = conn.cursor()
-    c.execute('''INSERT INTO candidates (name, email, phone, skills, work_history, certifications, 
-                 resume_text, job_id, match_score, relevance_feedback, genuineness_score, 
-                 genuineness_feedback, strengths, gaps, recommendation) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+    c.execute('''INSERT INTO candidates (name, email, phone, skills, work_history, certifications, resume_text) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?)''',
               (data.get('name'), data.get('email'), data.get('phone'), skills,
-               data.get('work_history'), data.get('certifications'), data.get('resume_text', ''),
-               data.get('job_id'), data.get('match_score'), data.get('relevance_feedback'),
-               data.get('genuineness_score'), data.get('genuineness_feedback'),
-               strengths, gaps, data.get('recommendation')))
+               data.get('work_history'), data.get('certifications'), data.get('resume_text', '')))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Candidate saved'})
+
+@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
+def update_candidate(candidate_id):
+    data = request.json
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('''UPDATE candidates 
+                 SET match_score = ?, recommendation = ?, detailed_analysis = ?
+                 WHERE id = ?''',
+              (data.get('match_score'), data.get('recommendation'), data.get('detailed_analysis'), candidate_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Candidate updated'})
 
 @app.route('/api/analyze-match', methods=['POST'])
 def analyze_match():
     data = request.json
     resume_text = data.get('resume_text', '')
     jd_text = data.get('jd_text', '')
+    job_id = data.get('job_id')
+    candidate_id = data.get('candidate_id')
     
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
@@ -727,9 +874,25 @@ def analyze_match():
     if not GROQ_API_KEY:
         return jsonify({'error': 'Groq API key missing. Add GROQ_API_KEY to Railway variables.'}), 503
     
-    result = analyze_with_groq(resume_text, jd_text)
+    result = analyze_with_groq_detailed(resume_text, jd_text)
     
     if result:
+        match_score = result.get('match_score', 0)
+        recommendation = result.get('recommendation', 'review')
+        
+        # Save analysis to candidate
+        if candidate_id:
+            detailed_json = json.dumps(result, indent=2)
+            conn = sqlite3.connect('shahnai.db')
+            c = conn.cursor()
+            c.execute('''UPDATE candidates 
+                         SET match_score = ?, recommendation = ?, detailed_analysis = ?
+                         WHERE id = ?''',
+                      (match_score, recommendation, detailed_json, candidate_id))
+            conn.commit()
+            conn.close()
+            print(f"✅ Detailed analysis saved to candidate {candidate_id}")
+        
         return jsonify(result)
     else:
         return jsonify({'error': 'Groq analysis failed. Check API key.'}), 500
@@ -745,12 +908,21 @@ def export_candidates():
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Match Score', 'Recommendation', 'Created Date'])
+    writer.writerow(['ID', 'Name', 'Email', 'Phone', 'Skills', 'Work History', 'Certifications', 
+                     'Match Score', 'Recommendation', 'Created Date'])
     for c in candidates:
-        writer.writerow([c.get('id'), c.get('name'), c.get('email'), c.get('phone'), c.get('skills'), c.get('match_score'), c.get('recommendation'), c.get('created_at')])
+        writer.writerow([
+            c.get('id', ''), c.get('name', ''), c.get('email', ''), c.get('phone', ''),
+            c.get('skills', ''), c.get('work_history', ''), c.get('certifications', ''),
+            c.get('match_score', ''), c.get('recommendation', ''), c.get('created_at', '')
+        ])
     
     output.seek(0)
-    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'}
+    )
 
 @app.route('/api/parse-resume', methods=['POST'])
 def parse_resume():
@@ -764,12 +936,11 @@ def parse_resume():
     if not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type'}), 400
     
-    jd_text = request.form.get('jd_text', None)
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
     
-    result = parse_resume_file(filepath, jd_text)
+    result = parse_resume_file(filepath)
     os.remove(filepath)
     
     return jsonify(result)
