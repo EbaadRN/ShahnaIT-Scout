@@ -1,4 +1,4 @@
-# app.py - COMPLETE VERSION with ALL Features Preserved
+# app.py - COMPLETE VERSION with Improved Groq Accuracy & Elegant Colors
 import os
 import re
 import sqlite3
@@ -32,18 +32,54 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
     GROQ_ENABLED = True
     print("✅✅✅ Groq API configured")
 
-def call_groq_api(prompt, max_tokens=2500):
+def call_groq_api(prompt, max_tokens=2000):
+    """Improved Groq API call with system prompt for better accuracy"""
     if not GROQ_API_KEY:
         return None
+    
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-    payload = {"model": "llama-3.3-70b-versatile", "messages": [{"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": max_tokens}
+    
+    # System prompt - optimized for resume analysis (keep static for caching)
+    system_prompt = """You are an expert recruitment analyst specializing in ATS-optimized resume evaluation.
+
+RULES:
+1. Return ONLY valid JSON - no markdown, no explanations, no code blocks
+2. Include all required fields in your response
+3. Base all analysis solely on evidence in the provided resume
+4. Never add information not present in the resume
+
+SCORING GUIDELINES:
+- Match Score (0-100): Calculate based on skill overlap and experience relevance
+- Genuineness (0-10): Rate based on verifiable details, consistency, and specificity
+- Recommendation: 'hire' (80+), 'interview' (50-79), 'reject' (below 50)"""
+    
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.0,      # Deterministic output for consistency
+        "top_p": 0.95,           # Focused sampling
+        "max_tokens": max_tokens
+    }
+    
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=45)
         if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content']
-    except:
-        pass
+            result = response.json()['choices'][0]['message']['content']
+            # Clean any remaining markdown
+            result = result.strip()
+            if result.startswith('```json'):
+                result = result[7:]
+            if result.startswith('```'):
+                result = result[3:]
+            if result.endswith('```'):
+                result = result[:-3]
+            return result
+    except Exception as e:
+        print(f"Groq API error: {e}")
     return None
 
 def analyze_with_groq_detailed(resume_text, jd_text, candidate_name=""):
@@ -71,10 +107,6 @@ Return: {{
     response = call_groq_api(prompt, max_tokens=2000)
     if response:
         try:
-            response = response.strip()
-            if response.startswith('```json'): response = response[7:]
-            if response.startswith('```'): response = response[3:]
-            if response.endswith('```'): response = response[:-3]
             return json.loads(response)
         except:
             pass
@@ -83,14 +115,10 @@ Return: {{
 def parse_resume_with_groq(resume_text):
     if not GROQ_API_KEY:
         return None
-    prompt = f"Extract name, email, phone, skills array from this resume. Return ONLY JSON: {resume_text[:2000]}"
+    prompt = f"Extract name, email, phone, skills array from this resume. Return ONLY valid JSON: {resume_text[:2000]}"
     response = call_groq_api(prompt, max_tokens=500)
     if response:
         try:
-            response = response.strip()
-            if response.startswith('```json'): response = response[7:]
-            if response.startswith('```'): response = response[3:]
-            if response.endswith('```'): response = response[:-3]
             return json.loads(response)
         except:
             pass
@@ -218,81 +246,433 @@ def parse_resume_file(file_path):
     
     return result
 
-# ============ HTML TEMPLATE ============
+# ============ HTML TEMPLATE with Elegant Color Scheme ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ShahnaIT Scout - Recruitment Platform</title>
+    <title>ShahnaIT Scout - Recruitment Intelligence Platform</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #F5F0E8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #2C3E50; }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         
-        .header { background: linear-gradient(135deg, #1A4D4A 0%, #0F3533 100%); color: white; padding: 30px; border-radius: 16px; margin-bottom: 30px; }
-        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        /* Elegant Color Scheme */
+        :root {
+            --bg-primary: #F9F6F0;      /* Warm Ivory */
+            --bg-card: #FFFFFF;          /* Soft White */
+            --primary-dark: #1A3A3A;     /* Deep Forest */
+            --primary: #1D5E5A;          /* Deep Teal */
+            --primary-light: #2A7A76;    /* Lighter Teal */
+            --text-dark: #3A4A4A;        /* Soft Dark */
+            --text-light: #6B7B7B;       /* Muted Gray */
+            --accent-gold: #C9A96E;      /* Gold Accent */
+            --success: #1B6B2E;          /* Elegant Green */
+            --warning: #CC5500;           /* Warm Orange */
+            --danger: #B22222;            /* Soft Red */
+            --border-light: #EAE5DC;      /* Subtle Border */
+        }
         
-        .badge-ai { display: inline-block; background: #27AE60; font-size: 12px; padding: 4px 12px; border-radius: 20px; margin-left: 10px; vertical-align: middle; }
+        body { 
+            background-color: var(--bg-primary); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: var(--text-dark); 
+        }
         
-        .tabs { display: flex; gap: 5px; margin-bottom: 30px; background: white; padding: 10px; border-radius: 12px; flex-wrap: wrap; }
-        .tab-btn { background: transparent; border: none; padding: 12px 24px; font-size: 15px; cursor: pointer; color: #555; border-radius: 8px; transition: all 0.3s; }
-        .tab-btn:hover { background: #E8E0D0; color: #1A4D4A; }
-        .tab-btn.active { background: #1A4D4A; color: white; }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
         
-        .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 4px solid #1A4D4A; cursor: pointer; transition: transform 0.2s; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        /* Header with elegant gradient */
+        .header { 
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); 
+            color: white; 
+            padding: 35px; 
+            border-radius: 20px; 
+            margin-bottom: 35px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-bottom: 3px solid var(--accent-gold);
+        }
+        
+        .header h1 { 
+            font-size: 2.2em; 
+            margin-bottom: 10px; 
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        
+        .header p { 
+            opacity: 0.85; 
+            font-size: 1.05em;
+        }
+        
+        .badge-ai { 
+            display: inline-block; 
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            font-size: 12px; 
+            padding: 5px 14px; 
+            border-radius: 30px; 
+            margin-left: 12px; 
+            vertical-align: middle;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        
+        /* Elegant Tabs */
+        .tabs { 
+            display: flex; 
+            gap: 8px; 
+            margin-bottom: 35px; 
+            background: var(--bg-card); 
+            padding: 12px 20px; 
+            border-radius: 60px; 
+            flex-wrap: wrap;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+        
+        .tab-btn { 
+            background: transparent; 
+            border: none; 
+            padding: 10px 28px; 
+            font-size: 15px; 
+            cursor: pointer; 
+            color: var(--text-light); 
+            border-radius: 40px; 
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .tab-btn:hover { 
+            background: var(--bg-primary); 
+            color: var(--primary); 
+        }
+        
+        .tab-btn.active { 
+            background: var(--primary); 
+            color: white; 
+            box-shadow: 0 2px 8px rgba(29,94,90,0.3);
+        }
+        
+        /* Sophisticated Cards */
+        .card { 
+            background: var(--bg-card); 
+            border-radius: 20px; 
+            padding: 28px; 
+            margin-bottom: 24px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+            border-left: 4px solid var(--primary); 
+            cursor: pointer; 
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+        }
+        
         .card.no-click { cursor: default; }
-        .card h3 { color: #1A4D4A; margin-bottom: 12px; }
-        .card h4 { color: #1A4D4A; margin: 15px 0 10px 0; }
+        .card.no-click:hover { transform: none; }
         
-        .btn-primary { background: #1A4D4A; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; margin: 10px 5px; }
-        .btn-primary:hover { background: #2A6B67; }
+        .card h3 { 
+            color: var(--primary-dark); 
+            margin-bottom: 12px; 
+            font-size: 1.3em;
+            font-weight: 600;
+        }
         
-        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
-        input:focus, textarea:focus, select:focus { outline: none; border-color: #1A4D4A; }
+        .card h4 { 
+            color: var(--primary-dark); 
+            margin: 18px 0 12px 0; 
+            font-weight: 600;
+        }
         
-        .alert-success { background: #27AE60; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
-        .alert-error { background: #E74C3C; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
-        .alert-info { background: #3498DB; color: white; padding: 14px; border-radius: 8px; margin: 10px 0; }
+        /* Buttons */
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; 
+            border: none; 
+            padding: 12px 28px; 
+            border-radius: 40px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            letter-spacing: 0.3px;
+        }
         
-        .spinner { border: 3px solid #F5F0E8; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn-primary:hover { 
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(29,94,90,0.3);
+        }
         
-        .skill-tag { display: inline-block; background: #E8E0D0; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; color: #1A4D4A; font-weight: 500; }
+        /* Form Elements */
+        input, textarea, select { 
+            width: 100%; 
+            padding: 14px; 
+            margin: 10px 0; 
+            border: 1px solid var(--border-light); 
+            border-radius: 12px;
+            background: var(--bg-card);
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
         
-        .match-high { background: #2E7D32; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        .match-medium { background: #E65100; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-        .match-low { background: #C62828; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+        input:focus, textarea:focus, select:focus { 
+            outline: none; 
+            border-color: var(--primary); 
+            box-shadow: 0 0 0 3px rgba(29,94,90,0.1);
+        }
         
-        .recommend-hire { background: #2E7D32; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
-        .recommend-interview { background: #E65100; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
-        .recommend-reject { background: #C62828; color: white; display: inline-block; padding: 4px 12px; border-radius: 20px; }
+        /* Alert Messages */
+        .alert-success { 
+            background: linear-gradient(135deg, var(--success), #0E5A24);
+            color: white; 
+            padding: 18px; 
+            border-radius: 16px; 
+            margin: 15px 0; 
+        }
         
-        .analysis-section { background: white; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #1A4D4A; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        .analysis-section h4 { color: #1A4D4A; margin-bottom: 15px; }
-        .analysis-section p { color: #2C3E50; margin: 8px 0; line-height: 1.5; }
-        .analysis-section ul { margin-left: 20px; margin-top: 8px; }
-        .analysis-section li { color: #2C3E50; margin: 6px 0; }
+        .alert-error { 
+            background: linear-gradient(135deg, var(--danger), #8B1A1A);
+            color: white; 
+            padding: 18px; 
+            border-radius: 16px; 
+            margin: 15px 0; 
+        }
         
-        .pre-screen-questions { background: #E8F5E9; padding: 20px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #2E7D32; }
-        .pre-screen-questions h4 { color: #1B5E20; margin-bottom: 12px; }
-        .pre-screen-questions li { color: #2C3E50; margin: 8px 0; margin-left: 20px; }
+        .alert-info { 
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; 
+            padding: 14px; 
+            border-radius: 12px; 
+            margin: 10px 0; 
+        }
         
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
-        .modal-content { background: #F5F0E8; margin: 30px auto; border-radius: 16px; width: 90%; max-width: 800px; }
-        .modal-header { background: #1A4D4A; color: white; padding: 20px; border-radius: 16px 16px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h2 { margin: 0; }
-        .modal-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
-        .close { color: white; font-size: 28px; cursor: pointer; }
-        .close:hover { color: #ccc; }
+        /* Spinner */
+        .spinner { 
+            border: 3px solid var(--bg-primary); 
+            border-top: 3px solid var(--primary); 
+            border-radius: 50%; 
+            width: 45px; 
+            height: 45px; 
+            animation: spin 0.8s linear infinite; 
+            margin: 25px auto; 
+        }
         
-        .flex { display: flex; gap: 20px; flex-wrap: wrap; }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        
+        /* Skill Tags - Elegant */
+        .skill-tag { 
+            display: inline-block; 
+            background: var(--bg-primary); 
+            padding: 5px 14px; 
+            border-radius: 30px; 
+            margin: 4px; 
+            font-size: 12px; 
+            color: var(--primary-dark); 
+            font-weight: 500;
+            border: 1px solid var(--border-light);
+        }
+        
+        /* Match Score Pills */
+        .match-high { 
+            background: linear-gradient(135deg, var(--success), #0E5A24);
+            color: white; 
+            display: inline-block; 
+            padding: 5px 16px; 
+            border-radius: 30px; 
+            font-weight: 600;
+        }
+        
+        .match-medium { 
+            background: linear-gradient(135deg, var(--warning), #A84400);
+            color: white; 
+            display: inline-block; 
+            padding: 5px 16px; 
+            border-radius: 30px; 
+            font-weight: 600;
+        }
+        
+        .match-low { 
+            background: linear-gradient(135deg, var(--danger), #8B1A1A);
+            color: white; 
+            display: inline-block; 
+            padding: 5px 16px; 
+            border-radius: 30px; 
+            font-weight: 600;
+        }
+        
+        /* Recommendation Badges */
+        .recommend-hire { 
+            background: linear-gradient(135deg, var(--success), #0E5A24);
+            color: white; 
+            display: inline-block; 
+            padding: 5px 16px; 
+            border-radius: 30px; 
+            font-weight: 600;
+        }
+        
+        .recommend-interview { 
+            background: linear-gradient(135deg, var(--warning), #A84400);
+            color: white; 
+            display: inline-block; 
+            padding: 5px 16px; 
+            border-radius: 30px; 
+            font-weight: 600;
+        }
+        
+        .recommend-reject { 
+            background: linear-gradient(135deg, var(--danger), #8B1A1A);
+            color: white; 
+            display: inline-block; 
+            padding: 5px 16px; 
+            border-radius: 30px; 
+            font-weight: 600;
+        }
+        
+        /* Analysis Sections */
+        .analysis-section { 
+            background: var(--bg-card); 
+            padding: 24px; 
+            border-radius: 20px; 
+            margin: 18px 0; 
+            border-left: 4px solid var(--accent-gold);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+        
+        .analysis-section h4 { 
+            color: var(--primary-dark); 
+            margin-bottom: 15px; 
+            font-weight: 600;
+        }
+        
+        .analysis-section p { 
+            color: var(--text-dark); 
+            margin: 10px 0; 
+            line-height: 1.6; 
+        }
+        
+        .analysis-section ul { 
+            margin-left: 25px; 
+            margin-top: 10px; 
+        }
+        
+        .analysis-section li { 
+            color: var(--text-dark); 
+            margin: 8px 0; 
+            line-height: 1.5; 
+        }
+        
+        /* Pre-screen Questions Box */
+        .pre-screen-questions { 
+            background: linear-gradient(135deg, #F0F7F0, #E8F2E8);
+            padding: 22px; 
+            border-radius: 20px; 
+            margin: 18px 0; 
+            border-left: 4px solid var(--success);
+        }
+        
+        .pre-screen-questions h4 { 
+            color: var(--success); 
+            margin-bottom: 12px; 
+            font-weight: 600;
+        }
+        
+        .pre-screen-questions li { 
+            color: var(--text-dark); 
+            margin: 8px 0; 
+            margin-left: 25px; 
+            line-height: 1.5; 
+        }
+        
+        /* Modal - Elegant */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.5); 
+            overflow-y: auto; 
+        }
+        
+        .modal-content { 
+            background: var(--bg-primary); 
+            margin: 40px auto; 
+            border-radius: 28px; 
+            width: 90%; 
+            max-width: 850px; 
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        }
+        
+        .modal-header { 
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white; 
+            padding: 25px 30px; 
+            border-radius: 28px 28px 0 0; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+        }
+        
+        .modal-header h2 { 
+            margin: 0; 
+            font-weight: 600;
+        }
+        
+        .modal-body { 
+            padding: 30px; 
+            max-height: 70vh; 
+            overflow-y: auto; 
+        }
+        
+        .close { 
+            color: white; 
+            font-size: 32px; 
+            cursor: pointer; 
+            transition: all 0.2s;
+        }
+        
+        .close:hover { 
+            color: var(--accent-gold); 
+            transform: scale(1.1);
+        }
+        
+        /* Layout Utilities */
+        .flex { display: flex; gap: 24px; flex-wrap: wrap; }
         .flex-1 { flex: 1; }
         
-        label { color: #1A4D4A; font-weight: 600; margin-bottom: 5px; display: block; }
+        label { 
+            color: var(--primary-dark); 
+            font-weight: 600; 
+            margin-bottom: 6px; 
+            display: block;
+            font-size: 14px;
+        }
         
-        @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 16px; } .flex { flex-direction: column; } }
+        hr {
+            border: none;
+            border-top: 1px solid var(--border-light);
+            margin: 20px 0;
+        }
+        
+        @media (max-width: 768px) { 
+            .container { padding: 12px; } 
+            .tab-btn { padding: 8px 18px; font-size: 13px; }
+            .card { padding: 20px; }
+            .modal-content { margin: 20px; width: auto; }
+            .flex { flex-direction: column; gap: 15px; }
+        }
+        
         .text-center { text-align: center; }
         .mt-20 { margin-top: 20px; }
         .mb-20 { margin-bottom: 20px; }
@@ -305,10 +685,10 @@ HTML_TEMPLATE = '''
                 {% if groq_enabled %}
                 <span class="badge-ai">⚡ GROQ AI ENHANCED</span>
                 {% else %}
-                <span class="badge-ai" style="background:#E74C3C;">⚠️ AI DISABLED</span>
+                <span class="badge-ai" style="background:#B22222;">⚠️ AI DISABLED</span>
                 {% endif %}
             </h1>
-            <p>Intelligent Recruitment Platform with Detailed AI Analysis, JD Matching & Profile Authenticity Scoring</p>
+            <p>Intelligent Recruitment Platform with Advanced AI Analysis, JD Matching & Profile Authenticity Scoring</p>
         </div>
         
         <div class="tabs">
@@ -330,7 +710,7 @@ HTML_TEMPLATE = '''
             <div class="card no-click">
                 <h3>📄 Upload Resume (PDF/DOCX)</h3>
                 {% if groq_enabled %}
-                <div class="alert-info" style="background:#27AE60;">⚡ Groq AI is ACTIVE</div>
+                <div class="alert-info">⚡ Groq AI is ACTIVE - Enhanced parsing enabled</div>
                 {% endif %}
                 <input type="file" id="resume-file" accept=".pdf,.docx">
                 <button class="btn-primary" id="parseBtn">🔍 Parse Resume</button>
@@ -344,7 +724,7 @@ HTML_TEMPLATE = '''
                 <form id="jobForm">
                     <input type="text" id="job-title" placeholder="Job Title *" required>
                     <input type="text" id="job-company" placeholder="Company Name">
-                    <textarea id="job-desc" rows="5" placeholder="Job Description"></textarea>
+                    <textarea id="job-desc" rows="5" placeholder="Job Description (be detailed for better matching)"></textarea>
                     <button type="submit" class="btn-primary">Create Job</button>
                 </form>
             </div>
@@ -353,6 +733,7 @@ HTML_TEMPLATE = '''
         <div id="analyze-tab" style="display:none;">
             <div class="card no-click">
                 <h3>🔍 AI-Powered Resume-JD Match Analysis</h3>
+                <p>Get comprehensive analysis including executive summary, domain assessment, genuineness scoring, and pre-screening questions.</p>
                 <div class="flex">
                     <div class="flex-1">
                         <label>📋 Select Job</label>
@@ -403,14 +784,14 @@ HTML_TEMPLATE = '''
                 jobsData = await response.json();
                 const container = document.getElementById('jobs-list');
                 if (!jobsData.length) {
-                    container.innerHTML = '<div class="card no-click">No jobs yet. Create one.</div>';
+                    container.innerHTML = '<div class="card no-click">📋 No jobs yet. Create one using the "Create Job" tab.</div>';
                     return;
                 }
                 container.innerHTML = jobsData.map(job => `
                     <div class="card no-click">
                         <h3>${escapeHtml(job.title)}</h3>
                         ${job.company ? `<p>🏢 ${escapeHtml(job.company)}</p>` : ''}
-                        <small>📅 ${new Date(job.created_at).toLocaleDateString()}</small>
+                        <small>📅 Created: ${new Date(job.created_at).toLocaleDateString()}</small>
                     </div>
                 `).join('');
                 
@@ -427,7 +808,7 @@ HTML_TEMPLATE = '''
                 candidatesData = await response.json();
                 const container = document.getElementById('candidates-list');
                 if (!candidatesData.length) {
-                    container.innerHTML = '<div class="card no-click">No candidates yet. Upload resumes.</div>';
+                    container.innerHTML = '<div class="card no-click">👥 No candidates yet. Upload resumes to add candidates.</div>';
                     return;
                 }
                 container.innerHTML = candidatesData.map(c => {
@@ -437,10 +818,10 @@ HTML_TEMPLATE = '''
                     <div class="card" onclick="viewCandidate(${c.id})">
                         <h3>👤 ${escapeHtml(c.name || 'Unknown')}</h3>
                         ${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}
-                        ${c.skills ? `<p>🔧 ${c.skills.split(',').slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}</p>` : ''}
+                        ${c.skills ? `<p>🔧 ${c.skills.split(',').slice(0,4).map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('')}${c.skills.split(',').length > 4 ? '...' : ''}</p>` : ''}
                         ${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
-                        ${c.recommendation ? `<p>📌 <span class="${recClass}">${escapeHtml(c.recommendation)}</span></p>` : ''}
-                        <small>📅 ${new Date(c.created_at).toLocaleDateString()}</small>
+                        ${c.recommendation ? `<p>📌 <span class="${recClass}">${escapeHtml(c.recommendation).toUpperCase()}</span></p>` : ''}
+                        <small>📅 Added: ${new Date(c.created_at).toLocaleDateString()}</small>
                     </div>`;
                 }).join('');
                 
@@ -462,13 +843,13 @@ HTML_TEMPLATE = '''
                 try {
                     const analysis = JSON.parse(candidate.detailed_analysis);
                     if (analysis.executive_summary) {
-                        analysisHtml += `<div class="analysis-section"><h4>📊 Summary</h4><p>${escapeHtml(analysis.executive_summary.final_verdict || '')}</p></div>`;
+                        analysisHtml += `<div class="analysis-section"><h4>📊 Executive Summary</h4><p>${escapeHtml(analysis.executive_summary.final_verdict || '')}</p></div>`;
                     }
                     if (analysis.domain_assessment) {
-                        analysisHtml += `<div class="analysis-section"><h4>🏢 Domain</h4><p>${escapeHtml(analysis.domain_assessment.analysis || '')}</p></div>`;
+                        analysisHtml += `<div class="analysis-section"><h4>🏢 Domain Assessment</h4><p>${escapeHtml(analysis.domain_assessment.analysis || '')}</p></div>`;
                     }
                     if (analysis.genuineness_assessment) {
-                        analysisHtml += `<div class="analysis-section"><h4>🔍 Genuineness Score: ${analysis.genuineness_assessment.score || 0}/10</h4></div>`;
+                        analysisHtml += `<div class="analysis-section"><h4>🔍 Genuineness Score: ${analysis.genuineness_assessment.score || 0}/10</h4>${analysis.genuineness_assessment.positives && analysis.genuineness_assessment.positives.length ? `<ul>${analysis.genuineness_assessment.positives.map(p => `<li>✅ ${escapeHtml(p)}</li>`).join('')}</ul>` : ''}</div>`;
                     }
                     if (analysis.pre_screening_questions && analysis.pre_screening_questions.length) {
                         analysisHtml += `<div class="pre-screen-questions"><h4>📝 Pre-Screening Questions</h4><ul>${analysis.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>`;
@@ -476,20 +857,22 @@ HTML_TEMPLATE = '''
                     if (analysis.final_verdict) {
                         analysisHtml += `<div class="analysis-section"><h4>⚖️ Final Verdict</h4><p>${escapeHtml(analysis.final_verdict.final_call || '')}</p></div>`;
                     }
-                } catch(e) { analysisHtml = '<div class="alert-info">Analysis available</div>'; }
+                } catch(e) { analysisHtml = '<div class="alert-info">Analysis data available</div>'; }
             } else {
-                analysisHtml = '<div class="alert-info">Run analysis in Detailed Analysis tab</div>';
+                analysisHtml = '<div class="alert-info">ℹ️ No detailed analysis available yet. Go to "Detailed Analysis" tab to analyze this candidate against a job.</div>';
             }
             
             document.getElementById('modalBody').innerHTML = `
-                <div class="card no-click"><h3>📧 Contact</h3><p>📧 ${escapeHtml(candidate.email || 'N/A')}<br>📞 ${escapeHtml(candidate.phone || 'N/A')}</p></div>
-                <div class="card no-click"><h3>🔧 Skills</h3><p>${candidate.skills ? candidate.skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('') : 'None'}</p></div>
-                <div class="card no-click"><h3>💼 Work History</h3><p>${escapeHtml(candidate.work_history || 'N/A')}</p></div>
-                <div class="card no-click"><h3>📜 Certifications</h3><p>${escapeHtml(candidate.certifications || 'N/A')}</p></div>
+                <div class="card no-click"><h3>📧 Contact Information</h3><p>📧 ${escapeHtml(candidate.email || 'Not provided')}<br>📞 ${escapeHtml(candidate.phone || 'Not provided')}</p></div>
+                <div class="card no-click"><h3>🔧 Skills</h3><p>${candidate.skills ? candidate.skills.split(',').map(s => `<span class="skill-tag">${escapeHtml(s.trim())}</span>`).join('') : 'No skills listed'}</p></div>
+                <div class="card no-click"><h3>💼 Work History</h3><p>${escapeHtml(candidate.work_history || 'No work history available')}</p></div>
+                <div class="card no-click"><h3>📜 Certifications</h3><p>${escapeHtml(candidate.certifications || 'No certifications listed')}</p></div>
                 <div class="card no-click"><h3>🎯 Match Score</h3><p><span class="${candidate.match_score >= 70 ? 'match-high' : (candidate.match_score >= 40 ? 'match-medium' : 'match-low')}">${candidate.match_score || 0}%</span></p></div>
-                <h3 style="color:#1A4D4A; margin-top:20px;">🤖 AI Analysis</h3>
+                <div class="card no-click"><h3>📌 Recommendation</h3><p><span class="${candidate.recommendation === 'hire' ? 'recommend-hire' : (candidate.recommendation === 'interview' ? 'recommend-interview' : 'recommend-reject')}">${escapeHtml(candidate.recommendation || 'Not reviewed').toUpperCase()}</span></p></div>
+                <hr>
+                <h3 style="color: var(--primary-dark); margin-top: 10px;">🤖 AI Analysis Results</h3>
                 ${analysisHtml}
-                <button class="btn-primary" onclick="closeModal()">Close</button>
+                <button class="btn-primary" onclick="closeModal()" style="margin-top: 20px;">Close</button>
             `;
             document.getElementById('candidateModal').style.display = 'block';
         }
@@ -501,20 +884,20 @@ HTML_TEMPLATE = '''
         // Parse Resume
         document.getElementById('parseBtn').onclick = async function() {
             const file = document.getElementById('resume-file').files[0];
-            if (!file) { alert('Select a file'); return; }
+            if (!file) { alert('Please select a file'); return; }
             
             const formData = new FormData();
             formData.append('resume', file);
             
             const resultDiv = document.getElementById('parse-result');
-            resultDiv.innerHTML = '<div class="spinner"></div><p class="text-center">Parsing...</p>';
+            resultDiv.innerHTML = '<div class="spinner"></div><p class="text-center">Parsing resume with AI...</p>';
             
             try {
                 const response = await fetch('/api/parse-resume', { method: 'POST', body: formData });
                 const result = await response.json();
                 
                 if (result.error) {
-                    resultDiv.innerHTML = `<div class="alert-error">${result.error}</div>`;
+                    resultDiv.innerHTML = `<div class="alert-error">❌ ${result.error}</div>`;
                     return;
                 }
                 
@@ -522,12 +905,12 @@ HTML_TEMPLATE = '''
                 
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>✅ Resume Parsed ${result.ai_used ? '⚡ AI' : ''}</h4>
+                        <h4>✅ Resume Parsed Successfully ${result.ai_used ? '⚡ with Groq AI' : ''}</h4>
                         <p><strong>Name:</strong> ${escapeHtml(result.name)}</p>
                         <p><strong>Email:</strong> ${escapeHtml(result.email)}</p>
                         <p><strong>Phone:</strong> ${escapeHtml(result.phone)}</p>
                         <p><strong>Skills:</strong> ${result.skills ? result.skills.map(s => `<span class="skill-tag">${escapeHtml(s)}</span>`).join('') : 'None'}</p>
-                        <button class="btn-primary" id="saveBtn">💾 Save Candidate</button>
+                        <button class="btn-primary" id="saveBtn">💾 Save Candidate to Database</button>
                     </div>
                 `;
                 
@@ -538,16 +921,16 @@ HTML_TEMPLATE = '''
                         body: JSON.stringify(window.currentCandidate)
                     });
                     if (saveResponse.ok) {
-                        alert('Candidate saved successfully!');
+                        alert('✅ Candidate saved successfully!');
                         resultDiv.innerHTML = '';
                         document.getElementById('resume-file').value = '';
                         loadCandidates();
                     } else {
-                        alert('Error saving candidate');
+                        alert('❌ Error saving candidate');
                     }
                 };
             } catch (error) {
-                resultDiv.innerHTML = '<div class="alert-error">Error parsing</div>';
+                resultDiv.innerHTML = '<div class="alert-error">❌ Error parsing resume</div>';
             }
         };
         
@@ -555,13 +938,13 @@ HTML_TEMPLATE = '''
         document.getElementById('analyzeBtn').onclick = async function() {
             const jobId = document.getElementById('analyze-job-select').value;
             const candidateId = document.getElementById('analyze-candidate-select').value;
-            if (!jobId || !candidateId) { alert('Select both Job and Candidate'); return; }
+            if (!jobId || !candidateId) { alert('Please select both a Job and a Candidate'); return; }
             
             const job = jobsData.find(j => j.id == jobId);
             const candidate = candidatesData.find(c => c.id == candidateId);
             
             const resultDiv = document.getElementById('analyze-result');
-            resultDiv.innerHTML = '<div class="spinner"></div><p>Running AI analysis...</p>';
+            resultDiv.innerHTML = '<div class="spinner"></div><p>🤖 Running detailed AI analysis with Groq...</p>';
             
             try {
                 const response = await fetch('/api/analyze-match', {
@@ -575,7 +958,7 @@ HTML_TEMPLATE = '''
                 const result = await response.json();
                 
                 if (result.error) {
-                    resultDiv.innerHTML = `<div class="alert-error">${result.error}</div>`;
+                    resultDiv.innerHTML = `<div class="alert-error">❌ ${result.error}</div>`;
                     return;
                 }
                 
@@ -590,7 +973,7 @@ HTML_TEMPLATE = '''
                     analysisHtml += `<div class="analysis-section"><h4>🏢 Domain Assessment</h4><p>${escapeHtml(result.domain_assessment.analysis || '')}</p></div>`;
                 }
                 if (result.genuineness_assessment) {
-                    analysisHtml += `<div class="analysis-section"><h4>🔍 Genuineness Score: ${result.genuineness_assessment.score || 0}/10</h4></div>`;
+                    analysisHtml += `<div class="analysis-section"><h4>🔍 Genuineness Score: ${result.genuineness_assessment.score || 0}/10</h4>${result.genuineness_assessment.positives && result.genuineness_assessment.positives.length ? `<ul>${result.genuineness_assessment.positives.map(p => `<li>✅ ${escapeHtml(p)}</li>`).join('')}</ul>` : ''}</div>`;
                 }
                 if (result.pre_screening_questions && result.pre_screening_questions.length) {
                     analysisHtml += `<div class="pre-screen-questions"><h4>📝 Pre-Screening Questions</h4><ul>${result.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>`;
@@ -601,16 +984,17 @@ HTML_TEMPLATE = '''
                 
                 resultDiv.innerHTML = `
                     <div class="alert-success">
-                        <h4>📊 Analysis Complete</h4>
+                        <h4>📊 Groq AI Analysis Complete</h4>
                         <p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p>
-                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review')}</span></p>
+                        <p><strong>📌 Recommendation:</strong> <span class="${recClass}">${escapeHtml(result.recommendation || 'Review').toUpperCase()}</span></p>
                         ${analysisHtml}
-                        <p><small>✅ Analysis saved to candidate record</small></p>
+                        <hr>
+                        <p><small>✅ Analysis has been automatically saved to the candidate record. Click on the candidate name in the Candidates tab to view stored analysis anytime.</small></p>
                     </div>
                 `;
                 loadCandidates();
             } catch (error) {
-                resultDiv.innerHTML = '<div class="alert-error">Analysis failed</div>';
+                resultDiv.innerHTML = '<div class="alert-error">❌ Analysis failed. Please check your API key and try again.</div>';
             }
         };
         
@@ -623,16 +1007,18 @@ HTML_TEMPLATE = '''
                 company: document.getElementById('job-company').value,
                 description: document.getElementById('job-desc').value
             };
-            if (!data.title) { alert('Job title required'); return; }
+            if (!data.title) { alert('Job title is required'); return; }
             
             const response = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
             if (response.ok) {
-                alert('Job created!');
+                alert('✅ Job created successfully!');
                 document.getElementById('job-title').value = '';
                 document.getElementById('job-company').value = '';
                 document.getElementById('job-desc').value = '';
                 showTab('jobs');
                 loadJobs();
+            } else {
+                alert('❌ Error creating job');
             }
         };
         
@@ -706,7 +1092,7 @@ def analyze_match():
         return jsonify({'error': 'Missing text'}), 400
     
     if not GROQ_API_KEY:
-        return jsonify({'error': 'Groq API key missing'}), 503
+        return jsonify({'error': 'Groq API key missing. Add GROQ_API_KEY to Railway variables.'}), 503
     
     result = analyze_with_groq_detailed(resume_text, jd_text)
     
@@ -750,7 +1136,7 @@ def parse_resume():
         return jsonify({'error': 'No file'}), 400
     
     if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type'}), 400
+        return jsonify({'error': 'Invalid file type. Use PDF or DOCX'}), 400
     
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
