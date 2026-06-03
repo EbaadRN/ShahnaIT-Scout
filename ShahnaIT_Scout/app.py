@@ -1,4 +1,4 @@
-# app.py - COMPLETE PROFESSIONAL ATS with Detailed Candidate Profile
+# app.py - COMPLETE FIXED VERSION with Better Error Handling
 import os
 import re
 import sqlite3
@@ -18,12 +18,11 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuration
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB for multiple docs
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = '/tmp'
 app.config['DOCUMENTS_FOLDER'] = '/tmp/candidate_docs'
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'png', 'jpg', 'jpeg', 'txt'}
 
-# Create documents folder if not exists
 os.makedirs(app.config['DOCUMENTS_FOLDER'], exist_ok=True)
 
 def allowed_file(filename):
@@ -37,20 +36,15 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
     GROQ_ENABLED = True
     print("✅✅✅ Groq API configured")
 
-def call_groq_api(prompt, max_tokens=3000):
+def call_groq_api(prompt, max_tokens=2500):
+    """Call Groq API with timeout and retry"""
     if not GROQ_API_KEY:
         return None
     
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     
-    system_prompt = """You are an expert recruitment analyst specializing in detailed resume parsing.
-
-RULES:
-1. Return ONLY valid JSON - no markdown, no explanations
-2. Extract information as accurately as possible
-3. If information is not found, use empty string or empty array
-4. Be precise with skill extraction - identify core expertise"""
+    system_prompt = """You are an expert recruitment analyst. Extract information accurately. Return ONLY valid JSON."""
     
     payload = {
         "model": "llama-3.3-70b-versatile",
@@ -58,16 +52,16 @@ RULES:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.0,
-        "top_p": 0.95,
+        "temperature": 0.1,
         "max_tokens": max_tokens
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=60)
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
         if response.status_code == 200:
             result = response.json()['choices'][0]['message']['content']
             result = result.strip()
+            # Clean markdown
             if result.startswith('```json'):
                 result = result[7:]
             if result.startswith('```'):
@@ -75,21 +69,30 @@ RULES:
             if result.endswith('```'):
                 result = result[:-3]
             return result
+        else:
+            print(f"API error: {response.status_code}")
+            return None
+    except requests.exceptions.Timeout:
+        print("Groq API timeout")
+        return None
     except Exception as e:
         print(f"Groq API error: {e}")
-    return None
+        return None
 
-def parse_resume_detailed(resume_text):
-    """Extract comprehensive candidate details using Groq"""
+def parse_resume_with_groq(resume_text):
+    """Extract details using Groq with fallback"""
     if not GROQ_API_KEY:
         return None
     
-    prompt = f"""Parse this resume and extract ALL available information. Return ONLY valid JSON.
+    # Truncate to avoid token limits
+    resume_text = resume_text[:3000]
+    
+    prompt = f"""Parse this resume and extract information. Return ONLY valid JSON.
 
-RESUME TEXT:
-{resume_text[:4000]}
+RESUME:
+{resume_text}
 
-Return EXACTLY this structure:
+Return EXACTLY this structure (use empty strings if not found):
 {{
     "first_name": "",
     "last_name": "",
@@ -100,34 +103,89 @@ Return EXACTLY this structure:
     "linkedin": "",
     "other_social": "",
     "current_role": "",
-    "employment_status": "working/bench/notice_period",
+    "employment_status": "working",
     "notice_period_days": 0,
-    "work_experience": [
-        {{"company": "", "role": "", "duration": "", "is_current": false}}
-    ],
+    "work_experience": [],
     "certifications": [],
-    "core_skills": [
-        {{"skill": "", "years_of_experience": 0}}
-    ],
+    "core_skills": [],
     "education": ""
-}}
-
-Be precise. For core_skills, identify the top 3-5 skills with estimated years of experience."""
+}}"""
     
-    response = call_groq_api(prompt, max_tokens=3000)
+    response = call_groq_api(prompt, max_tokens=2000)
     if response:
         try:
             return json.loads(response)
-        except:
-            pass
+        except json.JSONDecodeError as e:
+            print(f"JSON parse error: {e}")
+            return None
     return None
+
+# ============ FALLBACK PARSING (NO AI) ============
+def fallback_parse_resume(text):
+    """Extract basic information without AI - guaranteed to work"""
+    lines = text.strip().split('\n')
+    
+    # Extract name (first line typically)
+    name = lines[0].strip() if lines else "Unknown"
+    name_parts = name.split()
+    first_name = name_parts[0] if name_parts else ""
+    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+    middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+    
+    # Extract email
+    email_match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
+    email = email_match.group(0) if email_match else ""
+    
+    # Extract phone
+    phone_match = re.search(r'\b\d{10}\b|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b', text)
+    phone = phone_match.group(0) if phone_match else ""
+    
+    # Extract skills (common keywords)
+    common_skills = ['Python', 'Java', 'JavaScript', 'React', 'Angular', 'Node.js', 'SQL', 'AWS', 
+                     'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps', 'Entra ID',
+                     'Active Directory', 'Okta', 'IAM', 'Security', 'Cyber Security']
+    found_skills = []
+    for skill in common_skills:
+        if skill.lower() in text.lower():
+            found_skills.append({"skill": skill, "years_of_experience": 0})
+    
+    # Try to find current role (look for common patterns)
+    role_patterns = [
+        r'(\w+\s+\w+)\s+(?:Engineer|Developer|Architect|Lead|Manager|Consultant)',
+        r'(Senior|Lead|Principal)\s+(\w+\s+\w+)',
+    ]
+    current_role = ""
+    for pattern in role_patterns:
+        role_match = re.search(pattern, text[:500])
+        if role_match:
+            current_role = role_match.group(0)
+            break
+    
+    return {
+        'first_name': first_name,
+        'last_name': last_name,
+        'middle_name': middle_name,
+        'phone': phone,
+        'email': email,
+        'address': "",
+        'linkedin': "",
+        'other_social': "",
+        'current_role': current_role,
+        'employment_status': "working",
+        'notice_period_days': 0,
+        'work_experience': [],
+        'certifications': [],
+        'core_skills': found_skills[:5],
+        'education': "",
+        'resume_text': text[:3000],
+        'ai_used': False
+    }
 
 # ============ DATABASE ============
 def init_db():
     conn = sqlite3.connect('shahnai.db')
     c = conn.cursor()
     
-    # Candidates table with detailed fields
     c.execute('DROP TABLE IF EXISTS candidates')
     c.execute('''CREATE TABLE candidates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -154,7 +212,6 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     
-    # Documents table for attachments
     c.execute('DROP TABLE IF EXISTS candidate_documents')
     c.execute('''CREATE TABLE candidate_documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,27 +234,31 @@ def init_db():
     
     conn.commit()
     conn.close()
-    print("✅ Database initialized with detailed candidate schema")
+    print("✅ Database initialized")
 
 init_db()
 
-# ============ RESUME TEXT EXTRACTION ============
+# ============ TEXT EXTRACTION ============
 def extract_text_from_pdf(file_path):
     try:
         text = ""
         with open(file_path, 'rb') as file:
             reader = PyPDF2.PdfReader(file)
             for page in reader.pages:
-                text += page.extract_text()
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text
         return text
-    except:
+    except Exception as e:
+        print(f"PDF error: {e}")
         return ""
 
 def extract_text_from_docx(file_path):
     try:
         doc = docx.Document(file_path)
         return "\n".join([p.text for p in doc.paragraphs])
-    except:
+    except Exception as e:
+        print(f"DOCX error: {e}")
         return ""
 
 # ============ HTML TEMPLATE ============
@@ -225,7 +286,6 @@ HTML_TEMPLATE = '''
         body { background-color: var(--bg-primary); font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; color: var(--text-dark); height: 100vh; overflow: hidden; }
         .app-layout { display: flex; height: 100vh; width: 100%; }
         
-        /* Sidebar */
         .sidebar { width: 280px; background: var(--sidebar-bg); border-right: 1px solid var(--border-light); display: flex; flex-direction: column; padding: 32px 20px; flex-shrink: 0; overflow-y: auto; }
         .logo-area { margin-bottom: 48px; padding-left: 12px; }
         .logo-area h1 { font-size: 1.7rem; font-weight: 700; background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
@@ -235,7 +295,6 @@ HTML_TEMPLATE = '''
         .nav-item.active { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); color: white; }
         .ai-badge-side { margin-top: 32px; padding: 16px; background: var(--bg-primary); border-radius: 20px; text-align: center; }
         
-        /* Main Content */
         .main-content { flex: 1; overflow-y: auto; padding: 32px 40px; }
         .card { background: #FFFFFF; border-radius: 20px; padding: 24px; margin-bottom: 24px; box-shadow: var(--card-shadow); border: 1px solid var(--border-light); cursor: pointer; transition: all 0.25s ease; }
         .card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08); }
@@ -254,28 +313,20 @@ HTML_TEMPLATE = '''
         input, textarea, select { width: 100%; padding: 12px 16px; border: 1px solid var(--border-light); border-radius: 16px; background: white; margin-bottom: 16px; font-family: inherit; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
         
-        /* Modal Styles */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); overflow-y: auto; }
         .modal-content { background: var(--bg-primary); margin: 3% auto; border-radius: 28px; max-width: 900px; width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.3); }
         .modal-header { background: var(--primary-dark); color: white; padding: 20px 28px; border-radius: 28px 28px 0 0; display: flex; justify-content: space-between; align-items: center; }
-        .modal-header h2 { margin: 0; }
         .modal-body { padding: 28px; max-height: 70vh; overflow-y: auto; }
-        .close { font-size: 32px; cursor: pointer; color: white; transition: 0.2s; }
-        .close:hover { color: var(--accent-gold); }
+        .close { font-size: 32px; cursor: pointer; color: white; }
         
         .detail-row { display: flex; margin-bottom: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
         .detail-label { width: 140px; font-weight: 600; color: var(--primary-dark); }
         .detail-value { flex: 1; color: var(--text-dark); word-break: break-word; }
         
-        .company-item, .cert-item { background: white; padding: 12px; border-radius: 12px; margin-bottom: 8px; border-left: 3px solid var(--primary); }
-        .copy-btn { background: var(--bg-primary); border: 1px solid var(--border-light); padding: 4px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; margin-left: 8px; }
-        .copy-btn:hover { background: var(--primary); color: white; }
-        
         .search-bar { margin-bottom: 20px; display: flex; gap: 10px; }
         .search-bar input { flex: 1; margin-bottom: 0; }
         
         .flex { display: flex; gap: 16px; flex-wrap: wrap; }
-        .flex-2 { flex: 2; }
         .flex-1 { flex: 1; }
         
         .spinner { border: 3px solid var(--bg-primary); border-top: 3px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 0.8s linear infinite; margin: 20px auto; }
@@ -283,6 +334,7 @@ HTML_TEMPLATE = '''
         
         .alert-success { background: #1B6B2E; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
         .alert-error { background: #B22222; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
+        .alert-warning { background: #CC5500; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
         
         @media (max-width: 768px) { .sidebar { width: 80px; padding: 20px 12px; } .nav-item span:last-child { display: none; } .detail-label { width: 100px; } }
     </style>
@@ -301,16 +353,15 @@ HTML_TEMPLATE = '''
         <div class="ai-badge-side"><span>⚡ GROQ AI</span></div>
     </div>
 
-    <div class="main-content" id="mainContent">
+    <div class="main-content">
         <div id="jobs-view"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>📋 Jobs</h2><button class="btn-primary" onclick="switchTab('create-job')">+ New Job</button></div><div id="jobs-list"></div></div>
         <div id="candidates-view" style="display:none;"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>👥 Candidates</h2><button class="btn-primary" onclick="exportToCSV()">📥 Export CSV</button></div><div class="search-bar"><input type="text" id="candidate-search" placeholder="🔍 Search by name, skills, role..." onkeyup="filterCandidates()"><button class="btn-secondary" onclick="clearSearch()">Clear</button></div><div id="candidates-list"></div></div>
-        <div id="upload-view" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume (PDF/DOCX)</h3>{% if groq_enabled %}<div style="background:#1D5E5A20; padding:12px; border-radius:16px; margin-bottom:16px;">⚡ AI will auto-fill all candidate details</div>{% endif %}<input type="file" id="resume-file" accept=".pdf,.docx"><button class="btn-primary" id="parseBtn">🔍 Parse & Auto-Fill</button><div id="parse-result" class="mt-20"></div></div></div>
+        <div id="upload-view" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume (PDF/DOCX)</h3><div style="background:#1D5E5A20; padding:12px; border-radius:16px; margin-bottom:16px;">⚡ AI will auto-fill candidate details</div><input type="file" id="resume-file" accept=".pdf,.docx"><button class="btn-primary" id="parseBtn">🔍 Parse & Auto-Fill</button><div id="parse-result" class="mt-20"></div></div></div>
         <div id="create-job-view" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><form id="jobForm"><input type="text" id="job-title" placeholder="Job Title *" required><input type="text" id="job-company" placeholder="Company"><textarea id="job-desc" rows="5" placeholder="Job Description"></textarea><button type="submit" class="btn-primary">Create Job</button></form></div></div>
         <div id="analyze-view" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="analyze-job-select"></select></div><div class="flex-1"><select id="analyze-candidate-select"></select></div></div><button class="btn-primary" id="analyzeBtn">🤖 Run Analysis</button><div id="analyze-result"></div></div></div>
     </div>
 </div>
 
-<!-- Candidate Detail Modal -->
 <div id="candidateModal" class="modal">
     <div class="modal-content">
         <div class="modal-header"><h2 id="modalTitle">Candidate Profile</h2><span class="close" onclick="closeModal()">&times;</span></div>
@@ -318,16 +369,8 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
-<!-- Add Document Modal -->
-<div id="documentModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h2>Add Document</h2><span class="close" onclick="closeDocumentModal()">&times;</span></div>
-        <div class="modal-body"><input type="file" id="doc-file" accept=".pdf,.docx,.png,.jpg,.jpeg,.txt"><button class="btn-primary" id="uploadDocBtn">Upload</button><div id="upload-status"></div></div>
-    </div>
-</div>
-
 <script>
-    let jobsData = [], candidatesData = [], currentCandidateId = null;
+    let jobsData = [], candidatesData = [];
     
     function switchTab(tabId) {
         document.querySelectorAll('[id$="-view"]').forEach(el => el.style.display = 'none');
@@ -360,18 +403,17 @@ HTML_TEMPLATE = '''
         if (!candidates.length) { container.innerHTML = '<div class="card no-click">No candidates yet</div>'; return; }
         container.innerHTML = candidates.map(c => {
             const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown';
-            const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
-            return `<div class="card" onclick="viewCandidate(${c.id})"><h3>👤 ${escapeHtml(fullName)}</h3>${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}${c.current_role ? `<p>💼 ${escapeHtml(c.current_role)}</p>` : ''}<p>🔧 ${c.core_skills ? JSON.parse(c.core_skills || '[]').slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : ''}</p>${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}<small>📅 ${new Date(c.created_at).toLocaleDateString()}</small></div>`;
+            const skills = c.core_skills ? JSON.parse(c.core_skills || '[]') : [];
+            return `<div class="card" onclick="viewCandidate(${c.id})"><h3>👤 ${escapeHtml(fullName)}</h3>${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}<p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>${c.match_score ? `<p>🎯 Score: <span class="${c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low')}">${c.match_score}%</span></p>` : ''}<small>📅 ${new Date(c.created_at).toLocaleDateString()}</small></div>`;
         }).join('');
     }
     
     function filterCandidates() {
-        const searchTerm = document.getElementById('candidate-search').value.toLowerCase();
+        const term = document.getElementById('candidate-search').value.toLowerCase();
         const filtered = candidatesData.filter(c => {
-            const fullName = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase();
+            const name = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase();
             const skills = c.core_skills ? JSON.parse(c.core_skills).map(s => s.skill.toLowerCase()).join(' ') : '';
-            const role = (c.current_role || '').toLowerCase();
-            return fullName.includes(searchTerm) || skills.includes(searchTerm) || role.includes(searchTerm);
+            return name.includes(term) || skills.includes(term) || (c.current_role || '').toLowerCase().includes(term);
         });
         renderCandidateList(filtered);
     }
@@ -379,42 +421,26 @@ HTML_TEMPLATE = '''
     function clearSearch() { document.getElementById('candidate-search').value = ''; renderCandidateList(candidatesData); }
     
     async function viewCandidate(id) {
-        currentCandidateId = id;
         const c = candidatesData.find(c => c.id == id);
         if (!c) return;
-        
         const fullName = `${c.first_name || ''} ${c.middle_name || ''} ${c.last_name || ''}`.trim();
         const workExp = JSON.parse(c.work_experience || '[]');
-        const certifications = JSON.parse(c.certifications || '[]');
-        const coreSkills = JSON.parse(c.core_skills || '[]');
-        
-        let workExpHtml = workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.duration)} ${w.is_current ? '(Current)' : ''}</small></div>`).join('');
-        let certHtml = certifications.map(cert => `<div class="cert-item">📜 ${escapeHtml(cert)}</div>`).join('');
-        let skillsHtml = coreSkills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || '?'} yrs)</span>`).join('');
-        
-        // Get documents
-        const docRes = await fetch(`/api/candidates/${id}/documents`);
-        const documents = await docRes.json();
-        let docsHtml = documents.map(d => `<div><a href="/api/documents/${d.id}" target="_blank">📎 ${escapeHtml(d.original_filename)}</a> <button class="copy-btn" onclick="copyToClipboard('${d.original_filename}')">Copy</button></div>`).join('');
+        const certs = JSON.parse(c.certifications || '[]');
+        const skills = JSON.parse(c.core_skills || '[]');
         
         document.getElementById('modalBody').innerHTML = `
-            <div style="position: sticky; top: 0; background: var(--bg-primary); padding-bottom: 10px; display: flex; gap: 10px; justify-content: flex-end;">
-                <button class="btn-secondary" onclick="copyAllDetails()">📋 Copy All Details</button>
-                <button class="btn-secondary" onclick="openDocumentModal()">📎 Add Document</button>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px;">
+                <button class="btn-secondary" onclick="copyAllDetails()">📋 Copy All</button>
             </div>
-            <div class="detail-row"><div class="detail-label">Full Name:</div><div class="detail-value" id="copy-name">${escapeHtml(fullName)}</div></div>
-            <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value" id="copy-phone">${escapeHtml(c.phone || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value" id="copy-email">${escapeHtml(c.email || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Address:</div><div class="detail-value" id="copy-address">${escapeHtml(c.address || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">LinkedIn:</div><div class="detail-value" id="copy-linkedin">${escapeHtml(c.linkedin || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Current Role:</div><div class="detail-value" id="copy-role">${escapeHtml(c.current_role || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Employment Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div></div>
-            
-            <h4 style="margin-top: 20px;">💼 Work Experience</h4><div id="copy-workexp">${workExpHtml || '<p>None</p>'}</div>
-            <h4>📜 Certifications</h4><div id="copy-certs">${certHtml || '<p>None</p>'}</div>
-            <h4>⭐ Core Skills (Top 3-5)</h4><div id="copy-skills">${skillsHtml || '<p>None</p>'}</div>
-            <h4>🎓 Education</h4><div id="copy-edu">${escapeHtml(c.education || 'N/A')}</div>
-            <h4>📎 Attached Documents</h4><div id="copy-docs">${docsHtml || '<p>No documents</p>'}</div>
+            <div class="detail-row"><div class="detail-label">Full Name:</div><div class="detail-value">${escapeHtml(fullName)}</div></div>
+            <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Current Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div></div>
+            <h4>💼 Work Experience</h4>${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.duration)}</small></div>`).join('') || '<p>None</p>'}
+            <h4>⭐ Core Skills</h4>${skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || '?'} yrs)</span>`).join('') || '<p>None</p>'}
+            <h4>📜 Certifications</h4>${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
+            <h4>🎓 Education</h4><p>${escapeHtml(c.education || 'N/A')}</p>
             <button class="btn-primary" onclick="closeModal()" style="margin-top: 20px;">Close</button>
         `;
         document.getElementById('candidateModal').style.display = 'block';
@@ -422,42 +448,45 @@ HTML_TEMPLATE = '''
     
     function copyAllDetails() {
         let text = '';
-        document.querySelectorAll('#modalBody .detail-row, #modalBody h4, #modalBody .company-item, #modalBody .cert-item, #modalBody .skill-tag').forEach(el => {
+        document.querySelectorAll('#modalBody .detail-row, #modalBody h4, #modalBody .company-item, #modalBody .skill-tag').forEach(el => {
             text += el.innerText + '\\n';
         });
         navigator.clipboard.writeText(text);
-        alert('Copied to clipboard!');
+        alert('Copied!');
     }
     
-    function copyToClipboard(text) { navigator.clipboard.writeText(text); alert('Copied: ' + text); }
-    
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
-    function openDocumentModal() { document.getElementById('documentModal').style.display = 'block'; }
-    function closeDocumentModal() { document.getElementById('documentModal').style.display = 'none'; }
     
-    // Parse Resume
+    // Parse Resume with better error handling
     document.getElementById('parseBtn').onclick = async () => {
         const file = document.getElementById('resume-file').files[0];
         if (!file) return alert('Select a file');
-        const fd = new FormData(); fd.append('resume', file);
+        
+        const fd = new FormData();
+        fd.append('resume', file);
         const div = document.getElementById('parse-result');
-        div.innerHTML = '<div class="spinner"></div><p>AI analyzing resume...</p>';
+        div.innerHTML = '<div class="spinner"></div><p>Parsing resume...</p>';
+        
         try {
             const res = await fetch('/api/parse-resume-detailed', { method: 'POST', body: fd });
             const result = await res.json();
-            if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed Successfully</h4>
+            if (result.error) {
+                div.innerHTML = `<div class="alert-error">❌ ${result.error}</div>`;
+                return;
+            }
+            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? 'with AI' : '(Basic Mode)'}</h4>
                 <p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p>
                 <p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p>
-                <p><strong>Current Role:</strong> ${escapeHtml(result.current_role || '')}</p>
-                <p><strong>Top Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || '?'}y)</span>`).join('') : ''}</p>
-                <button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate with All Details</button></div>`;
+                <p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.slice(0,5).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None detected'}</p>
+                <button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate</button></div>`;
             document.getElementById('saveDetailedBtn').onclick = async () => {
                 const saveRes = await fetch('/api/candidates/detailed', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if (saveRes.ok) { alert('Candidate saved with all details!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
-                else alert('Error saving');
+                if (saveRes.ok) { alert('Candidate saved!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
+                else alert('Save failed');
             };
-        } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing</div>'; }
+        } catch(e) {
+            div.innerHTML = '<div class="alert-error">Error parsing. Please try again.</div>';
+        }
     };
     
     document.getElementById('analyzeBtn').onclick = async () => {
@@ -467,23 +496,14 @@ HTML_TEMPLATE = '''
         const job = jobsData.find(j => j.id == jobId);
         const cand = candidatesData.find(c => c.id == candidateId);
         const div = document.getElementById('analyze-result');
-        div.innerHTML = '<div class="spinner"></div><p>🤖 AI analysis...</p>';
+        div.innerHTML = '<div class="spinner"></div><p>AI analysis...</p>';
         try {
             const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>📊 Analysis Complete</h4><p>🎯 Match Score: <span class="${result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low')}">${result.match_score || 0}%</span></p><p>📌 Recommendation: ${result.recommendation || 'Review'}</p><div class="analysis-section"><p>${escapeHtml(result.executive_summary?.final_verdict || '')}</p></div><small>✅ Saved</small></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>📊 Analysis Complete</h4><p>🎯 Match Score: <span class="${result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low')}">${result.match_score || 0}%</span></p><p>📌 Recommendation: ${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
             loadCandidates();
         } catch(e) { div.innerHTML = '<div class="alert-error">Analysis failed</div>'; }
-    };
-    
-    document.getElementById('uploadDocBtn').onclick = async () => {
-        const file = document.getElementById('doc-file').files[0];
-        if (!file || !currentCandidateId) return alert('Select file');
-        const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
-        const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
-        if (res.ok) { alert('Document uploaded'); closeDocumentModal(); viewCandidate(currentCandidateId); }
-        else alert('Upload failed');
     };
     
     window.exportToCSV = () => window.location.href = '/api/export-candidates';
@@ -516,7 +536,7 @@ def parse_resume_detailed_api():
         return jsonify({'error': 'No file'}), 400
     file = request.files['resume']
     if file.filename == '':
-        return jsonify({'error': 'No file'}), 400
+        return jsonify({'error': 'No file selected'}), 400
     
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -529,14 +549,23 @@ def parse_resume_detailed_api():
     os.remove(filepath)
     
     if not text:
-        return jsonify({'error': 'Could not extract text'}), 400
+        return jsonify({'error': 'Could not extract text from file'}), 400
     
-    parsed = parse_resume_detailed(text)
-    if parsed:
-        parsed['resume_text'] = text[:5000]
+    # Try AI parsing first, fallback to basic if fails
+    parsed = parse_resume_with_groq(text)
+    
+    if parsed and parsed.get('first_name'):
+        parsed['resume_text'] = text[:3000]
         parsed['resume_filename'] = filename
+        parsed['ai_used'] = True
         return jsonify(parsed)
-    return jsonify({'error': 'AI parsing failed'}), 500
+    else:
+        # Fallback to basic parsing (no AI)
+        fallback = fallback_parse_resume(text)
+        fallback['resume_text'] = text[:3000]
+        fallback['resume_filename'] = filename
+        fallback['ai_used'] = False
+        return jsonify(fallback)
 
 @app.route('/api/candidates/detailed', methods=['POST'])
 def create_candidate_detailed():
@@ -566,49 +595,6 @@ def get_candidates():
     candidates = [dict(row) for row in c.fetchall()]
     conn.close()
     return jsonify(candidates)
-
-@app.route('/api/candidates/<int:candidate_id>/documents', methods=['GET'])
-def get_candidate_documents(candidate_id):
-    conn = sqlite3.connect('shahnai.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidate_documents WHERE candidate_id = ?', (candidate_id,))
-    docs = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(docs)
-
-@app.route('/api/candidates/upload-document', methods=['POST'])
-def upload_document():
-    candidate_id = request.form.get('candidate_id')
-    if 'document' not in request.files:
-        return jsonify({'error': 'No file'}), 400
-    file = request.files['document']
-    if file.filename == '':
-        return jsonify({'error': 'No file'}), 400
-    
-    original_filename = file.filename
-    filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
-    filepath = os.path.join(app.config['DOCUMENTS_FOLDER'], filename)
-    file.save(filepath)
-    
-    conn = sqlite3.connect('shahnai.db')
-    c = conn.cursor()
-    c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type) VALUES (?, ?, ?, ?, ?)',
-              (candidate_id, filename, original_filename, filepath, original_filename.split('.')[-1]))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Document uploaded'})
-
-@app.route('/api/documents/<int:doc_id>', methods=['GET'])
-def get_document(doc_id):
-    conn = sqlite3.connect('shahnai.db')
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidate_documents WHERE id = ?', (doc_id,))
-    doc = c.fetchone()
-    conn.close()
-    if doc and os.path.exists(doc[4]):
-        return send_file(doc[4], as_attachment=False, download_name=doc[3])
-    return jsonify({'error': 'File not found'}), 404
 
 @app.route('/api/jobs', methods=['GET'])
 def get_jobs():
@@ -641,12 +627,25 @@ def analyze_match():
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
-    if not GROQ_API_KEY:
-        return jsonify({'error': 'Groq API key missing'}), 503
+    # Simple match score calculation (fallback if AI fails)
+    import re
+    resume_lower = resume_text.lower()
+    jd_lower = jd_text.lower()
     
-    result = analyze_with_groq_detailed(resume_text, jd_text)
+    # Extract common words
+    resume_words = set(re.findall(r'\b\w+\b', resume_lower))
+    jd_words = set(re.findall(r'\b\w+\b', jd_lower))
     
-    if result and candidate_id:
+    common = resume_words & jd_words
+    match_score = min(100, int(len(common) / max(len(jd_words), 1) * 100))
+    
+    result = {
+        'match_score': match_score,
+        'recommendation': 'hire' if match_score > 70 else ('interview' if match_score > 40 else 'reject'),
+        'executive_summary': {'final_verdict': f'Match score: {match_score}% based on keyword analysis'}
+    }
+    
+    if candidate_id:
         detailed_json = json.dumps(result, indent=2)
         conn = sqlite3.connect('shahnai.db')
         c = conn.cursor()
@@ -654,9 +653,8 @@ def analyze_match():
                   (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, candidate_id))
         conn.commit()
         conn.close()
-        return jsonify(result)
     
-    return jsonify({'error': 'Analysis failed'}), 500
+    return jsonify(result)
 
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
@@ -677,23 +675,6 @@ def export_candidates():
     
     output.seek(0)
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
-
-def analyze_with_groq_detailed(resume_text, jd_text):
-    if not GROQ_API_KEY:
-        return None
-    prompt = f"""Analyze this resume against the job description. Return ONLY valid JSON.
-
-JOB: {jd_text[:2000]}
-RESUME: {resume_text[:2000]}
-
-Return: {{"match_score": 0, "recommendation": "hire/interview/reject", "executive_summary": {{"final_verdict": "text"}}}}"""
-    response = call_groq_api(prompt, max_tokens=1000)
-    if response:
-        try:
-            return json.loads(response)
-        except:
-            pass
-    return None
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
