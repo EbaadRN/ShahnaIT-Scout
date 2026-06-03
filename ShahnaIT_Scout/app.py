@@ -1,4 +1,4 @@
-# app.py - COMPLETE with Edit Candidate & Document Attachments
+# app.py - COMPLETE with Auto-Attach Resume & Edit Features
 import os
 import re
 import sqlite3
@@ -168,6 +168,7 @@ def init_db():
         original_filename TEXT,
         file_path TEXT,
         file_type TEXT,
+        is_resume BOOLEAN DEFAULT 0,
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
@@ -395,6 +396,10 @@ HTML_TEMPLATE = '''
         const docRes = await fetch(`/api/candidates/${id}/documents`);
         const documents = await docRes.json();
         
+        // Separate resume from other documents
+        const resumeDoc = documents.find(d => d.is_resume === 1);
+        const otherDocs = documents.filter(d => !d.is_resume);
+        
         document.getElementById('modalBody').innerHTML = `
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px;">
                 <button class="btn-edit" onclick="openEditModal(${id})">✏️ Edit Profile</button>
@@ -421,8 +426,11 @@ HTML_TEMPLATE = '''
             <h4>🎓 Education</h4>
             <p>${escapeHtml(c.education || 'N/A')}</p>
             
-            <h4>📎 Documents (${documents.length})</h4>
-            ${documents.map(d => `<div><a href="/api/documents/${d.id}" target="_blank">📄 ${escapeHtml(d.original_filename)}</a></div>`).join('') || '<p>No documents</p>'}
+            <h4>📄 Resume</h4>
+            ${resumeDoc ? `<div><a href="/api/documents/${resumeDoc.id}" target="_blank">📄 ${escapeHtml(resumeDoc.original_filename)}</a> <span style="background:#1B6B2E; color:white; padding:2px 8px; border-radius:12px; font-size:10px;">Original Resume</span></div>` : '<p>No resume attached</p>'}
+            
+            <h4>📎 Other Documents (${otherDocs.length})</h4>
+            ${otherDocs.map(d => `<div><a href="/api/documents/${d.id}" target="_blank">📄 ${escapeHtml(d.original_filename)}</a></div>`).join('') || '<p>No additional documents</p>'}
             
             <button class="btn-primary" onclick="closeModal()" style="margin-top: 20px;">Close</button>
         `;
@@ -570,6 +578,7 @@ def parse_resume_detailed_api():
         return jsonify({'error': 'No file'}), 400
     
     filename = secure_filename(file.filename)
+    original_filename = file.filename
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
     
@@ -577,22 +586,27 @@ def parse_resume_detailed_api():
         text = extract_text_from_pdf(filepath)
     else:
         text = extract_text_from_docx(filepath)
-    os.remove(filepath)
     
     if not text:
+        os.remove(filepath)
         return jsonify({'error': 'Could not extract text'}), 400
     
     parsed = parse_resume_with_groq(text)
     if parsed and parsed.get('first_name'):
         parsed['resume_text'] = text[:3000]
-        parsed['resume_filename'] = filename
+        parsed['resume_filename'] = original_filename
         parsed['ai_used'] = True
+        # Store file path for later attachment
+        parsed['file_path'] = filepath
+        parsed['original_filename'] = original_filename
         return jsonify(parsed)
     else:
         fallback = fallback_parse_resume(text)
         fallback['resume_text'] = text[:3000]
-        fallback['resume_filename'] = filename
+        fallback['resume_filename'] = original_filename
         fallback['ai_used'] = False
+        fallback['file_path'] = filepath
+        fallback['original_filename'] = original_filename
         return jsonify(fallback)
 
 @app.route('/api/candidates/detailed', methods=['POST'])
@@ -610,9 +624,25 @@ def create_candidate_detailed():
          data.get('current_role'), data.get('employment_status'), data.get('notice_period_days', 0),
          json.dumps(data.get('work_experience', [])), json.dumps(data.get('certifications', [])),
          json.dumps(data.get('core_skills', [])), data.get('education'), data.get('resume_text'), data.get('resume_filename')))
+    
+    candidate_id = c.lastrowid
+    
+    # Attach the resume file as a document
+    file_path = data.get('file_path')
+    original_filename = data.get('original_filename')
+    
+    if file_path and os.path.exists(file_path):
+        # Save to permanent documents folder
+        permanent_filename = secure_filename(f"{candidate_id}_{datetime.now().timestamp()}_{original_filename}")
+        permanent_path = os.path.join(app.config['DOCUMENTS_FOLDER'], permanent_filename)
+        shutil.move(file_path, permanent_path)
+        
+        c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type, is_resume) VALUES (?, ?, ?, ?, ?, ?)',
+                  (candidate_id, permanent_filename, original_filename, permanent_path, original_filename.split('.')[-1], 1))
+    
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Candidate saved'})
+    return jsonify({'message': 'Candidate saved', 'id': candidate_id})
 
 @app.route('/api/candidates', methods=['GET'])
 def get_candidates():
@@ -648,7 +678,7 @@ def get_candidate_documents(candidate_id):
     conn = sqlite3.connect('shahnai.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT * FROM candidate_documents WHERE candidate_id = ?', (candidate_id,))
+    c.execute('SELECT * FROM candidate_documents WHERE candidate_id = ? ORDER BY is_resume DESC, uploaded_at DESC', (candidate_id,))
     docs = [dict(row) for row in c.fetchall()]
     conn.close()
     return jsonify(docs)
@@ -663,14 +693,14 @@ def upload_document():
         return jsonify({'error': 'No file'}), 400
     
     original_filename = file.filename
-    filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
+    filename = secure_filename(f"{candidate_id}_{datetime.now().timestamp()}_{file.filename}")
     filepath = os.path.join(app.config['DOCUMENTS_FOLDER'], filename)
     file.save(filepath)
     
     conn = sqlite3.connect('shahnai.db')
     c = conn.cursor()
-    c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type) VALUES (?, ?, ?, ?, ?)',
-              (candidate_id, filename, original_filename, filepath, original_filename.split('.')[-1]))
+    c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type, is_resume) VALUES (?, ?, ?, ?, ?, ?)',
+              (candidate_id, filename, original_filename, filepath, original_filename.split('.')[-1], 0))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Document uploaded'})
@@ -717,7 +747,6 @@ def analyze_match():
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
-    # Simple match calculation
     import re
     resume_words = set(re.findall(r'\b\w+\b', resume_text.lower()))
     jd_words = set(re.findall(r'\b\w+\b', jd_text.lower()))
