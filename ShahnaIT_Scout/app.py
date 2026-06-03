@@ -1,4 +1,4 @@
-# app.py - COMPLETE with Auto-Attach Resume & Edit Features
+# app.py - COMPLETE with User-Friendly Edit Forms
 import os
 import re
 import sqlite3
@@ -254,6 +254,8 @@ HTML_TEMPLATE = '''
         .btn-primary:hover { background: var(--primary-light); }
         .btn-secondary { background: var(--text-muted); border: none; padding: 8px 20px; border-radius: 40px; font-weight: 500; color: white; cursor: pointer; }
         .btn-edit { background: #C9A96E; border: none; padding: 6px 16px; border-radius: 30px; font-weight: 500; color: white; cursor: pointer; font-size: 12px; }
+        .btn-add { background: #2A7A76; border: none; padding: 6px 12px; border-radius: 30px; font-weight: 500; color: white; cursor: pointer; font-size: 11px; margin-left: 8px; }
+        .btn-remove { background: #B22222; border: none; padding: 4px 10px; border-radius: 30px; font-weight: 500; color: white; cursor: pointer; font-size: 10px; margin-left: 8px; }
         
         input, textarea, select { width: 100%; padding: 12px 16px; border: 1px solid var(--border-light); border-radius: 16px; background: white; margin-bottom: 16px; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
@@ -269,6 +271,9 @@ HTML_TEMPLATE = '''
         .detail-label { width: 140px; font-weight: 600; color: var(--primary-dark); }
         .detail-value { flex: 1; color: var(--text-dark); word-break: break-word; }
         
+        .company-item { background: #F9F6F0; padding: 12px; border-radius: 16px; margin-bottom: 8px; border-left: 3px solid var(--primary); }
+        .skill-item { display: inline-block; margin: 4px; }
+        
         .search-bar { margin-bottom: 20px; display: flex; gap: 10px; }
         .search-bar input { flex: 1; margin-bottom: 0; }
         
@@ -280,6 +285,8 @@ HTML_TEMPLATE = '''
         
         .alert-success { background: #1B6B2E; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
         .alert-error { background: #B22222; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
+        
+        .work-exp-card { background: white; border: 1px solid var(--border-light); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
         
         @media (max-width: 768px) { .sidebar { width: 80px; } .nav-item span:last-child { display: none; } .detail-label { width: 100px; } }
     </style>
@@ -333,6 +340,9 @@ HTML_TEMPLATE = '''
 
 <script>
     let jobsData = [], candidatesData = [], currentCandidateId = null;
+    let workExperienceList = [];
+    let skillsList = [];
+    let certificationsList = [];
     
     function switchTab(tabId) {
         document.querySelectorAll('[id$="-view"]').forEach(el => el.style.display = 'none');
@@ -392,11 +402,8 @@ HTML_TEMPLATE = '''
         const certs = JSON.parse(c.certifications || '[]');
         const skills = JSON.parse(c.core_skills || '[]');
         
-        // Get documents
         const docRes = await fetch(`/api/candidates/${id}/documents`);
         const documents = await docRes.json();
-        
-        // Separate resume from other documents
         const resumeDoc = documents.find(d => d.is_resume === 1);
         const otherDocs = documents.filter(d => !d.is_resume);
         
@@ -415,7 +422,7 @@ HTML_TEMPLATE = '''
             <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div></div>
             
             <h4 style="margin-top: 20px;">💼 Work Experience</h4>
-            ${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.duration)}</small></div>`).join('') || '<p>None</p>'}
+            ${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date || '')} - ${escapeHtml(w.end_date || 'Present')}</small></div>`).join('') || '<p>None</p>'}
             
             <h4>⭐ Core Skills</h4>
             ${skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || '?'} yrs)</span>`).join('') || '<p>None</p>'}
@@ -454,49 +461,165 @@ HTML_TEMPLATE = '''
         const c = candidatesData.find(c => c.id == id);
         if (!c) return;
         
-        document.getElementById('editModalBody').innerHTML = `
-            <form id="editCandidateForm">
-                <div class="flex"><div class="flex-1"><label>First Name</label><input type="text" id="edit-first-name" value="${escapeHtml(c.first_name || '')}"></div>
-                <div class="flex-1"><label>Middle Name</label><input type="text" id="edit-middle-name" value="${escapeHtml(c.middle_name || '')}"></div>
-                <div class="flex-1"><label>Last Name</label><input type="text" id="edit-last-name" value="${escapeHtml(c.last_name || '')}"></div></div>
-                <div class="flex"><div class="flex-1"><label>Email</label><input type="email" id="edit-email" value="${escapeHtml(c.email || '')}"></div>
-                <div class="flex-1"><label>Phone</label><input type="text" id="edit-phone" value="${escapeHtml(c.phone || '')}"></div></div>
-                <label>Address</label><input type="text" id="edit-address" value="${escapeHtml(c.address || '')}">
-                <label>LinkedIn</label><input type="text" id="edit-linkedin" value="${escapeHtml(c.linkedin || '')}">
-                <label>Current Role</label><input type="text" id="edit-current-role" value="${escapeHtml(c.current_role || '')}">
-                <div class="flex"><div class="flex-1"><label>Employment Status</label><select id="edit-employment-status"><option value="working" ${c.employment_status === 'working' ? 'selected' : ''}>Working</option><option value="bench" ${c.employment_status === 'bench' ? 'selected' : ''}>On Bench</option><option value="notice_period" ${c.employment_status === 'notice_period' ? 'selected' : ''}>Notice Period</option></select></div>
-                <div class="flex-1"><label>Notice Period (days)</label><input type="number" id="edit-notice-days" value="${c.notice_period_days || 0}"></div></div>
-                <label>Education</label><textarea id="edit-education" rows="2">${escapeHtml(c.education || '')}</textarea>
-                <label>Work Experience (JSON format)</label><textarea id="edit-work-exp" rows="4">${c.work_experience || '[]'}</textarea>
-                <label>Certifications (JSON array)</label><textarea id="edit-certs" rows="3">${c.certifications || '[]'}</textarea>
-                <label>Core Skills (JSON array with skill and years_of_experience)</label><textarea id="edit-skills" rows="4">${c.core_skills || '[]'}</textarea>
-                <div style="display: flex; gap: 10px; margin-top: 20px;"><button type="submit" class="btn-primary">Save Changes</button><button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button></div>
-            </form>
-        `;
-        document.getElementById('editModal').style.display = 'block';
+        let workExp = JSON.parse(c.work_experience || '[]');
+        let skills = JSON.parse(c.core_skills || '[]');
+        let certs = JSON.parse(c.certifications || '[]');
         
-        document.getElementById('editCandidateForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const updatedData = {
-                first_name: document.getElementById('edit-first-name').value,
-                middle_name: document.getElementById('edit-middle-name').value,
-                last_name: document.getElementById('edit-last-name').value,
-                email: document.getElementById('edit-email').value,
-                phone: document.getElementById('edit-phone').value,
-                address: document.getElementById('edit-address').value,
-                linkedin: document.getElementById('edit-linkedin').value,
-                current_role: document.getElementById('edit-current-role').value,
-                employment_status: document.getElementById('edit-employment-status').value,
-                notice_period_days: parseInt(document.getElementById('edit-notice-days').value) || 0,
-                education: document.getElementById('edit-education').value,
-                work_experience: document.getElementById('edit-work-exp').value,
-                certifications: document.getElementById('edit-certs').value,
-                core_skills: document.getElementById('edit-skills').value
-            };
-            const res = await fetch(`/api/candidates/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(updatedData) });
-            if (res.ok) { alert('Candidate updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
-            else alert('Error updating');
+        function renderWorkExpForm() {
+            return workExp.map((exp, idx) => `
+                <div class="work-exp-card">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <strong>Experience ${idx + 1}</strong>
+                        <button type="button" class="btn-remove" onclick="removeWorkExp(${idx})">Remove</button>
+                    </div>
+                    <div class="flex">
+                        <div class="flex-1"><label>Company</label><input type="text" class="work-company-${idx}" value="${escapeHtml(exp.company || '')}"></div>
+                        <div class="flex-1"><label>Role</label><input type="text" class="work-role-${idx}" value="${escapeHtml(exp.role || '')}"></div>
+                    </div>
+                    <div class="flex">
+                        <div class="flex-1"><label>Start Date</label><input type="text" class="work-start-${idx}" placeholder="e.g., Jan 2020" value="${escapeHtml(exp.start_date || '')}"></div>
+                        <div class="flex-1"><label>End Date</label><input type="text" class="work-end-${idx}" placeholder="e.g., Present or Dec 2023" value="${escapeHtml(exp.end_date || '')}"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderSkillsForm() {
+            return skills.map((skill, idx) => `
+                <div style="display: inline-block; margin: 5px; background: var(--bg-primary); padding: 8px 12px; border-radius: 30px;">
+                    <input type="text" class="skill-name-${idx}" value="${escapeHtml(skill.skill || '')}" style="width: 120px; display: inline; margin: 0; padding: 4px 8px;">
+                    <input type="number" class="skill-years-${idx}" value="${skill.years_of_experience || 0}" style="width: 60px; display: inline; margin: 0 5px; padding: 4px 8px;">
+                    <span>yrs</span>
+                    <button type="button" class="btn-remove" onclick="removeSkill(${idx})">✕</button>
+                </div>
+            `).join('');
+        }
+        
+        function renderCertsForm() {
+            return certs.map((cert, idx) => `
+                <div style="margin-bottom: 8px;">
+                    <input type="text" class="cert-${idx}" value="${escapeHtml(cert)}" style="width: 70%; display: inline; margin-right: 10px;">
+                    <button type="button" class="btn-remove" onclick="removeCert(${idx})">Remove</button>
+                </div>
+            `).join('');
+        }
+        
+        window.removeWorkExp = function(idx) {
+            workExp.splice(idx, 1);
+            renderEditForm();
         };
+        
+        window.removeSkill = function(idx) {
+            skills.splice(idx, 1);
+            renderEditForm();
+        };
+        
+        window.removeCert = function(idx) {
+            certs.splice(idx, 1);
+            renderEditForm();
+        };
+        
+        function renderEditForm() {
+            document.getElementById('editModalBody').innerHTML = `
+                <form id="editCandidateForm">
+                    <div class="flex"><div class="flex-1"><label>First Name</label><input type="text" id="edit-first-name" value="${escapeHtml(c.first_name || '')}"></div>
+                    <div class="flex-1"><label>Middle Name</label><input type="text" id="edit-middle-name" value="${escapeHtml(c.middle_name || '')}"></div>
+                    <div class="flex-1"><label>Last Name</label><input type="text" id="edit-last-name" value="${escapeHtml(c.last_name || '')}"></div></div>
+                    <div class="flex"><div class="flex-1"><label>Email</label><input type="email" id="edit-email" value="${escapeHtml(c.email || '')}"></div>
+                    <div class="flex-1"><label>Phone</label><input type="text" id="edit-phone" value="${escapeHtml(c.phone || '')}"></div></div>
+                    <label>Address</label><input type="text" id="edit-address" value="${escapeHtml(c.address || '')}">
+                    <label>LinkedIn</label><input type="text" id="edit-linkedin" value="${escapeHtml(c.linkedin || '')}">
+                    <label>Current Role</label><input type="text" id="edit-current-role" value="${escapeHtml(c.current_role || '')}">
+                    <div class="flex"><div class="flex-1"><label>Employment Status</label><select id="edit-employment-status"><option value="working" ${c.employment_status === 'working' ? 'selected' : ''}>Working</option><option value="bench" ${c.employment_status === 'bench' ? 'selected' : ''}>On Bench</option><option value="notice_period" ${c.employment_status === 'notice_period' ? 'selected' : ''}>Notice Period</option></select></div>
+                    <div class="flex-1"><label>Notice Period (days)</label><input type="number" id="edit-notice-days" value="${c.notice_period_days || 0}"></div></div>
+                    <label>Education</label><textarea id="edit-education" rows="2">${escapeHtml(c.education || '')}</textarea>
+                    
+                    <h4>💼 Work Experience</h4>
+                    <div id="work-exp-container">${renderWorkExpForm()}</div>
+                    <button type="button" class="btn-add" onclick="addWorkExp()">+ Add Work Experience</button>
+                    
+                    <h4>⭐ Core Skills</h4>
+                    <div id="skills-container">${renderSkillsForm()}</div>
+                    <button type="button" class="btn-add" onclick="addSkill()">+ Add Skill</button>
+                    
+                    <h4>📜 Certifications</h4>
+                    <div id="certs-container">${renderCertsForm()}</div>
+                    <button type="button" class="btn-add" onclick="addCert()">+ Add Certification</button>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 20px;"><button type="submit" class="btn-primary">Save Changes</button><button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button></div>
+                </form>
+            `;
+            
+            // Re-bind add functions
+            window.addWorkExp = function() {
+                workExp.push({company: "", role: "", start_date: "", end_date: ""});
+                renderEditForm();
+            };
+            window.addSkill = function() {
+                skills.push({skill: "", years_of_experience: 0});
+                renderEditForm();
+            };
+            window.addCert = function() {
+                certs.push("");
+                renderEditForm();
+            };
+            
+            document.getElementById('editCandidateForm').onsubmit = async (e) => {
+                e.preventDefault();
+                
+                // Collect work experience from form
+                let updatedWorkExp = [];
+                for (let i = 0; i < workExp.length; i++) {
+                    updatedWorkExp.push({
+                        company: document.querySelector(`.work-company-${i}`)?.value || '',
+                        role: document.querySelector(`.work-role-${i}`)?.value || '',
+                        start_date: document.querySelector(`.work-start-${i}`)?.value || '',
+                        end_date: document.querySelector(`.work-end-${i}`)?.value || ''
+                    });
+                }
+                
+                // Collect skills
+                let updatedSkills = [];
+                for (let i = 0; i < skills.length; i++) {
+                    let skillName = document.querySelector(`.skill-name-${i}`)?.value;
+                    let skillYears = document.querySelector(`.skill-years-${i}`)?.value;
+                    if (skillName) {
+                        updatedSkills.push({skill: skillName, years_of_experience: parseInt(skillYears) || 0});
+                    }
+                }
+                
+                // Collect certifications
+                let updatedCerts = [];
+                for (let i = 0; i < certs.length; i++) {
+                    let cert = document.querySelector(`.cert-${i}`)?.value;
+                    if (cert) updatedCerts.push(cert);
+                }
+                
+                const updatedData = {
+                    first_name: document.getElementById('edit-first-name').value,
+                    middle_name: document.getElementById('edit-middle-name').value,
+                    last_name: document.getElementById('edit-last-name').value,
+                    email: document.getElementById('edit-email').value,
+                    phone: document.getElementById('edit-phone').value,
+                    address: document.getElementById('edit-address').value,
+                    linkedin: document.getElementById('edit-linkedin').value,
+                    current_role: document.getElementById('edit-current-role').value,
+                    employment_status: document.getElementById('edit-employment-status').value,
+                    notice_period_days: parseInt(document.getElementById('edit-notice-days').value) || 0,
+                    education: document.getElementById('edit-education').value,
+                    work_experience: JSON.stringify(updatedWorkExp),
+                    certifications: JSON.stringify(updatedCerts),
+                    core_skills: JSON.stringify(updatedSkills)
+                };
+                
+                const res = await fetch(`/api/candidates/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(updatedData) });
+                if (res.ok) { alert('Candidate updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
+                else alert('Error updating');
+            };
+        }
+        
+        renderEditForm();
+        document.getElementById('editModal').style.display = 'block';
     }
     
     function openDocModal(id) { currentCandidateId = id; document.getElementById('docModal').style.display = 'block'; }
@@ -596,7 +719,6 @@ def parse_resume_detailed_api():
         parsed['resume_text'] = text[:3000]
         parsed['resume_filename'] = original_filename
         parsed['ai_used'] = True
-        # Store file path for later attachment
         parsed['file_path'] = filepath
         parsed['original_filename'] = original_filename
         return jsonify(parsed)
@@ -627,12 +749,10 @@ def create_candidate_detailed():
     
     candidate_id = c.lastrowid
     
-    # Attach the resume file as a document
     file_path = data.get('file_path')
     original_filename = data.get('original_filename')
     
     if file_path and os.path.exists(file_path):
-        # Save to permanent documents folder
         permanent_filename = secure_filename(f"{candidate_id}_{datetime.now().timestamp()}_{original_filename}")
         permanent_path = os.path.join(app.config['DOCUMENTS_FOLDER'], permanent_filename)
         shutil.move(file_path, permanent_path)
