@@ -1,4 +1,4 @@
-# app.py - COMPLETE with User-Friendly Edit Forms
+# app.py - COMPLETE with Fixed Export CSV
 import os
 import re
 import sqlite3
@@ -550,7 +550,6 @@ HTML_TEMPLATE = '''
                 </form>
             `;
             
-            // Re-bind add functions
             window.addWorkExp = function() {
                 workExp.push({company: "", role: "", start_date: "", end_date: ""});
                 renderEditForm();
@@ -567,7 +566,6 @@ HTML_TEMPLATE = '''
             document.getElementById('editCandidateForm').onsubmit = async (e) => {
                 e.preventDefault();
                 
-                // Collect work experience from form
                 let updatedWorkExp = [];
                 for (let i = 0; i < workExp.length; i++) {
                     updatedWorkExp.push({
@@ -578,7 +576,6 @@ HTML_TEMPLATE = '''
                     });
                 }
                 
-                // Collect skills
                 let updatedSkills = [];
                 for (let i = 0; i < skills.length; i++) {
                     let skillName = document.querySelector(`.skill-name-${i}`)?.value;
@@ -588,7 +585,6 @@ HTML_TEMPLATE = '''
                     }
                 }
                 
-                // Collect certifications
                 let updatedCerts = [];
                 for (let i = 0; i < certs.length; i++) {
                     let cert = document.querySelector(`.cert-${i}`)?.value;
@@ -668,7 +664,10 @@ HTML_TEMPLATE = '''
         } catch(e) { div.innerHTML = '<div class="alert-error">Failed</div>'; }
     };
     
-    window.exportToCSV = () => window.location.href = '/api/export-candidates';
+    window.exportToCSV = function() {
+        window.location.href = '/api/export-candidates';
+    };
+    
     document.getElementById('jobForm').onsubmit = async (e) => {
         e.preventDefault();
         const data = { title: document.getElementById('job-title').value, company: document.getElementById('job-company').value, description: document.getElementById('job-desc').value };
@@ -895,20 +894,37 @@ def export_candidates():
     conn = sqlite3.connect('shahnai.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
-    candidates = [dict(row) for row in c.fetchall()]
+    c.execute('SELECT id, first_name, last_name, email, phone, current_role, match_score, created_at FROM candidates ORDER BY created_at DESC')
+    rows = c.fetchall()
     conn.close()
     
+    # Create CSV in memory
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Skills', 'Match Score', 'Created Date'])
-    for cand in candidates:
-        skills = json.loads(cand.get('core_skills', '[]'))
-        skills_str = ', '.join([s.get('skill', '') for s in skills])
-        writer.writerow([cand.get('id'), cand.get('first_name'), cand.get('last_name'), cand.get('email'), cand.get('phone'), cand.get('current_role'), skills_str, cand.get('match_score'), cand.get('created_at')])
     
+    # Write headers
+    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Match Score (%)', 'Created Date'])
+    
+    # Write data
+    for row in rows:
+        writer.writerow([
+            row['id'],
+            row['first_name'] or '',
+            row['last_name'] or '',
+            row['email'] or '',
+            row['phone'] or '',
+            row['current_role'] or '',
+            row['match_score'] or 0,
+            row['created_at']
+        ])
+    
+    # Return as downloadable file
     output.seek(0)
-    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=candidates_export.csv'}
+    )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
