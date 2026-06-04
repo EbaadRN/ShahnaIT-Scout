@@ -1,4 +1,4 @@
-# app.py - COMPLETE WORKING VERSION with Fixed Match Analysis
+# app.py - COMPLETE with Enhanced Groq AI Analysis (No DeepSeek)
 import os
 import re
 import sqlite3
@@ -11,15 +11,13 @@ from datetime import datetime
 from flask import Flask, request, jsonify, render_template_string, Response, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from openai import OpenAI
 import PyPDF2
 import docx
 
-# ============ INITIALIZE FLASK APP ============
 app = Flask(__name__)
 CORS(app)
 
-# ============ CONFIGURATION ============
+# Configuration
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = '/tmp'
 app.config['DOCUMENTS_FOLDER'] = '/tmp/candidate_docs'
@@ -30,70 +28,31 @@ os.makedirs(app.config['DOCUMENTS_FOLDER'], exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# ============ AI CONFIGURATION ============
+# ============ GROQ API SETUP ============
 GROQ_ENABLED = False
-DEEPSEEK_ENABLED = False
-
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-DEEPSEEK_API_KEY = os.getenv('DEEPSEEK_API_KEY')
-
-# Configure DeepSeek client (optional)
-deepseek_client = None
-if DEEPSEEK_API_KEY:
-    try:
-        deepseek_client = OpenAI(
-            api_key=DEEPSEEK_API_KEY,
-            base_url="https://api.deepseek.com"
-        )
-        DEEPSEEK_ENABLED = True
-        print("✅✅✅ DeepSeek API configured")
-    except Exception as e:
-        print(f"DeepSeek config error: {e}")
 
 if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
     GROQ_ENABLED = True
     print("✅✅✅ Groq API configured")
 
-# ============ DEEPSEEK API CALLS (OPTIONAL) ============
-def call_deepseek_api(prompt, max_tokens=2000, temperature=0.1):
-    if not DEEPSEEK_ENABLED or not deepseek_client:
-        return None
-    try:
-        response = deepseek_client.chat.completions.create(
-            model="deepseek-chat",
-            messages=[
-                {"role": "system", "content": "You are an expert recruitment analyst. Return ONLY valid JSON."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
-        result = response.choices[0].message.content
-        result = result.strip()
-        if result.startswith('```json'):
-            result = result[7:]
-        if result.startswith('```'):
-            result = result[3:]
-        if result.endswith('```'):
-            result = result[:-3]
-        return result
-    except Exception as e:
-        print(f"DeepSeek API error: {e}")
-        return None
-
-def call_groq_api(prompt, max_tokens=2500):
+def call_groq_api(prompt, max_tokens=2000, temperature=0.1):
+    """Call Groq API with proper error handling"""
     if not GROQ_API_KEY:
         return None
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
     payload = {
         "model": "llama-3.3-70b-versatile",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.1,
+        "messages": [
+            {"role": "system", "content": "You are an expert recruitment analyst. Return ONLY valid JSON. No markdown, no explanations, just pure JSON."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": temperature,
         "max_tokens": max_tokens
     }
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response = requests.post(url, json=payload, headers=headers, timeout=45)
         if response.status_code == 200:
             result = response.json()['choices'][0]['message']['content']
             result = result.strip()
@@ -104,36 +63,122 @@ def call_groq_api(prompt, max_tokens=2500):
             if result.endswith('```'):
                 result = result[:-3]
             return result
-    except:
-        pass
+        else:
+            print(f"Groq API error: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Groq API error: {e}")
+        return None
+
+def parse_resume_with_groq(resume_text):
+    """Parse resume using Groq AI - detailed extraction"""
+    prompt = f"""Parse this resume and extract ALL available information. Be thorough.
+
+RESUME TEXT:
+{resume_text[:3500]}
+
+Return EXACTLY this JSON structure (use empty strings/arrays if not found):
+{{
+    "first_name": "",
+    "last_name": "",
+    "middle_name": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "linkedin": "",
+    "current_role": "",
+    "employment_status": "working",
+    "notice_period_days": 0,
+    "work_experience": [
+        {{"company": "", "role": "", "start_date": "", "end_date": "", "is_current": false}}
+    ],
+    "certifications": [],
+    "core_skills": [
+        {{"skill": "", "years_of_experience": 0}}
+    ],
+    "education": ""
+}}"""
+    
+    response = call_groq_api(prompt, max_tokens=2500, temperature=0.1)
+    if response:
+        try:
+            return json.loads(response)
+        except json.JSONDecodeError as e:
+            print(f"JSON parse error: {e}")
+            return None
     return None
 
-# ============ AI-POWERED FUNCTIONS ============
-def parse_resume_with_ai(resume_text):
-    prompt = f"""Parse this resume. Return ONLY valid JSON.
-
-RESUME: {resume_text[:3000]}
-
-Return: {{"first_name": "", "last_name": "", "middle_name": "", "phone": "", "email": "", "address": "", "linkedin": "", "current_role": "", "employment_status": "working", "work_experience": [], "certifications": [], "core_skills": [], "education": ""}}"""
+def analyze_match_with_groq(resume_text, jd_text, candidate_name=""):
+    """Advanced JD vs Resume analysis using Groq AI"""
+    if not GROQ_ENABLED:
+        return None
     
-    if GROQ_ENABLED:
-        response = call_groq_api(prompt, max_tokens=2000)
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
-    if DEEPSEEK_ENABLED:
-        response = call_deepseek_api(prompt, max_tokens=2000)
-        if response:
-            try:
-                return json.loads(response)
-            except:
-                pass
+    prompt = f"""You are an expert recruitment analyst. Analyze this candidate against the job description in EXTREME DETAIL.
+
+CANDIDATE NAME: {candidate_name}
+
+JOB DESCRIPTION:
+{jd_text[:3000]}
+
+RESUME:
+{resume_text[:3500]}
+
+Return ONLY valid JSON with this EXACT structure:
+
+{{
+    "match_score": <number 0-100, be realistic based on actual skill matching>,
+    "recommendation": <"hire" if score >=75, "interview" if score >=45, "reject" if score <45>,
+    "executive_summary": {{
+        "overall_relevance": <"Very High", "High", "Medium", "Low">,
+        "final_verdict": <"This candidate is a strong match for the role because...", be specific>
+    }},
+    "relevance_analysis": {{
+        "strengths": [<list of 2-4 specific strengths based on resume>],
+        "gaps": [<list of 1-3 specific gaps or missing requirements>]
+    }},
+    "domain_assessment": {{
+        "status": <"✅ Strong Match", "⚠️ Partial Match", "❌ Weak Match">,
+        "analysis": <detailed analysis of domain/industry fit>,
+        "pre_screen_question": <specific question to ask in screening>
+    }},
+    "genuineness_assessment": {{
+        "score": <number 0-10, based on detail specificity and consistency>,
+        "positives": [<list of authenticity indicators>],
+        "minor_concerns": [<list of minor concerns if any>]
+    }},
+    "final_verdict": {{
+        "decision": <"Proceed to interview", "Consider with caution", "Not recommended">,
+        "risk_level": <"Low", "Medium", "High">,
+        "final_call": <"Strong shortlist candidate", "Proceed with caution", "Not recommended for this role">
+    }},
+    "pre_screening_questions": [<3-5 specific questions based on gaps>]
+}}
+
+Be honest and specific. Base everything on the actual resume content. Do not hallucinate information not present."""
+    
+    response = call_groq_api(prompt, max_tokens=3000, temperature=0.1)
+    if response:
+        try:
+            result = json.loads(response)
+            # Ensure all required fields exist
+            if 'match_score' not in result:
+                result['match_score'] = 50
+            if 'recommendation' not in result:
+                result['recommendation'] = 'interview' if result['match_score'] >= 45 else 'reject'
+            if 'executive_summary' not in result:
+                result['executive_summary'] = {'overall_relevance': 'Medium', 'final_verdict': 'Review candidate carefully'}
+            if 'pre_screening_questions' not in result:
+                result['pre_screening_questions'] = ['Can you describe your relevant experience in detail?']
+            print(f"✅ Groq analysis successful - Match Score: {result['match_score']}%")
+            return result
+        except json.JSONDecodeError as e:
+            print(f"JSON parse error: {e}")
+            return None
     return None
 
 # ============ FALLBACK PARSING ============
 def fallback_parse_resume(text):
+    """Basic parsing when Groq fails"""
     lines = text.strip().split('\n')
     name = lines[0].strip() if lines else "Unknown"
     name_parts = name.split()
@@ -148,7 +193,7 @@ def fallback_parse_resume(text):
     phone = phone_match.group(0) if phone_match else ""
     
     common_skills = ['Python', 'Java', 'JavaScript', 'React', 'Angular', 'Node.js', 'SQL', 'AWS', 
-                     'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps', 'Entra ID']
+                     'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps']
     found_skills = []
     for skill in common_skills:
         if skill.lower() in text.lower():
@@ -253,6 +298,28 @@ def extract_text_from_docx(file_path):
     except:
         return ""
 
+def parse_resume_file(file_path):
+    """Parse resume - uses Groq, falls back to basic"""
+    if file_path.endswith('.pdf'):
+        text = extract_text_from_pdf(file_path)
+    else:
+        text = extract_text_from_docx(file_path)
+    
+    if not text:
+        return {'error': 'Could not extract text from file'}
+    
+    # Try Groq first
+    parsed = parse_resume_with_groq(text)
+    if parsed and parsed.get('first_name'):
+        parsed['resume_text'] = text[:3000]
+        parsed['ai_used'] = True
+        return parsed
+    else:
+        # Fallback to basic parsing
+        fallback = fallback_parse_resume(text)
+        fallback['ai_used'] = False
+        return fallback
+
 # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -344,15 +411,15 @@ HTML_TEMPLATE = '''
             <div class="nav-item" data-tab="create-job">➕ Create Job</div>
             <div class="nav-item" data-tab="analyze">🔍 Analyze Match</div>
         </div>
-        <div class="ai-badge-side"><span>⚡ AI POWERED</span></div>
+        <div class="ai-badge-side"><span>⚡ GROQ AI ENHANCED</span></div>
     </div>
 
     <div class="main-content">
         <div id="jobs-view"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>📋 Jobs</h2><button class="btn-primary" onclick="switchTab('create-job')">+ New Job</button></div><div id="jobs-list"></div></div>
         <div id="candidates-view" style="display:none;"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>👥 Candidates</h2><button class="btn-primary" onclick="exportToCSV()">📥 Export CSV</button></div><div class="search-bar"><input type="text" id="candidate-search" placeholder="🔍 Search by name, skills..." onkeyup="filterCandidates()"><button class="btn-secondary" onclick="clearSearch()">Clear</button></div><div id="candidates-list"></div></div>
-        <div id="upload-view" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume</h3><div class="alert-info">🤖 AI will auto-fill candidate details</div><input type="file" id="resume-file" accept=".pdf,.docx"><button class="btn-primary" id="parseBtn">🔍 Parse & Auto-Fill</button><div id="parse-result"></div></div></div>
+        <div id="upload-view" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume</h3><div class="alert-info">🤖 Groq AI will auto-fill candidate details</div><input type="file" id="resume-file" accept=".pdf,.docx"><button class="btn-primary" id="parseBtn">🔍 Parse & Auto-Fill</button><div id="parse-result"></div></div></div>
         <div id="create-job-view" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><form id="jobForm"><input type="text" id="job-title" placeholder="Job Title *" required><input type="text" id="job-company" placeholder="Company"><textarea id="job-desc" rows="5" placeholder="Job Description"></textarea><button type="submit" class="btn-primary">Create Job</button></form></div></div>
-        <div id="analyze-view" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="analyze-job-select"></select></div><div class="flex-1"><select id="analyze-candidate-select"></select></div></div><button class="btn-primary" id="analyzeBtn">🤖 Run Analysis</button><div id="analyze-result"></div></div></div>
+        <div id="analyze-view" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="analyze-job-select"></select></div><div class="flex-1"><select id="analyze-candidate-select"></select></div></div><button class="btn-primary" id="analyzeBtn">🤖 Run Groq AI Analysis</button><div id="analyze-result"></div></div></div>
     </div>
 </div>
 
@@ -480,36 +547,63 @@ HTML_TEMPLATE = '''
         if (!file) return alert('Select a file');
         const fd = new FormData(); fd.append('resume', file);
         const div = document.getElementById('parse-result');
-        div.innerHTML = '<div class="spinner"></div>';
+        div.innerHTML = '<div class="spinner"></div><p>🤖 Groq AI parsing resume...</p>';
         try {
-            const res = await fetch('/api/parse-resume-detailed', { method: 'POST', body: fd });
+            const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p>${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><button class="btn-primary" id="saveDetailedBtn">Save Candidate</button></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? '⚡ with Groq AI' : ''}</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? JSON.parse(result.core_skills).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate</button></div>`;
             document.getElementById('saveDetailedBtn').onclick = async () => {
-                const saveRes = await fetch('/api/candidates/detailed', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if (saveRes.ok) { alert('Saved!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
-                else alert('Error');
+                const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
+                if (saveRes.ok) { alert('Candidate saved!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
+                else alert('Error saving');
             };
-        } catch(e) { div.innerHTML = '<div class="alert-error">Error</div>'; }
+        } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing resume</div>'; }
     };
     
     document.getElementById('analyzeBtn').onclick = async () => {
         const jobId = document.getElementById('analyze-job-select').value;
         const candidateId = document.getElementById('analyze-candidate-select').value;
-        if (!jobId || !candidateId) return alert('Select both');
+        if (!jobId || !candidateId) return alert('Select both Job and Candidate');
         const job = jobsData.find(j => j.id == jobId);
         const cand = candidatesData.find(c => c.id == candidateId);
         const div = document.getElementById('analyze-result');
-        div.innerHTML = '<div class="spinner"></div><p>🤖 Running AI analysis...</p>';
+        div.innerHTML = '<div class="spinner"></div><p>🤖 Groq AI analyzing match...</p>';
         try {
-            const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
+            const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '', candidate_name: cand.first_name + ' ' + cand.last_name }) });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
             const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-            div.innerHTML = `<div class="alert-success"><h4>📊 Analysis Complete</h4><p>🎯 Match Score: <span class="${matchClass}">${result.match_score || 0}%</span></p><p>📌 Recommendation: <span class="${result.recommendation === 'hire' ? 'match-high' : (result.recommendation === 'interview' ? 'match-medium' : 'match-low')}">${(result.recommendation || 'Review').toUpperCase()}</span></p><div class="alert-info" style="margin-top:10px;"><strong>📝 ${result.executive_summary?.final_verdict || ''}</strong></div>${result.pre_screening_questions ? `<div style="margin-top:10px;"><strong>📋 Pre-screening Questions:</strong><ul>${result.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>` : ''}<small>✅ Analysis saved to candidate record</small></div>`;
+            const recClass = result.recommendation === 'hire' ? 'match-high' : (result.recommendation === 'interview' ? 'match-medium' : 'match-low');
+            
+            let analysisHtml = '';
+            if (result.executive_summary) {
+                analysisHtml += `<div class="alert-info" style="margin-top:10px;"><strong>📊 Executive Summary</strong><br>${escapeHtml(result.executive_summary.final_verdict || '')}</div>`;
+            }
+            if (result.relevance_analysis) {
+                if (result.relevance_analysis.strengths && result.relevance_analysis.strengths.length) {
+                    analysisHtml += `<div style="margin-top:10px;"><strong>✅ Strengths:</strong><ul>${result.relevance_analysis.strengths.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
+                }
+                if (result.relevance_analysis.gaps && result.relevance_analysis.gaps.length) {
+                    analysisHtml += `<div><strong>⚠️ Gaps:</strong><ul>${result.relevance_analysis.gaps.map(g => `<li>${escapeHtml(g)}</li>`).join('')}</ul></div>`;
+                }
+            }
+            if (result.domain_assessment) {
+                analysisHtml += `<div><strong>🏢 Domain Assessment:</strong> ${escapeHtml(result.domain_assessment.analysis || '')}</div>`;
+            }
+            if (result.genuineness_assessment) {
+                analysisHtml += `<div><strong>🔍 Genuineness Score:</strong> ${result.genuineness_assessment.score || 0}/10</div>`;
+            }
+            if (result.final_verdict) {
+                analysisHtml += `<div class="alert-info" style="margin-top:10px;"><strong>⚖️ Final Verdict</strong><br>${escapeHtml(result.final_verdict.final_call || '')}</div>`;
+            }
+            if (result.pre_screening_questions && result.pre_screening_questions.length) {
+                analysisHtml += `<div style="margin-top:10px;"><strong>📋 Pre-screening Questions:</strong><ul>${result.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>`;
+            }
+            
+            div.innerHTML = `<div class="alert-success"><h4>📊 Groq AI Analysis Complete</h4><p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p><p><strong>📌 Recommendation:</strong> <span class="${recClass}">${(result.recommendation || 'Review').toUpperCase()}</span></p>${analysisHtml}<small style="margin-top:10px; display:block;">✅ Analysis saved to candidate record</small></div>`;
             loadCandidates();
-        } catch(e) { div.innerHTML = '<div class="alert-error">Analysis failed</div>'; }
+        } catch(e) { div.innerHTML = '<div class="alert-error">Analysis failed. Please check Groq API key.</div>'; }
     };
     
     window.exportToCSV = function() { window.location.href = '/api/export-candidates'; };
@@ -535,10 +629,10 @@ HTML_TEMPLATE = '''
 # ============ API ROUTES ============
 @app.route('/')
 def index():
-    return render_template_string(HTML_TEMPLATE, groq_enabled=GROQ_ENABLED, deepseek_enabled=DEEPSEEK_ENABLED)
+    return render_template_string(HTML_TEMPLATE, groq_enabled=GROQ_ENABLED)
 
-@app.route('/api/parse-resume-detailed', methods=['POST'])
-def parse_resume_detailed_api():
+@app.route('/api/parse-resume', methods=['POST'])
+def parse_resume():
     if 'resume' not in request.files:
         return jsonify({'error': 'No file'}), 400
     file = request.files['resume']
@@ -559,26 +653,33 @@ def parse_resume_detailed_api():
         os.remove(filepath)
         return jsonify({'error': 'Could not extract text'}), 400
     
-    parsed = parse_resume_with_ai(text)
-    if parsed and parsed.get('first_name'):
-        parsed['resume_text'] = text[:3000]
-        parsed['resume_filename'] = original_filename
-        parsed['ai_used'] = True
-        parsed['file_path'] = filepath
-        parsed['original_filename'] = original_filename
-        return jsonify(parsed)
-    else:
-        fallback = fallback_parse_resume(text)
-        fallback['resume_text'] = text[:3000]
-        fallback['resume_filename'] = original_filename
-        fallback['ai_used'] = False
-        fallback['file_path'] = filepath
-        fallback['original_filename'] = original_filename
-        return jsonify(fallback)
+    result = parse_resume_file(filepath)
+    os.remove(filepath)
+    
+    # Add file info for attachment
+    if not result.get('error'):
+        result['file_path'] = filepath
+        result['original_filename'] = original_filename
+    
+    return jsonify(result)
 
-@app.route('/api/candidates/detailed', methods=['POST'])
-def create_candidate_detailed():
+@app.route('/api/candidates', methods=['GET'])
+def get_candidates():
+    conn = sqlite3.connect('shahnai.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(candidates)
+
+@app.route('/api/candidates', methods=['POST'])
+def create_candidate():
     data = request.json
+    skills = json.dumps(data.get('core_skills', [])) if isinstance(data.get('core_skills'), list) else data.get('core_skills', '[]')
+    work_exp = json.dumps(data.get('work_experience', [])) if isinstance(data.get('work_experience'), list) else data.get('work_experience', '[]')
+    certs = json.dumps(data.get('certifications', [])) if isinstance(data.get('certifications'), list) else data.get('certifications', '[]')
+    
     conn = sqlite3.connect('shahnai.db')
     c = conn.cursor()
     c.execute('''INSERT INTO candidates 
@@ -589,11 +690,11 @@ def create_candidate_detailed():
         (data.get('first_name'), data.get('last_name'), data.get('middle_name'),
          data.get('phone'), data.get('email'), data.get('address'), data.get('linkedin'), data.get('other_social'),
          data.get('current_role'), data.get('employment_status'), data.get('notice_period_days', 0),
-         json.dumps(data.get('work_experience', [])), json.dumps(data.get('certifications', [])),
-         json.dumps(data.get('core_skills', [])), data.get('education'), data.get('resume_text'), data.get('resume_filename')))
+         work_exp, certs, skills, data.get('education'), data.get('resume_text'), data.get('resume_filename')))
     
     candidate_id = c.lastrowid
     
+    # Attach resume file as document
     file_path = data.get('file_path')
     original_filename = data.get('original_filename')
     
@@ -608,16 +709,6 @@ def create_candidate_detailed():
     conn.commit()
     conn.close()
     return jsonify({'message': 'Candidate saved', 'id': candidate_id})
-
-@app.route('/api/candidates', methods=['GET'])
-def get_candidates():
-    conn = sqlite3.connect('shahnai.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
-    candidates = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(candidates)
 
 @app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
 def update_candidate(candidate_id):
@@ -686,60 +777,17 @@ def analyze_match():
     resume_text = data.get('resume_text', '')
     jd_text = data.get('jd_text', '')
     candidate_id = data.get('candidate_id')
+    candidate_name = data.get('candidate_name', '')
     
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
-    # Simple keyword matching - always works and gives realistic scores
-    # Clean the text to get meaningful words
-    resume_clean = re.sub(r'[^\w\s]', ' ', resume_text.lower())
-    jd_clean = re.sub(r'[^\w\s]', ' ', jd_text.lower())
+    if not GROQ_ENABLED:
+        return jsonify({'error': 'Groq API not configured. Add GROQ_API_KEY to Railway.'}), 503
     
-    # Remove common stop words
-    stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'will', 'would', 'should', 'could', 'may', 'might', 'must'}
+    result = analyze_match_with_groq(resume_text, jd_text, candidate_name)
     
-    resume_words = set([w for w in resume_clean.split() if w not in stop_words and len(w) > 2])
-    jd_words = set([w for w in jd_clean.split() if w not in stop_words and len(w) > 2])
-    
-    common = resume_words & jd_words
-    match_score = min(100, int(len(common) / max(len(jd_words), 1) * 100))
-    
-    # Generate meaningful feedback based on match score
-    if match_score >= 70:
-        recommendation = 'hire'
-        verdict = f'Strong match! Candidate matches {match_score}% of job requirements. Proceed with interview.'
-    elif match_score >= 40:
-        recommendation = 'interview'
-        verdict = f'Partial match at {match_score}%. Consider interview for specific skill assessment.'
-    else:
-        recommendation = 'reject'
-        verdict = f'Low match at {match_score}%. Candidate may not be suitable for this role.'
-    
-    # Generate pre-screening questions based on job description
-    # Extract key skills from JD for questions
-    skill_keywords = ['experience', 'skill', 'knowledge', 'proficiency', 'familiar', 'expert', 'certification', 'degree', 'year']
-    sentences = re.split(r'[.!?]+', jd_text)
-    requirement_sentences = [s.strip() for s in sentences if any(kw in s.lower() for kw in skill_keywords)]
-    
-    pre_screening_questions = [
-        f'Can you describe your experience with the key requirements mentioned in the job description?',
-        f'What is your current notice period and availability to join?',
-        f'Are you willing to work in this role on a full-time basis?'
-    ]
-    
-    if requirement_sentences:
-        pre_screening_questions.insert(0, f'Based on the job requirement: "{requirement_sentences[0][:100]}...", how does your experience align?')
-    
-    result = {
-        'match_score': match_score,
-        'recommendation': recommendation,
-        'executive_summary': {'final_verdict': verdict},
-        'domain_assessment': {'status': '✅', 'analysis': f'Match score calculated at {match_score}% based on keyword analysis.', 'pre_screen_question': pre_screening_questions[0]},
-        'genuineness_assessment': {'score': min(10, max(5, int(match_score / 10)))},
-        'pre_screening_questions': pre_screening_questions[:4]
-    }
-    
-    if candidate_id:
+    if result and candidate_id:
         detailed_json = json.dumps(result, indent=2)
         conn = sqlite3.connect('shahnai.db')
         c = conn.cursor()
@@ -747,27 +795,30 @@ def analyze_match():
                   (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, candidate_id))
         conn.commit()
         conn.close()
+        return jsonify(result)
+    elif result:
+        return jsonify(result)
     
-    return jsonify(result)
+    return jsonify({'error': 'Groq analysis failed. Please check API key.'}), 500
 
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
     conn = sqlite3.connect('shahnai.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT id, first_name, last_name, email, phone, current_role, match_score, created_at FROM candidates ORDER BY created_at DESC')
+    c.execute('SELECT id, first_name, last_name, email, phone, current_role, match_score, recommendation, created_at FROM candidates ORDER BY created_at DESC')
     rows = c.fetchall()
     conn.close()
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Match Score (%)', 'Created Date'])
+    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Match Score (%)', 'Recommendation', 'Created Date'])
     
     for row in rows:
         writer.writerow([
             row['id'], row['first_name'] or '', row['last_name'] or '',
             row['email'] or '', row['phone'] or '', row['current_role'] or '',
-            row['match_score'] or 0, row['created_at']
+            row['match_score'] or 0, row['recommendation'] or '', row['created_at']
         ])
     
     output.seek(0)
