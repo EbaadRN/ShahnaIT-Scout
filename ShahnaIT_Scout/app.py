@@ -1,4 +1,4 @@
-# app.py - COMPLETE WITH WORKING MULTI-FILE RESUME UPLOAD
+# app.py - COMPLETE WITH EASY MULTI-FILE SELECTION (Click to select multiple)
 import os
 import re
 import sqlite3
@@ -19,7 +19,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuration
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB for multiple files
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = '/tmp'
 app.config['DOCUMENTS_FOLDER'] = '/tmp/candidate_docs'
 ALLOWED_EXTENSIONS = {'pdf', 'docx', 'png', 'jpg', 'jpeg', 'txt'}
@@ -436,8 +436,10 @@ HTML_TEMPLATE = '''
         .progress-bar { background: #EAE5DC; border-radius: 20px; height: 20px; margin: 15px 0; overflow: hidden; }
         .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
         
-        .file-list { background: #F9F6F0; border-radius: 12px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
-        .file-list-item { padding: 5px 10px; border-bottom: 1px solid #EAE5DC; font-size: 12px; }
+        .file-list { background: #F9F6F0; border-radius: 12px; padding: 10px; margin-top: 10px; max-height: 200px; overflow-y: auto; }
+        .file-list-item { padding: 5px 10px; border-bottom: 1px solid #EAE5DC; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .remove-file { color: #B22222; cursor: pointer; font-size: 14px; margin-left: 10px; }
+        .remove-file:hover { color: #8B1A1A; }
         
         @media (max-width: 768px) { .sidebar { width: 80px; } .nav-item span:last-child { display: none; } .detail-label { width: 100px; } }
     </style>
@@ -502,11 +504,12 @@ HTML_TEMPLATE = '''
             </div>
             
             <div class="card no-click" style="margin-top: 20px;">
-                <h3>📚 Multiple Resume Upload (Select Multiple Files)</h3>
-                <div class="alert-info">📁 Hold down Ctrl (or Cmd on Mac) to select multiple PDF/DOCX files at once. All will be parsed and saved automatically.</div>
-                <input type="file" id="multi-resume-files" name="files[]" multiple accept=".pdf,.docx" style="padding: 10px;">
+                <h3>📚 Multiple Resume Upload</h3>
+                <div class="alert-info">📁 Click the button below to select multiple PDF/DOCX files at once.</div>
+                <input type="file" id="multi-resume-files" name="files[]" multiple accept=".pdf,.docx" style="display: none;">
+                <button class="btn-primary" id="selectFilesBtn" style="background: #2A7A76;">📂 Select Multiple Files</button>
                 <div id="selected-files-list" class="file-list" style="display: none;"></div>
-                <button class="btn-primary" id="multiUploadBtn" style="margin-top: 10px;">🚀 Upload & Parse All Selected Files</button>
+                <button class="btn-primary" id="multiUploadBtn" style="margin-top: 10px; display: none;">🚀 Upload & Parse All Selected Files</button>
                 <div id="multi-upload-result"></div>
             </div>
         </div>
@@ -549,6 +552,7 @@ HTML_TEMPLATE = '''
 
 <script>
     let jobsData = [], candidatesData = [], currentCandidateId = null;
+    let selectedFiles = [];
     
     function switchTab(tabId) {
         document.querySelectorAll('[id$="-view"]').forEach(el => el.style.display = 'none');
@@ -560,21 +564,60 @@ HTML_TEMPLATE = '''
         if (tabId === 'analyze') { loadJobs(); loadCandidates(); }
     }
     
-    // Display selected files for multi-upload
+    // Multi-file selection handling
+    document.getElementById('selectFilesBtn').addEventListener('click', function() {
+        document.getElementById('multi-resume-files').click();
+    });
+    
     document.getElementById('multi-resume-files').addEventListener('change', function(e) {
-        const files = e.target.files;
+        selectedFiles = Array.from(e.target.files);
         const fileListDiv = document.getElementById('selected-files-list');
-        if (files.length > 0) {
-            let html = '<strong>Selected files (' + files.length + '):</strong><br>';
-            for (let i = 0; i < files.length; i++) {
-                html += `<div class="file-list-item">📄 ${escapeHtml(files[i].name)}</div>`;
-            }
+        const uploadBtn = document.getElementById('multiUploadBtn');
+        
+        if (selectedFiles.length > 0) {
+            let html = '<strong>Selected files (' + selectedFiles.length + '):</strong><br>';
+            selectedFiles.forEach((file, index) => {
+                html += `<div class="file-list-item">
+                    📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)
+                    <span class="remove-file" onclick="removeFile(${index})">✕ Remove</span>
+                </div>`;
+            });
             fileListDiv.innerHTML = html;
             fileListDiv.style.display = 'block';
+            uploadBtn.style.display = 'inline-block';
         } else {
             fileListDiv.style.display = 'none';
+            uploadBtn.style.display = 'none';
         }
     });
+    
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        // Update the file input
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => dataTransfer.items.add(file));
+        document.getElementById('multi-resume-files').files = dataTransfer.files;
+        
+        // Re-render the list
+        const fileListDiv = document.getElementById('selected-files-list');
+        const uploadBtn = document.getElementById('multiUploadBtn');
+        
+        if (selectedFiles.length > 0) {
+            let html = '<strong>Selected files (' + selectedFiles.length + '):</strong><br>';
+            selectedFiles.forEach((file, idx) => {
+                html += `<div class="file-list-item">
+                    📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)
+                    <span class="remove-file" onclick="removeFile(${idx})">✕ Remove</span>
+                </div>`;
+            });
+            fileListDiv.innerHTML = html;
+            fileListDiv.style.display = 'block';
+            uploadBtn.style.display = 'inline-block';
+        } else {
+            fileListDiv.style.display = 'none';
+            uploadBtn.style.display = 'none';
+        }
+    }
     
     async function loadJobs() {
         const res = await fetch('/api/jobs');
@@ -837,24 +880,22 @@ HTML_TEMPLATE = '''
     
     // Multiple Resume Upload
     document.getElementById('multiUploadBtn').onclick = async () => {
-        const files = document.getElementById('multi-resume-files').files;
-        if (!files || files.length === 0) { alert('Select at least one file (hold Ctrl/Cmd to select multiple)'); return; }
+        if (selectedFiles.length === 0) { alert('Please select files first'); return; }
         
         const div = document.getElementById('multi-upload-result');
-        div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + files.length + ' files... This may take a few minutes.</p>';
+        div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + selectedFiles.length + ' files... This may take a few minutes.</p>';
         
         let successCount = 0;
         let failCount = 0;
         let errors = [];
         
-        for (let i = 0; i < files.length; i++) {
-            const file = files[i];
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
             const fd = new FormData();
             fd.append('resume', file);
             
-            // Update progress
-            const percent = Math.round((i / files.length) * 100);
-            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${files.length}: ${escapeHtml(file.name)}...</p>`;
+            const percent = Math.round((i / selectedFiles.length) * 100);
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${selectedFiles.length}: ${escapeHtml(file.name)}...</p>`;
             
             try {
                 const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
@@ -879,7 +920,7 @@ HTML_TEMPLATE = '''
         }
         
         let resultHtml = `<div class="alert-success"><h4>✅ Bulk Upload Complete!</h4>`;
-        resultHtml += `<p><strong>Total files:</strong> ${files.length}</p>`;
+        resultHtml += `<p><strong>Total files:</strong> ${selectedFiles.length}</p>`;
         resultHtml += `<p><strong>Successfully parsed & saved:</strong> ${successCount}</p>`;
         resultHtml += `<p><strong>Failed:</strong> ${failCount}</p>`;
         
@@ -894,10 +935,12 @@ HTML_TEMPLATE = '''
         resultHtml += `<button class="btn-primary" onclick="switchTab('candidates')" style="margin-top: 15px;">View All Candidates</button></div>`;
         div.innerHTML = resultHtml;
         
-        // Clear file input and list
+        // Clear selection
+        selectedFiles = [];
         document.getElementById('multi-resume-files').value = '';
         document.getElementById('selected-files-list').style.display = 'none';
         document.getElementById('selected-files-list').innerHTML = '';
+        document.getElementById('multiUploadBtn').style.display = 'none';
         
         loadCandidates();
     };
