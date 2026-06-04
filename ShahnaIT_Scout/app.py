@@ -1,4 +1,4 @@
-# app.py - COMPLETE WORKING VERSION with Left Sidebar, Auto-Attach Resume, Documents
+# app.py - COMPLETE WORKING VERSION with Modal Document Viewer
 import os
 import re
 import sqlite3
@@ -7,6 +7,7 @@ import io
 import json
 import requests
 import shutil
+import base64
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template_string, Response, send_file
 from flask_cors import CORS
@@ -205,6 +206,27 @@ def extract_text_from_docx(file_path):
     except:
         return ""
 
+def get_file_preview(file_path, file_type):
+    """Get file content for preview (text for PDF/DOCX, base64 for images)"""
+    try:
+        if file_type == 'pdf':
+            # Extract first page text for preview
+            text = extract_text_from_pdf(file_path)
+            return {'type': 'text', 'content': text[:2000]}
+        elif file_type == 'docx':
+            text = extract_text_from_docx(file_path)
+            return {'type': 'text', 'content': text[:2000]}
+        elif file_type in ['png', 'jpg', 'jpeg']:
+            with open(file_path, 'rb') as f:
+                img_data = base64.b64encode(f.read()).decode('utf-8')
+                return {'type': 'image', 'content': img_data}
+        else:
+            with open(file_path, 'r', errors='ignore') as f:
+                content = f.read(2000)
+                return {'type': 'text', 'content': content}
+    except:
+        return {'type': 'text', 'content': 'Unable to preview file'}
+
 # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -253,8 +275,6 @@ HTML_TEMPLATE = '''
         .btn-primary:hover { background: var(--primary-light); }
         .btn-secondary { background: var(--text-muted); border: none; padding: 8px 20px; border-radius: 40px; font-weight: 500; color: white; cursor: pointer; }
         .btn-edit { background: #C9A96E; border: none; padding: 6px 16px; border-radius: 30px; font-weight: 500; color: white; cursor: pointer; font-size: 12px; }
-        .btn-add { background: #2A7A76; border: none; padding: 6px 12px; border-radius: 30px; font-weight: 500; color: white; cursor: pointer; font-size: 11px; margin-left: 8px; }
-        .btn-remove { background: #B22222; border: none; padding: 4px 10px; border-radius: 30px; font-weight: 500; color: white; cursor: pointer; font-size: 10px; margin-left: 8px; }
         
         input, textarea, select { width: 100%; padding: 12px 16px; border: 1px solid var(--border-light); border-radius: 16px; background: white; margin-bottom: 16px; font-family: inherit; }
         input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
@@ -265,6 +285,10 @@ HTML_TEMPLATE = '''
         .modal-header h2 { margin: 0; }
         .modal-body { padding: 28px; max-height: 70vh; overflow-y: auto; }
         .close { font-size: 32px; cursor: pointer; color: white; }
+        
+        .preview-modal { max-width: 800px; width: 90%; }
+        .preview-content { background: white; padding: 20px; border-radius: 16px; max-height: 70vh; overflow-y: auto; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; }
+        .preview-image { max-width: 100%; height: auto; }
         
         .detail-row { display: flex; margin-bottom: 12px; border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
         .detail-label { width: 140px; font-weight: 600; color: var(--primary-dark); }
@@ -284,6 +308,9 @@ HTML_TEMPLATE = '''
         .alert-success { background: #1B6B2E; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
         .alert-error { background: #B22222; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
         .alert-info { background: #3498DB; color: white; padding: 14px; border-radius: 16px; margin: 12px 0; }
+        
+        .doc-link { cursor: pointer; color: var(--primary); text-decoration: underline; }
+        .doc-link:hover { color: var(--primary-light); }
         
         @media (max-width: 768px) { .sidebar { width: 80px; } .nav-item span:last-child { display: none; } .detail-label { width: 100px; } }
     </style>
@@ -305,12 +332,13 @@ HTML_TEMPLATE = '''
     <div class="main-content">
         <div id="jobs-view"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>📋 Jobs</h2><button class="btn-primary" onclick="switchTab('create-job')">+ New Job</button></div><div id="jobs-list"></div></div>
         <div id="candidates-view" style="display:none;"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>👥 Candidates</h2><button class="btn-primary" onclick="exportToCSV()">📥 Export CSV</button></div><div class="search-bar"><input type="text" id="candidate-search" placeholder="🔍 Search by name, skills..." onkeyup="filterCandidates()"><button class="btn-secondary" onclick="clearSearch()">Clear</button></div><div id="candidates-list"></div></div>
-        <div id="upload-view" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume</h3><div class="alert-info">🤖 Groq AI will auto-fill candidate details</div><input type="file" id="resume-file" accept=".pdf,.docx"><button class="btn-primary" id="parseBtn">🔍 Parse & Auto-Fill</button><div id="parse-result"></div></div></div>
+        <div id="upload-view" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume</h3><div class="alert-info">🤖 Groq AI will auto-fill candidate details. Resume will be automatically attached.</div><input type="file" id="resume-file" accept=".pdf,.docx"><button class="btn-primary" id="parseBtn">🔍 Parse & Auto-Fill</button><div id="parse-result"></div></div></div>
         <div id="create-job-view" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><form id="jobForm"><input type="text" id="job-title" placeholder="Job Title *" required><input type="text" id="job-company" placeholder="Company"><textarea id="job-desc" rows="5" placeholder="Job Description"></textarea><button type="submit" class="btn-primary">Create Job</button></form></div></div>
         <div id="analyze-view" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="analyze-job-select"></select></div><div class="flex-1"><select id="analyze-candidate-select"></select></div></div><button class="btn-primary" id="analyzeBtn">🤖 Run Groq AI Analysis</button><div id="analyze-result"></div></div></div>
     </div>
 </div>
 
+<!-- Candidate Modal -->
 <div id="candidateModal" class="modal">
     <div class="modal-content">
         <div class="modal-header"><h2 id="modalTitle">Candidate Profile</h2><span class="close" onclick="closeModal()">&times;</span></div>
@@ -318,6 +346,15 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
+<!-- Document Preview Modal -->
+<div id="previewModal" class="modal">
+    <div class="modal-content preview-modal">
+        <div class="modal-header"><h2 id="previewTitle">Document Preview</h2><span class="close" onclick="closePreviewModal()">&times;</span></div>
+        <div class="modal-body" id="previewBody">Loading...</div>
+    </div>
+</div>
+
+<!-- Edit Candidate Modal -->
 <div id="editModal" class="modal">
     <div class="modal-content">
         <div class="modal-header"><h2>✏️ Edit Candidate</h2><span class="close" onclick="closeEditModal()">&times;</span></div>
@@ -425,14 +462,41 @@ HTML_TEMPLATE = '''
             <p>${escapeHtml(c.education || 'N/A')}</p>
             
             <h4>📄 Resume</h4>
-            ${resumeDoc ? `<div><a href="/api/documents/${resumeDoc.id}" target="_blank">📄 ${escapeHtml(resumeDoc.original_filename)}</a> <span style="background:#1B6B2E; color:white; padding:2px 8px; border-radius:12px; font-size:10px;">Original Resume</span></div>` : '<p>No resume attached</p>'}
+            ${resumeDoc ? `<div><span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span> <span style="background:#1B6B2E; color:white; padding:2px 8px; border-radius:12px; font-size:10px;">Original Resume</span></div>` : '<p>No resume attached</p>'}
             
             <h4>📎 Other Documents (${otherDocs.length})</h4>
-            ${otherDocs.map(d => `<div><a href="/api/documents/${d.id}" target="_blank">📄 ${escapeHtml(d.original_filename)}</a></div>`).join('') || '<p>No additional documents</p>'}
+            ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>No additional documents</p>'}
             
             <button class="btn-primary" onclick="closeModal()" style="margin-top: 20px;">Close</button>
         `;
         document.getElementById('candidateModal').style.display = 'block';
+    }
+    
+    async function previewDocument(docId) {
+        const previewModal = document.getElementById('previewModal');
+        const previewTitle = document.getElementById('previewTitle');
+        const previewBody = document.getElementById('previewBody');
+        
+        previewTitle.innerHTML = 'Document Preview';
+        previewBody.innerHTML = '<div class="spinner"></div><p>Loading preview...</p>';
+        previewModal.style.display = 'block';
+        
+        try {
+            const res = await fetch(`/api/documents/${docId}/preview`);
+            const data = await res.json();
+            
+            if (data.type === 'image') {
+                previewBody.innerHTML = `<img src="data:image/png;base64,${data.content}" class="preview-image" alt="Document Preview">`;
+            } else {
+                previewBody.innerHTML = `<div class="preview-content">${escapeHtml(data.content)}</div>`;
+            }
+        } catch(e) {
+            previewBody.innerHTML = '<div class="alert-error">Unable to load preview</div>';
+        }
+    }
+    
+    function closePreviewModal() {
+        document.getElementById('previewModal').style.display = 'none';
     }
     
     function copyAllDetails() {
@@ -523,10 +587,10 @@ HTML_TEMPLATE = '''
             const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? '⚡ with Groq AI' : ''}</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate</button></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? '⚡ with Groq AI' : ''}</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate (Resume will be auto-attached)</button></div>`;
             document.getElementById('saveDetailedBtn').onclick = async () => {
                 const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if (saveRes.ok) { alert('Candidate saved!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
+                if (saveRes.ok) { alert('Candidate saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
                 else alert('Error saving');
             };
         } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing resume</div>'; }
@@ -700,6 +764,18 @@ def upload_document():
     conn.commit()
     conn.close()
     return jsonify({'message': 'Document uploaded'})
+
+@app.route('/api/documents/<int:doc_id>/preview', methods=['GET'])
+def preview_document(doc_id):
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidate_documents WHERE id = ?', (doc_id,))
+    doc = c.fetchone()
+    conn.close()
+    if doc and os.path.exists(doc[4]):
+        preview = get_file_preview(doc[4], doc[5])
+        return jsonify(preview)
+    return jsonify({'error': 'File not found'}), 404
 
 @app.route('/api/documents/<int:doc_id>', methods=['GET'])
 def get_document(doc_id):
