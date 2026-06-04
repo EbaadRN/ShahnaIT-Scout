@@ -1,4 +1,4 @@
-# app.py - COMPLETE WORKING VERSION with Modal Document Viewer
+# app.py - COMPLETE FIXED VERSION with CTC Fields & Proper Skill Years
 import os
 import re
 import sqlite3
@@ -37,7 +37,7 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
     GROQ_ENABLED = True
     print("✅✅✅ Groq API configured")
 
-def call_groq_api(prompt, max_tokens=2000):
+def call_groq_api(prompt, max_tokens=2500):
     if not GROQ_API_KEY:
         return None
     url = "https://api.groq.com/openai/v1/chat/completions"
@@ -66,12 +66,33 @@ def call_groq_api(prompt, max_tokens=2000):
         return None
 
 def parse_resume_with_groq(resume_text):
-    prompt = f"""Parse this resume. Return ONLY valid JSON.
+    prompt = f"""Parse this resume. Extract years of experience for each skill. Return ONLY valid JSON.
 
-RESUME: {resume_text[:3000]}
+RESUME: {resume_text[:3500]}
 
-Return: {{"first_name": "", "last_name": "", "middle_name": "", "phone": "", "email": "", "address": "", "linkedin": "", "current_role": "", "employment_status": "working", "work_experience": [], "certifications": [], "core_skills": [], "education": ""}}"""
-    response = call_groq_api(prompt, max_tokens=2000)
+Return: {{
+    "first_name": "",
+    "last_name": "",
+    "middle_name": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "linkedin": "",
+    "current_role": "",
+    "current_ctc": "",
+    "expected_ctc": "",
+    "employment_status": "working",
+    "notice_period_days": 0,
+    "work_experience": [
+        {{"company": "", "role": "", "start_date": "", "end_date": "", "is_current": false}}
+    ],
+    "certifications": [],
+    "core_skills": [
+        {{"skill": "", "years_of_experience": 0}}
+    ],
+    "education": ""
+}}"""
+    response = call_groq_api(prompt, max_tokens=2500)
     if response:
         try:
             return json.loads(response)
@@ -97,6 +118,20 @@ Return: {{"match_score": 0, "recommendation": "hire/interview/reject", "executiv
     return None
 
 # ============ FALLBACK PARSING ============
+def extract_years_from_text(text, skill):
+    """Extract years of experience for a skill from text"""
+    patterns = [
+        r'(\d+)\+?\s*years? of experience in ' + re.escape(skill),
+        r'(\d+)\+?\s*years? in ' + re.escape(skill),
+        r'(\d+)\+?\s*yrs? of experience with ' + re.escape(skill),
+        r'(\d+)\+?\s*years?.*?' + re.escape(skill),
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+    return 0
+
 def fallback_parse_resume(text):
     lines = text.strip().split('\n')
     name = lines[0].strip() if lines else "Unknown"
@@ -110,15 +145,59 @@ def fallback_parse_resume(text):
     phone_match = re.search(r'\b\d{10}\b|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\+\d{2}\s?\d{10}\b', text)
     phone = phone_match.group(0) if phone_match else ""
     
-    common_skills = ['Python', 'Java', 'JavaScript', 'React', 'Angular', 'Node.js', 'SQL', 'AWS', 
-                     'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps', 'Entra ID']
+    # Find CTC patterns
+    ctc_patterns = [
+        r'current\s+ctc[\s:]*([\d\.]+\s*(?:LPA|lpa|Lacs|lakhs?))',
+        r'ctc\s*:?\s*([\d\.]+\s*(?:LPA|lpa))',
+        r'([\d\.]+\s*(?:LPA|lpa))\s*current',
+    ]
+    current_ctc = ""
+    expected_ctc = ""
+    for pattern in ctc_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            current_ctc = match.group(1)
+            break
+    expected_match = re.search(r'expected\s+ctc[\s:]*([\d\.]+\s*(?:LPA|lpa))', text, re.IGNORECASE)
+    if expected_match:
+        expected_ctc = expected_match.group(1)
+    
+    common_skills = [
+        'Python', 'Java', 'JavaScript', 'React', 'Angular', 'Node.js', 'SQL', 'AWS', 
+        'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps', 'Entra ID',
+        'Apex', 'LWC', 'SOQL', 'REST API', 'CI/CD', 'Jenkins', 'Jira', 'Agile', 'Scrum'
+    ]
     found_skills = []
     for skill in common_skills:
         if skill.lower() in text.lower():
-            found_skills.append({"skill": skill, "years_of_experience": 0})
+            years = extract_years_from_text(text, skill)
+            found_skills.append({"skill": skill, "years_of_experience": years})
     
-    role_match = re.search(r'(\w+\s+\w+)\s+(?:Engineer|Developer|Architect|Lead|Manager|Consultant)', text[:500])
+    # Extract work experience
+    work_experience = []
+    exp_pattern = r'([A-Za-z0-9\s&]+?)\s*[\(|]?(\d{4})\s*[-–to]+?\s*(\d{4}|Present)[\)|]?\s*(?:[-–]\s*)?(.+?)(?=\n\n|\Z)'
+    matches = re.findall(exp_pattern, text, re.IGNORECASE | re.DOTALL)
+    for match in matches:
+        company = match[0].strip()
+        start_year = match[1]
+        end_year = match[2]
+        role = match[3].strip()[:100]
+        if company and role:
+            work_experience.append({
+                "company": company,
+                "role": role,
+                "start_date": start_year,
+                "end_date": end_year,
+                "is_current": end_year.lower() == 'present'
+            })
+    
+    role_match = re.search(r'(\w+\s+\w+)\s+(?:Engineer|Developer|Architect|Lead|Manager|Consultant|Analyst)', text[:500])
     current_role = role_match.group(0) if role_match else ""
+    
+    # Extract certifications
+    cert_pattern = r'(?:Certified|certification)\s*:?\s*([A-Za-z0-9\s]+?)(?:\n|$)'
+    certifications = re.findall(cert_pattern, text, re.IGNORECASE)
+    certifications = [c.strip() for c in certifications if len(c.strip()) > 5][:10]
     
     return {
         'first_name': first_name,
@@ -129,10 +208,12 @@ def fallback_parse_resume(text):
         'address': "",
         'linkedin': "",
         'current_role': current_role,
+        'current_ctc': current_ctc,
+        'expected_ctc': expected_ctc,
         'employment_status': "working",
         'notice_period_days': 0,
-        'work_experience': [],
-        'certifications': [],
+        'work_experience': work_experience,
+        'certifications': certifications,
         'core_skills': found_skills,
         'education': "",
         'resume_text': text[:3000],
@@ -165,6 +246,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT, last_name TEXT, middle_name TEXT, phone TEXT, email TEXT,
         address TEXT, linkedin TEXT, other_social TEXT, current_role TEXT,
+        current_ctc TEXT, expected_ctc TEXT,
         employment_status TEXT, notice_period_days INTEGER DEFAULT 0,
         work_experience TEXT, certifications TEXT, core_skills TEXT, education TEXT,
         resume_text TEXT, resume_filename TEXT, match_score INTEGER DEFAULT 0,
@@ -207,10 +289,8 @@ def extract_text_from_docx(file_path):
         return ""
 
 def get_file_preview(file_path, file_type):
-    """Get file content for preview (text for PDF/DOCX, base64 for images)"""
     try:
         if file_type == 'pdf':
-            # Extract first page text for preview
             text = extract_text_from_pdf(file_path)
             return {'type': 'text', 'content': text[:2000]}
         elif file_type == 'docx':
@@ -267,6 +347,7 @@ HTML_TEMPLATE = '''
         .card.no-click:hover { transform: none; }
         
         .skill-tag { display: inline-block; background: var(--bg-primary); padding: 4px 12px; border-radius: 30px; font-size: 0.75rem; margin: 4px 4px 0 0; color: var(--primary-dark); font-weight: 500; }
+        .skill-with-years { background: #E8F5E9; padding: 4px 12px; border-radius: 30px; font-size: 0.75rem; margin: 4px 4px 0 0; color: #1B5E20; font-weight: 500; }
         .match-high { background: #1B6B2E; color: white; padding: 2px 10px; border-radius: 30px; font-weight: 600; display: inline-block; }
         .match-medium { background: #CC5500; color: white; padding: 2px 10px; border-radius: 30px; font-weight: 600; display: inline-block; }
         .match-low { background: #B22222; color: white; padding: 2px 10px; border-radius: 30px; font-weight: 600; display: inline-block; }
@@ -404,7 +485,7 @@ HTML_TEMPLATE = '''
         container.innerHTML = candidates.map(c => {
             const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown';
             const skills = c.core_skills ? JSON.parse(c.core_skills || '[]') : [];
-            return `<div class="card" onclick="viewCandidate(${c.id})"><h3>👤 ${escapeHtml(fullName)}</h3>${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}<p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>${c.match_score ? `<p>🎯 Score: <span class="${c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low')}">${c.match_score}%</span></p>` : ''}<small>📅 ${new Date(c.created_at).toLocaleDateString()}</small></div>`;
+            return `<div class="card" onclick="viewCandidate(${c.id})"><h3>👤 ${escapeHtml(fullName)}</h3>${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}<p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}${s.years_of_experience ? ` (${s.years_of_experience}y)` : ''}</span>`).join('')}</p>${c.match_score ? `<p>🎯 Score: <span class="${c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low')}">${c.match_score}%</span></p>` : ''}<small>📅 ${new Date(c.created_at).toLocaleDateString()}</small></div>`;
         }).join('');
     }
     
@@ -444,6 +525,8 @@ HTML_TEMPLATE = '''
             <div class="detail-row"><div class="detail-label">Full Name:</div><div class="detail-value">${escapeHtml(fullName)}</div></div>
             <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Current CTC:</div><div class="detail-value">${escapeHtml(c.current_ctc || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Expected CTC:</div><div class="detail-value">${escapeHtml(c.expected_ctc || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Address:</div><div class="detail-value">${escapeHtml(c.address || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">LinkedIn:</div><div class="detail-value">${escapeHtml(c.linkedin || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Current Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
@@ -453,7 +536,7 @@ HTML_TEMPLATE = '''
             ${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date || '')} - ${escapeHtml(w.end_date || 'Present')}</small></div>`).join('') || '<p>None</p>'}
             
             <h4>⭐ Core Skills</h4>
-            ${skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || '?'} yrs)</span>`).join('') || '<p>None</p>'}
+            ${skills.map(s => `<span class="skill-with-years">${escapeHtml(s.skill)} (${s.years_of_experience || 0} yrs)</span>`).join('') || '<p>None</p>'}
             
             <h4>📜 Certifications</h4>
             ${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
@@ -501,7 +584,7 @@ HTML_TEMPLATE = '''
     
     function copyAllDetails() {
         let text = '';
-        document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-tag').forEach(el => {
+        document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-with-years').forEach(el => {
             text += el.innerText + '\\n';
         });
         navigator.clipboard.writeText(text);
@@ -517,6 +600,7 @@ HTML_TEMPLATE = '''
         if (!c) return;
         
         const skills = c.core_skills ? JSON.parse(c.core_skills).map(s => s.skill).join(', ') : '';
+        const certs = c.certifications ? JSON.parse(c.certifications).join(', ') : '';
         
         document.getElementById('editModalBody').innerHTML = `
             <form id="editCandidateForm">
@@ -525,6 +609,8 @@ HTML_TEMPLATE = '''
                 <div class="flex-1"><label>Last Name</label><input type="text" id="edit-last-name" value="${escapeHtml(c.last_name || '')}"></div></div>
                 <div class="flex"><div class="flex-1"><label>Email</label><input type="email" id="edit-email" value="${escapeHtml(c.email || '')}"></div>
                 <div class="flex-1"><label>Phone</label><input type="text" id="edit-phone" value="${escapeHtml(c.phone || '')}"></div></div>
+                <div class="flex"><div class="flex-1"><label>Current CTC</label><input type="text" id="edit-current-ctc" value="${escapeHtml(c.current_ctc || '')}" placeholder="e.g., 12 LPA"></div>
+                <div class="flex-1"><label>Expected CTC</label><input type="text" id="edit-expected-ctc" value="${escapeHtml(c.expected_ctc || '')}" placeholder="e.g., 15 LPA"></div></div>
                 <label>Address</label><input type="text" id="edit-address" value="${escapeHtml(c.address || '')}">
                 <label>LinkedIn</label><input type="text" id="edit-linkedin" value="${escapeHtml(c.linkedin || '')}">
                 <label>Current Role</label><input type="text" id="edit-current-role" value="${escapeHtml(c.current_role || '')}">
@@ -532,7 +618,7 @@ HTML_TEMPLATE = '''
                 <div class="flex-1"><label>Notice Period (days)</label><input type="number" id="edit-notice-days" value="${c.notice_period_days || 0}"></div></div>
                 <label>Education</label><textarea id="edit-education" rows="2">${escapeHtml(c.education || '')}</textarea>
                 <label>Skills (comma separated)</label><input type="text" id="edit-skills" value="${escapeHtml(skills)}">
-                <label>Certifications (comma separated)</label><input type="text" id="edit-certs" value="${c.certifications ? JSON.parse(c.certifications).join(', ') : ''}">
+                <label>Certifications (comma separated)</label><input type="text" id="edit-certs" value="${escapeHtml(certs)}">
                 <div style="display: flex; gap: 10px; margin-top: 20px;"><button type="submit" class="btn-primary">Save Changes</button><button type="button" class="btn-secondary" onclick="closeEditModal()">Cancel</button></div>
             </form>
         `;
@@ -550,6 +636,8 @@ HTML_TEMPLATE = '''
                 last_name: document.getElementById('edit-last-name').value,
                 email: document.getElementById('edit-email').value,
                 phone: document.getElementById('edit-phone').value,
+                current_ctc: document.getElementById('edit-current-ctc').value,
+                expected_ctc: document.getElementById('edit-expected-ctc').value,
                 address: document.getElementById('edit-address').value,
                 linkedin: document.getElementById('edit-linkedin').value,
                 current_role: document.getElementById('edit-current-role').value,
@@ -587,7 +675,7 @@ HTML_TEMPLATE = '''
             const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? '⚡ with Groq AI' : ''}</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate (Resume will be auto-attached)</button></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? '⚡ with Groq AI' : ''}</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}${s.years_of_experience ? ` (${s.years_of_experience}y)` : ''}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate (Resume will be auto-attached)</button></div>`;
             document.getElementById('saveDetailedBtn').onclick = async () => {
                 const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
                 if (saveRes.ok) { alert('Candidate saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
@@ -691,12 +779,14 @@ def create_candidate():
     c = conn.cursor()
     c.execute('''INSERT INTO candidates 
         (first_name, last_name, middle_name, phone, email, address, linkedin,
-         current_role, employment_status, notice_period_days, work_experience, certifications,
+         current_role, current_ctc, expected_ctc,
+         employment_status, notice_period_days, work_experience, certifications,
          core_skills, education, resume_text, resume_filename)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (data.get('first_name'), data.get('last_name'), data.get('middle_name'),
          data.get('phone'), data.get('email'), data.get('address'), data.get('linkedin'),
-         data.get('current_role'), data.get('employment_status'), data.get('notice_period_days', 0),
+         data.get('current_role'), data.get('current_ctc'), data.get('expected_ctc'),
+         data.get('employment_status'), data.get('notice_period_days', 0),
          work_exp, certs, skills, data.get('education'), data.get('resume_text'), data.get('resume_filename')))
     
     candidate_id = c.lastrowid
@@ -722,12 +812,14 @@ def update_candidate(candidate_id):
     c = conn.cursor()
     c.execute('''UPDATE candidates SET 
         first_name=?, middle_name=?, last_name=?, email=?, phone=?, address=?, linkedin=?,
-        current_role=?, employment_status=?, notice_period_days=?, education=?,
+        current_role=?, current_ctc=?, expected_ctc=?,
+        employment_status=?, notice_period_days=?, education=?,
         core_skills=?, certifications=?
         WHERE id=?''',
         (data.get('first_name'), data.get('middle_name'), data.get('last_name'),
          data.get('email'), data.get('phone'), data.get('address'), data.get('linkedin'),
-         data.get('current_role'), data.get('employment_status'), data.get('notice_period_days', 0),
+         data.get('current_role'), data.get('current_ctc'), data.get('expected_ctc'),
+         data.get('employment_status'), data.get('notice_period_days', 0),
          data.get('education'), data.get('core_skills'), data.get('certifications'), candidate_id))
     conn.commit()
     conn.close()
@@ -844,16 +936,17 @@ def export_candidates():
     conn = sqlite3.connect('shahnai.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT id, first_name, last_name, email, phone, current_role, match_score, created_at FROM candidates ORDER BY created_at DESC')
+    c.execute('SELECT id, first_name, last_name, email, phone, current_role, current_ctc, expected_ctc, match_score, created_at FROM candidates ORDER BY created_at DESC')
     rows = c.fetchall()
     conn.close()
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Match Score', 'Created Date'])
+    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Current CTC', 'Expected CTC', 'Match Score', 'Created Date'])
     for row in rows:
         writer.writerow([row['id'], row['first_name'] or '', row['last_name'] or '',
                          row['email'] or '', row['phone'] or '', row['current_role'] or '',
+                         row['current_ctc'] or '', row['expected_ctc'] or '',
                          row['match_score'] or 0, row['created_at']])
     output.seek(0)
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
