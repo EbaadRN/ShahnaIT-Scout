@@ -1,4 +1,4 @@
-# app.py - COMPLETE FIXED VERSION with CTC Fields & Proper Skill Years
+# app.py - COMPLETE FIXED VERSION with Proper Resume Attachment
 import os
 import re
 import sqlite3
@@ -119,7 +119,6 @@ Return: {{"match_score": 0, "recommendation": "hire/interview/reject", "executiv
 
 # ============ FALLBACK PARSING ============
 def extract_years_from_text(text, skill):
-    """Extract years of experience for a skill from text"""
     patterns = [
         r'(\d+)\+?\s*years? of experience in ' + re.escape(skill),
         r'(\d+)\+?\s*years? in ' + re.escape(skill),
@@ -149,7 +148,6 @@ def fallback_parse_resume(text):
     ctc_patterns = [
         r'current\s+ctc[\s:]*([\d\.]+\s*(?:LPA|lpa|Lacs|lakhs?))',
         r'ctc\s*:?\s*([\d\.]+\s*(?:LPA|lpa))',
-        r'([\d\.]+\s*(?:LPA|lpa))\s*current',
     ]
     current_ctc = ""
     expected_ctc = ""
@@ -165,12 +163,18 @@ def fallback_parse_resume(text):
     common_skills = [
         'Python', 'Java', 'JavaScript', 'React', 'Angular', 'Node.js', 'SQL', 'AWS', 
         'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps', 'Entra ID',
-        'Apex', 'LWC', 'SOQL', 'REST API', 'CI/CD', 'Jenkins', 'Jira', 'Agile', 'Scrum'
+        'Apex', 'LWC', 'SOQL', 'REST API', 'CI/CD', 'Jenkins', 'Jira', 'Agile', 'Scrum',
+        'Lightning', 'Triggers', 'Integration', 'Service Cloud', 'Sales Cloud'
     ]
     found_skills = []
     for skill in common_skills:
         if skill.lower() in text.lower():
             years = extract_years_from_text(text, skill)
+            if years == 0:
+                # Try to find years from experience section
+                exp_match = re.search(r'(\d+)\+?\s*years?', text[:500])
+                if exp_match:
+                    years = int(exp_match.group(1))
             found_skills.append({"skill": skill, "years_of_experience": years})
     
     # Extract work experience
@@ -737,25 +741,28 @@ def parse_resume():
     
     filename = secure_filename(file.filename)
     original_filename = file.filename
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
+    temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(temp_filepath)
     
     if filename.endswith('.pdf'):
-        text = extract_text_from_pdf(filepath)
+        text = extract_text_from_pdf(temp_filepath)
     else:
-        text = extract_text_from_docx(filepath)
+        text = extract_text_from_docx(temp_filepath)
     
     if not text:
-        os.remove(filepath)
+        os.remove(temp_filepath)
         return jsonify({'error': 'Could not extract text'}), 400
     
-    result = parse_resume_file(filepath)
-    os.remove(filepath)
+    # Parse the resume
+    result = parse_resume_file(temp_filepath)
     
+    # IMPORTANT: Save the file to permanent location BEFORE deleting temp
+    # Store the file path in result for later attachment
     if not result.get('error'):
-        result['file_path'] = filepath
+        result['file_path'] = temp_filepath  # This will be moved in create_candidate
         result['original_filename'] = original_filename
     
+    # Return result (file will be moved in create_candidate, not deleted here)
     return jsonify(result)
 
 @app.route('/api/candidates', methods=['GET'])
@@ -791,6 +798,7 @@ def create_candidate():
     
     candidate_id = c.lastrowid
     
+    # Handle file attachment (move from temp to permanent)
     file_path = data.get('file_path')
     original_filename = data.get('original_filename')
     
@@ -800,6 +808,7 @@ def create_candidate():
         shutil.move(file_path, permanent_path)
         c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type, is_resume) VALUES (?, ?, ?, ?, ?, ?)',
                   (candidate_id, permanent_filename, original_filename, permanent_path, original_filename.split('.')[-1], 1))
+        print(f"✅ Resume attached: {original_filename}")
     
     conn.commit()
     conn.close()
