@@ -1,4 +1,4 @@
-# app.py - COMPLETE WITH BULK RESUME UPLOAD (Feature #2)
+# app.py - COMPLETE WITH MULTI-FILE RESUME UPLOAD (Feature #2 - Improved)
 import os
 import re
 import sqlite3
@@ -8,7 +8,6 @@ import json
 import requests
 import shutil
 import base64
-import zipfile
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template_string, Response, send_file
 from flask_cors import CORS
@@ -20,19 +19,15 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuration
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Increased to 100MB for ZIP files
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB for multiple files
 app.config['UPLOAD_FOLDER'] = '/tmp'
 app.config['DOCUMENTS_FOLDER'] = '/tmp/candidate_docs'
-ALLOWED_EXTENSIONS = {'pdf', 'docx', 'png', 'jpg', 'jpeg', 'txt', 'zip'}
-ALLOWED_RESUME_EXTENSIONS = {'pdf', 'docx'}
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'png', 'jpg', 'jpeg', 'txt'}
 
 os.makedirs(app.config['DOCUMENTS_FOLDER'], exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-def allowed_resume(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_RESUME_EXTENSIONS
 
 # ============ GROQ API SETUP ============
 GROQ_ENABLED = False
@@ -441,6 +436,9 @@ HTML_TEMPLATE = '''
         .progress-bar { background: #EAE5DC; border-radius: 20px; height: 20px; margin: 15px 0; overflow: hidden; }
         .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
         
+        .file-list { background: #F9F6F0; border-radius: 12px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .file-list-item { padding: 5px 10px; border-bottom: 1px solid #EAE5DC; font-size: 12px; }
+        
         @media (max-width: 768px) { .sidebar { width: 80px; } .nav-item span:last-child { display: none; } .detail-label { width: 100px; } }
     </style>
 </head>
@@ -504,11 +502,12 @@ HTML_TEMPLATE = '''
             </div>
             
             <div class="card no-click" style="margin-top: 20px;">
-                <h3>📦 Bulk Resume Upload (ZIP File)</h3>
-                <div class="alert-info">📁 Upload a ZIP file containing multiple PDF/DOCX resumes. All will be parsed and saved automatically.</div>
-                <input type="file" id="zip-file" accept=".zip">
-                <button class="btn-primary" id="bulkUploadBtn">🚀 Upload ZIP & Parse All</button>
-                <div id="bulk-result"></div>
+                <h3>📚 Multiple Resume Upload (Select Multiple Files)</h3>
+                <div class="alert-info">📁 Select multiple PDF/DOCX files at once. All will be parsed and saved automatically.</div>
+                <input type="file" id="multi-resume-files" multiple accept=".pdf,.docx" style="padding: 10px;">
+                <div id="selected-files-list" class="file-list" style="display: none;"></div>
+                <button class="btn-primary" id="multiUploadBtn">🚀 Upload & Parse All Selected Files</button>
+                <div id="multi-upload-result"></div>
             </div>
         </div>
         
@@ -560,6 +559,22 @@ HTML_TEMPLATE = '''
         if (tabId === 'candidates') loadCandidates();
         if (tabId === 'analyze') { loadJobs(); loadCandidates(); }
     }
+    
+    // Display selected files for multi-upload
+    document.getElementById('multi-resume-files').addEventListener('change', function(e) {
+        const files = e.target.files;
+        const fileListDiv = document.getElementById('selected-files-list');
+        if (files.length > 0) {
+            let html = '<strong>Selected files:</strong><br>';
+            for (let i = 0; i < files.length; i++) {
+                html += `<div class="file-list-item">📄 ${escapeHtml(files[i].name)}</div>`;
+            }
+            fileListDiv.innerHTML = html;
+            fileListDiv.style.display = 'block';
+        } else {
+            fileListDiv.style.display = 'none';
+        }
+    });
     
     async function loadJobs() {
         const res = await fetch('/api/jobs');
@@ -820,49 +835,70 @@ HTML_TEMPLATE = '''
         } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing resume</div>'; }
     };
     
-    // Bulk Resume Upload
-    document.getElementById('bulkUploadBtn').onclick = async () => {
-        const file = document.getElementById('zip-file').files[0];
-        if (!file) { alert('Select a ZIP file'); return; }
+    // Multiple Resume Upload
+    document.getElementById('multiUploadBtn').onclick = async () => {
+        const files = document.getElementById('multi-resume-files').files;
+        if (!files || files.length === 0) { alert('Select at least one file'); return; }
         
-        const fd = new FormData();
-        fd.append('zip_file', file);
+        const div = document.getElementById('multi-upload-result');
+        div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + files.length + ' files... This may take a few minutes.</p>';
         
-        const div = document.getElementById('bulk-result');
-        div.innerHTML = '<div class="spinner"></div><p>📦 Processing ZIP file... This may take a few minutes.</p>';
+        let successCount = 0;
+        let failCount = 0;
+        let errors = [];
         
-        try {
-            const res = await fetch('/api/bulk-upload', { method: 'POST', body: fd });
-            const result = await res.json();
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fd = new FormData();
+            fd.append('resume', file);
             
-            if (result.error) {
-                div.innerHTML = `<div class="alert-error">❌ ${result.error}</div>`;
-                return;
+            // Update progress
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${Math.round((i / files.length) * 100)}%"></div></div><p>📄 Processing ${i+1} of ${files.length}: ${escapeHtml(file.name)}...</p>`;
+            
+            try {
+                const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
+                const result = await res.json();
+                
+                if (result.error) {
+                    failCount++;
+                    errors.push(`${file.name}: ${result.error}`);
+                } else {
+                    const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
+                    if (saveRes.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        errors.push(`${file.name}: Save failed`);
+                    }
+                }
+            } catch(e) {
+                failCount++;
+                errors.push(`${file.name}: ${e.message}`);
             }
-            
-            let resultHtml = `<div class="alert-success"><h4>✅ Bulk Upload Complete!</h4>`;
-            resultHtml += `<p><strong>Total files found:</strong> ${result.total}</p>`;
-            resultHtml += `<p><strong>Successfully parsed:</strong> ${result.success}</p>`;
-            resultHtml += `<p><strong>Failed:</strong> ${result.failed}</p>`;
-            
-            if (result.errors.length > 0) {
-                resultHtml += `<div style="margin-top: 10px;"><strong>⚠️ Errors:</strong><ul>`;
-                result.errors.forEach(err => {
-                    resultHtml += `<li>${escapeHtml(err)}</li>`;
-                });
-                resultHtml += `</ul></div>`;
-            }
-            
-            resultHtml += `<button class="btn-primary" onclick="switchTab('candidates')" style="margin-top: 15px;">View All Candidates</button></div>`;
-            div.innerHTML = resultHtml;
-            
-            // Clear file input
-            document.getElementById('zip-file').value = '';
-            loadCandidates();
-            
-        } catch(e) {
-            div.innerHTML = '<div class="alert-error">Error processing ZIP file</div>';
         }
+        
+        let resultHtml = `<div class="alert-success"><h4>✅ Bulk Upload Complete!</h4>`;
+        resultHtml += `<p><strong>Total files:</strong> ${files.length}</p>`;
+        resultHtml += `<p><strong>Successfully parsed & saved:</strong> ${successCount}</p>`;
+        resultHtml += `<p><strong>Failed:</strong> ${failCount}</p>`;
+        
+        if (errors.length > 0) {
+            resultHtml += `<div style="margin-top: 10px;"><strong>⚠️ Errors:</strong><ul>`;
+            errors.forEach(err => {
+                resultHtml += `<li>${escapeHtml(err)}</li>`;
+            });
+            resultHtml += `</ul></div>`;
+        }
+        
+        resultHtml += `<button class="btn-primary" onclick="switchTab('candidates')" style="margin-top: 15px;">View All Candidates</button></div>`;
+        div.innerHTML = resultHtml;
+        
+        // Clear file input and list
+        document.getElementById('multi-resume-files').value = '';
+        document.getElementById('selected-files-list').style.display = 'none';
+        document.getElementById('selected-files-list').innerHTML = '';
+        
+        loadCandidates();
     };
     
     document.getElementById('analyzeBtn').onclick = async () => {
@@ -937,82 +973,6 @@ def parse_resume():
         result['original_filename'] = original_filename
     
     return jsonify(result)
-
-@app.route('/api/bulk-upload', methods=['POST'])
-def bulk_upload():
-    if 'zip_file' not in request.files:
-        return jsonify({'error': 'No file'}), 400
-    file = request.files['zip_file']
-    if file.filename == '':
-        return jsonify({'error': 'No file'}), 400
-    
-    if not file.filename.endswith('.zip'):
-        return jsonify({'error': 'Please upload a ZIP file'}), 400
-    
-    # Save ZIP file temporarily
-    zip_filename = secure_filename(f"bulk_{datetime.now().timestamp()}_{file.filename}")
-    zip_path = os.path.join(app.config['UPLOAD_FOLDER'], zip_filename)
-    file.save(zip_path)
-    
-    # Extract ZIP contents
-    extract_dir = os.path.join(app.config['UPLOAD_FOLDER'], f"extract_{zip_filename}")
-    os.makedirs(extract_dir, exist_ok=True)
-    
-    try:
-        with zipfile.ZipFile(zip_path, 'r') as zf:
-            zf.extractall(extract_dir)
-    except Exception as e:
-        shutil.rmtree(extract_dir, ignore_errors=True)
-        os.remove(zip_path)
-        return jsonify({'error': f'Invalid ZIP file: {str(e)}'}), 400
-    
-    # Process each file in the extracted directory
-    results = {'total': 0, 'success': 0, 'failed': 0, 'errors': []}
-    
-    for root, dirs, files in os.walk(extract_dir):
-        for filename in files:
-            if allowed_resume(filename):
-                results['total'] += 1
-                file_path = os.path.join(root, filename)
-                
-                try:
-                    # Parse the resume
-                    if filename.endswith('.pdf'):
-                        text = extract_text_from_pdf(file_path)
-                    else:
-                        text = extract_text_from_docx(file_path)
-                    
-                    if not text:
-                        results['failed'] += 1
-                        results['errors'].append(f"{filename}: Could not extract text")
-                        continue
-                    
-                    # Parse with AI or fallback
-                    parsed = parse_resume_with_groq(text)
-                    if parsed and parsed.get('first_name'):
-                        parsed['resume_text'] = text[:3000]
-                        parsed['ai_used'] = True
-                    else:
-                        parsed = fallback_parse_resume(text)
-                        parsed['ai_used'] = False
-                    
-                    parsed['file_path'] = file_path
-                    parsed['original_filename'] = filename
-                    parsed['resume_filename'] = filename
-                    
-                    # Save to database
-                    save_candidate_to_db(parsed)
-                    results['success'] += 1
-                    
-                except Exception as e:
-                    results['failed'] += 1
-                    results['errors'].append(f"{filename}: {str(e)}")
-    
-    # Clean up temporary files
-    shutil.rmtree(extract_dir, ignore_errors=True)
-    os.remove(zip_path)
-    
-    return jsonify(results)
 
 @app.route('/api/candidates', methods=['GET'])
 def get_candidates():
