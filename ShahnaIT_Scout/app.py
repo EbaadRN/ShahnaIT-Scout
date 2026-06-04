@@ -1,4 +1,4 @@
-# app.py - COMPLETE WITH MULTI-FILE RESUME UPLOAD (Feature #2 - Improved)
+# app.py - COMPLETE WITH WORKING MULTI-FILE RESUME UPLOAD
 import os
 import re
 import sqlite3
@@ -503,10 +503,10 @@ HTML_TEMPLATE = '''
             
             <div class="card no-click" style="margin-top: 20px;">
                 <h3>📚 Multiple Resume Upload (Select Multiple Files)</h3>
-                <div class="alert-info">📁 Select multiple PDF/DOCX files at once. All will be parsed and saved automatically.</div>
-                <input type="file" id="multi-resume-files" multiple accept=".pdf,.docx" style="padding: 10px;">
+                <div class="alert-info">📁 Hold down Ctrl (or Cmd on Mac) to select multiple PDF/DOCX files at once. All will be parsed and saved automatically.</div>
+                <input type="file" id="multi-resume-files" name="files[]" multiple accept=".pdf,.docx" style="padding: 10px;">
                 <div id="selected-files-list" class="file-list" style="display: none;"></div>
-                <button class="btn-primary" id="multiUploadBtn">🚀 Upload & Parse All Selected Files</button>
+                <button class="btn-primary" id="multiUploadBtn" style="margin-top: 10px;">🚀 Upload & Parse All Selected Files</button>
                 <div id="multi-upload-result"></div>
             </div>
         </div>
@@ -565,7 +565,7 @@ HTML_TEMPLATE = '''
         const files = e.target.files;
         const fileListDiv = document.getElementById('selected-files-list');
         if (files.length > 0) {
-            let html = '<strong>Selected files:</strong><br>';
+            let html = '<strong>Selected files (' + files.length + '):</strong><br>';
             for (let i = 0; i < files.length; i++) {
                 html += `<div class="file-list-item">📄 ${escapeHtml(files[i].name)}</div>`;
             }
@@ -838,7 +838,7 @@ HTML_TEMPLATE = '''
     // Multiple Resume Upload
     document.getElementById('multiUploadBtn').onclick = async () => {
         const files = document.getElementById('multi-resume-files').files;
-        if (!files || files.length === 0) { alert('Select at least one file'); return; }
+        if (!files || files.length === 0) { alert('Select at least one file (hold Ctrl/Cmd to select multiple)'); return; }
         
         const div = document.getElementById('multi-upload-result');
         div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + files.length + ' files... This may take a few minutes.</p>';
@@ -853,7 +853,8 @@ HTML_TEMPLATE = '''
             fd.append('resume', file);
             
             // Update progress
-            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${Math.round((i / files.length) * 100)}%"></div></div><p>📄 Processing ${i+1} of ${files.length}: ${escapeHtml(file.name)}...</p>`;
+            const percent = Math.round((i / files.length) * 100);
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${files.length}: ${escapeHtml(file.name)}...</p>`;
             
             try {
                 const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
