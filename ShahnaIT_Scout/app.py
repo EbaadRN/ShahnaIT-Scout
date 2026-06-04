@@ -1,4 +1,4 @@
-# app.py - COMPLETE FIXED VERSION with Proper Resume Attachment
+# app.py - COMPLETE WITH ADVANCED SEARCH & FILTER (Feature #1)
 import os
 import re
 import sqlite3
@@ -144,7 +144,6 @@ def fallback_parse_resume(text):
     phone_match = re.search(r'\b\d{10}\b|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\+\d{2}\s?\d{10}\b', text)
     phone = phone_match.group(0) if phone_match else ""
     
-    # Find CTC patterns
     ctc_patterns = [
         r'current\s+ctc[\s:]*([\d\.]+\s*(?:LPA|lpa|Lacs|lakhs?))',
         r'ctc\s*:?\s*([\d\.]+\s*(?:LPA|lpa))',
@@ -171,13 +170,11 @@ def fallback_parse_resume(text):
         if skill.lower() in text.lower():
             years = extract_years_from_text(text, skill)
             if years == 0:
-                # Try to find years from experience section
                 exp_match = re.search(r'(\d+)\+?\s*years?', text[:500])
                 if exp_match:
                     years = int(exp_match.group(1))
             found_skills.append({"skill": skill, "years_of_experience": years})
     
-    # Extract work experience
     work_experience = []
     exp_pattern = r'([A-Za-z0-9\s&]+?)\s*[\(|]?(\d{4})\s*[-–to]+?\s*(\d{4}|Present)[\)|]?\s*(?:[-–]\s*)?(.+?)(?=\n\n|\Z)'
     matches = re.findall(exp_pattern, text, re.IGNORECASE | re.DOTALL)
@@ -198,7 +195,6 @@ def fallback_parse_resume(text):
     role_match = re.search(r'(\w+\s+\w+)\s+(?:Engineer|Developer|Architect|Lead|Manager|Consultant|Analyst)', text[:500])
     current_role = role_match.group(0) if role_match else ""
     
-    # Extract certifications
     cert_pattern = r'(?:Certified|certification)\s*:?\s*([A-Za-z0-9\s]+?)(?:\n|$)'
     certifications = re.findall(cert_pattern, text, re.IGNORECASE)
     certifications = [c.strip() for c in certifications if len(c.strip()) > 5][:10]
@@ -381,6 +377,10 @@ HTML_TEMPLATE = '''
         
         .company-item { background: #F9F6F0; padding: 12px; border-radius: 16px; margin-bottom: 8px; border-left: 3px solid var(--primary); }
         
+        .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; background: white; padding: 15px; border-radius: 16px; align-items: center; }
+        .filter-bar select, .filter-bar input { margin: 0; flex: 1; min-width: 120px; }
+        .filter-bar .search-input { flex: 2; }
+        
         .search-bar { margin-bottom: 20px; display: flex; gap: 10px; }
         .search-bar input { flex: 1; margin-bottom: 0; }
         
@@ -396,6 +396,8 @@ HTML_TEMPLATE = '''
         
         .doc-link { cursor: pointer; color: var(--primary); text-decoration: underline; }
         .doc-link:hover { color: var(--primary-light); }
+        
+        .filter-count { font-size: 14px; color: var(--text-muted); margin-left: 10px; }
         
         @media (max-width: 768px) { .sidebar { width: 80px; } .nav-item span:last-child { display: none; } .detail-label { width: 100px; } }
     </style>
@@ -416,7 +418,41 @@ HTML_TEMPLATE = '''
 
     <div class="main-content">
         <div id="jobs-view"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>📋 Jobs</h2><button class="btn-primary" onclick="switchTab('create-job')">+ New Job</button></div><div id="jobs-list"></div></div>
-        <div id="candidates-view" style="display:none;"><div style="display: flex; justify-content: space-between; margin-bottom: 20px;"><h2>👥 Candidates</h2><button class="btn-primary" onclick="exportToCSV()">📥 Export CSV</button></div><div class="search-bar"><input type="text" id="candidate-search" placeholder="🔍 Search by name, skills..." onkeyup="filterCandidates()"><button class="btn-secondary" onclick="clearSearch()">Clear</button></div><div id="candidates-list"></div></div>
+        
+        <div id="candidates-view" style="display:none;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h2>👥 Candidates <span id="filter-count" class="filter-count"></span></h2>
+                <button class="btn-primary" onclick="exportToCSV()">📥 Export CSV</button>
+            </div>
+            
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <input type="text" id="candidate-search" class="search-input" placeholder="🔍 Search by name, skills..." onkeyup="filterCandidates()">
+                <select id="filter-score" onchange="filterCandidates()">
+                    <option value="all">🎯 All Match Scores</option>
+                    <option value="high">✅ High (70%+)</option>
+                    <option value="medium">🟠 Medium (40-69%)</option>
+                    <option value="low">❌ Low (<40%)</option>
+                    <option value="none">📋 Not Analyzed</option>
+                </select>
+                <select id="filter-recommendation" onchange="filterCandidates()">
+                    <option value="all">📌 All Recommendations</option>
+                    <option value="hire">✅ Hire</option>
+                    <option value="interview">🟡 Interview</option>
+                    <option value="reject">❌ Reject</option>
+                </select>
+                <select id="filter-status" onchange="filterCandidates()">
+                    <option value="all">💼 All Status</option>
+                    <option value="working">✅ Working</option>
+                    <option value="bench">🟡 On Bench</option>
+                    <option value="notice_period">📋 Notice Period</option>
+                </select>
+                <button class="btn-secondary" onclick="clearAllFilters()">Clear Filters</button>
+            </div>
+            
+            <div id="candidates-list"></div>
+        </div>
+        
         <div id="upload-view" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume</h3><div class="alert-info">🤖 Groq AI will auto-fill candidate details. Resume will be automatically attached.</div><input type="file" id="resume-file" accept=".pdf,.docx"><button class="btn-primary" id="parseBtn">🔍 Parse & Auto-Fill</button><div id="parse-result"></div></div></div>
         <div id="create-job-view" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><form id="jobForm"><input type="text" id="job-title" placeholder="Job Title *" required><input type="text" id="job-company" placeholder="Company"><textarea id="job-desc" rows="5" placeholder="Job Description"></textarea><button type="submit" class="btn-primary">Create Job</button></form></div></div>
         <div id="analyze-view" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="analyze-job-select"></select></div><div class="flex-1"><select id="analyze-candidate-select"></select></div></div><button class="btn-primary" id="analyzeBtn">🤖 Run Groq AI Analysis</button><div id="analyze-result"></div></div></div>
@@ -479,31 +515,73 @@ HTML_TEMPLATE = '''
     async function loadCandidates() {
         const res = await fetch('/api/candidates');
         candidatesData = await res.json();
-        renderCandidateList(candidatesData);
+        filterCandidates();
         document.getElementById('analyze-candidate-select').innerHTML = '<option value="">-- Select Candidate --</option>' + candidatesData.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
     }
     
     function renderCandidateList(candidates) {
         const container = document.getElementById('candidates-list');
-        if (!candidates.length) { container.innerHTML = '<div class="card no-click">No candidates yet</div>'; return; }
+        if (!candidates.length) { container.innerHTML = '<div class="card no-click">No candidates match your filters</div>'; return; }
         container.innerHTML = candidates.map(c => {
             const fullName = `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown';
             const skills = c.core_skills ? JSON.parse(c.core_skills || '[]') : [];
-            return `<div class="card" onclick="viewCandidate(${c.id})"><h3>👤 ${escapeHtml(fullName)}</h3>${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}<p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}${s.years_of_experience ? ` (${s.years_of_experience}y)` : ''}</span>`).join('')}</p>${c.match_score ? `<p>🎯 Score: <span class="${c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low')}">${c.match_score}%</span></p>` : ''}<small>📅 ${new Date(c.created_at).toLocaleDateString()}</small></div>`;
+            const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
+            const recClass = c.recommendation === 'hire' ? 'match-high' : (c.recommendation === 'interview' ? 'match-medium' : 'match-low');
+            return `<div class="card" onclick="viewCandidate(${c.id})">
+                <h3>👤 ${escapeHtml(fullName)}</h3>
+                ${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}
+                <p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}${s.years_of_experience ? ` (${s.years_of_experience}y)` : ''}</span>`).join('')}</p>
+                ${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
+                ${c.recommendation ? `<p>📌 <span class="${recClass}">${escapeHtml(c.recommendation).toUpperCase()}</span></p>` : ''}
+                <small>📅 ${new Date(c.created_at).toLocaleDateString()}</small>
+            </div>`;
         }).join('');
+        
+        // Update filter count
+        const countSpan = document.getElementById('filter-count');
+        if (countSpan) countSpan.innerText = `(${candidates.length} of ${candidatesData.length})`;
     }
     
     function filterCandidates() {
-        const term = document.getElementById('candidate-search').value.toLowerCase();
+        const searchTerm = document.getElementById('candidate-search').value.toLowerCase();
+        const scoreFilter = document.getElementById('filter-score').value;
+        const recFilter = document.getElementById('filter-recommendation').value;
+        const statusFilter = document.getElementById('filter-status').value;
+        
         const filtered = candidatesData.filter(c => {
+            // Search filter
             const name = `${c.first_name || ''} ${c.last_name || ''}`.toLowerCase();
             const skills = c.core_skills ? JSON.parse(c.core_skills).map(s => s.skill.toLowerCase()).join(' ') : '';
-            return name.includes(term) || skills.includes(term);
+            const matchesSearch = name.includes(searchTerm) || skills.includes(searchTerm);
+            
+            // Score filter
+            let matchesScore = true;
+            if (scoreFilter === 'high') matchesScore = (c.match_score || 0) >= 70;
+            else if (scoreFilter === 'medium') matchesScore = (c.match_score || 0) >= 40 && (c.match_score || 0) < 70;
+            else if (scoreFilter === 'low') matchesScore = (c.match_score || 0) < 40 && (c.match_score || 0) > 0;
+            else if (scoreFilter === 'none') matchesScore = !c.match_score || c.match_score === 0;
+            
+            // Recommendation filter
+            let matchesRec = true;
+            if (recFilter !== 'all') matchesRec = (c.recommendation || '').toLowerCase() === recFilter;
+            
+            // Status filter
+            let matchesStatus = true;
+            if (statusFilter !== 'all') matchesStatus = (c.employment_status || '').toLowerCase() === statusFilter;
+            
+            return matchesSearch && matchesScore && matchesRec && matchesStatus;
         });
+        
         renderCandidateList(filtered);
     }
     
-    function clearSearch() { document.getElementById('candidate-search').value = ''; renderCandidateList(candidatesData); }
+    function clearAllFilters() {
+        document.getElementById('candidate-search').value = '';
+        document.getElementById('filter-score').value = 'all';
+        document.getElementById('filter-recommendation').value = 'all';
+        document.getElementById('filter-status').value = 'all';
+        filterCandidates();
+    }
     
     async function viewCandidate(id) {
         currentCandidateId = id;
@@ -589,7 +667,7 @@ HTML_TEMPLATE = '''
     function copyAllDetails() {
         let text = '';
         document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-with-years').forEach(el => {
-            text += el.innerText + '\\n';
+            text += el.innerText + '\n';
         });
         navigator.clipboard.writeText(text);
         alert('Copied to clipboard!');
@@ -753,16 +831,12 @@ def parse_resume():
         os.remove(temp_filepath)
         return jsonify({'error': 'Could not extract text'}), 400
     
-    # Parse the resume
     result = parse_resume_file(temp_filepath)
     
-    # IMPORTANT: Save the file to permanent location BEFORE deleting temp
-    # Store the file path in result for later attachment
     if not result.get('error'):
-        result['file_path'] = temp_filepath  # This will be moved in create_candidate
+        result['file_path'] = temp_filepath
         result['original_filename'] = original_filename
     
-    # Return result (file will be moved in create_candidate, not deleted here)
     return jsonify(result)
 
 @app.route('/api/candidates', methods=['GET'])
@@ -798,7 +872,6 @@ def create_candidate():
     
     candidate_id = c.lastrowid
     
-    # Handle file attachment (move from temp to permanent)
     file_path = data.get('file_path')
     original_filename = data.get('original_filename')
     
@@ -945,18 +1018,18 @@ def export_candidates():
     conn = sqlite3.connect('shahnai.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT id, first_name, last_name, email, phone, current_role, current_ctc, expected_ctc, match_score, created_at FROM candidates ORDER BY created_at DESC')
+    c.execute('SELECT id, first_name, last_name, email, phone, current_role, current_ctc, expected_ctc, match_score, recommendation, created_at FROM candidates ORDER BY created_at DESC')
     rows = c.fetchall()
     conn.close()
     
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Current CTC', 'Expected CTC', 'Match Score', 'Created Date'])
+    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Current CTC', 'Expected CTC', 'Match Score', 'Recommendation', 'Created Date'])
     for row in rows:
         writer.writerow([row['id'], row['first_name'] or '', row['last_name'] or '',
                          row['email'] or '', row['phone'] or '', row['current_role'] or '',
                          row['current_ctc'] or '', row['expected_ctc'] or '',
-                         row['match_score'] or 0, row['created_at']])
+                         row['match_score'] or 0, row['recommendation'] or '', row['created_at']])
     output.seek(0)
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
 
