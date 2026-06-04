@@ -1,4 +1,4 @@
-# app.py - COMPLETE WITH EASY MULTI-FILE SELECTION (Click to select multiple)
+# app.py - COMPLETE WORKING VERSION (All buttons fixed)
 import os
 import re
 import sqlite3
@@ -564,41 +564,79 @@ HTML_TEMPLATE = '''
         if (tabId === 'analyze') { loadJobs(); loadCandidates(); }
     }
     
-    // Multi-file selection handling
-    document.getElementById('selectFilesBtn').addEventListener('click', function() {
-        document.getElementById('multi-resume-files').click();
-    });
-    
-    document.getElementById('multi-resume-files').addEventListener('change', function(e) {
-        selectedFiles = Array.from(e.target.files);
-        const fileListDiv = document.getElementById('selected-files-list');
-        const uploadBtn = document.getElementById('multiUploadBtn');
-        
-        if (selectedFiles.length > 0) {
-            let html = '<strong>Selected files (' + selectedFiles.length + '):</strong><br>';
-            selectedFiles.forEach((file, index) => {
-                html += `<div class="file-list-item">
-                    📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)
-                    <span class="remove-file" onclick="removeFile(${index})">✕ Remove</span>
-                </div>`;
-            });
-            fileListDiv.innerHTML = html;
-            fileListDiv.style.display = 'block';
-            uploadBtn.style.display = 'inline-block';
-        } else {
-            fileListDiv.style.display = 'none';
-            uploadBtn.style.display = 'none';
+    // Initialize all event listeners when page loads
+    function initEventListeners() {
+        // Select files button
+        const selectBtn = document.getElementById('selectFilesBtn');
+        if (selectBtn) {
+            selectBtn.onclick = function() {
+                document.getElementById('multi-resume-files').click();
+            };
         }
-    });
+        
+        // Multi file input change
+        const multiInput = document.getElementById('multi-resume-files');
+        if (multiInput) {
+            multiInput.onchange = function(e) {
+                selectedFiles = Array.from(e.target.files);
+                const fileListDiv = document.getElementById('selected-files-list');
+                const uploadBtn = document.getElementById('multiUploadBtn');
+                
+                if (selectedFiles.length > 0) {
+                    let html = '<strong>Selected files (' + selectedFiles.length + '):</strong><br>';
+                    selectedFiles.forEach((file, index) => {
+                        html += `<div class="file-list-item">
+                            📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)
+                            <span class="remove-file" onclick="removeFile(${index})">✕ Remove</span>
+                        </div>`;
+                    });
+                    fileListDiv.innerHTML = html;
+                    fileListDiv.style.display = 'block';
+                    uploadBtn.style.display = 'inline-block';
+                } else {
+                    fileListDiv.style.display = 'none';
+                    uploadBtn.style.display = 'none';
+                }
+            };
+        }
+        
+        // Single parse button
+        const parseBtn = document.getElementById('parseBtn');
+        if (parseBtn) {
+            parseBtn.onclick = singleUploadHandler;
+        }
+        
+        // Multi upload button
+        const multiUpload = document.getElementById('multiUploadBtn');
+        if (multiUpload) {
+            multiUpload.onclick = multiUploadHandler;
+        }
+        
+        // Analyze button
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        if (analyzeBtn) {
+            analyzeBtn.onclick = analyzeHandler;
+        }
+        
+        // Job form submit
+        const jobForm = document.getElementById('jobForm');
+        if (jobForm) {
+            jobForm.onsubmit = createJobHandler;
+        }
+        
+        // Upload document button
+        const uploadDocBtn = document.getElementById('uploadDocBtn');
+        if (uploadDocBtn) {
+            uploadDocBtn.onclick = uploadDocumentHandler;
+        }
+    }
     
-    function removeFile(index) {
+    window.removeFile = function(index) {
         selectedFiles.splice(index, 1);
-        // Update the file input
         const dataTransfer = new DataTransfer();
         selectedFiles.forEach(file => dataTransfer.items.add(file));
         document.getElementById('multi-resume-files').files = dataTransfer.files;
         
-        // Re-render the list
         const fileListDiv = document.getElementById('selected-files-list');
         const uploadBtn = document.getElementById('multiUploadBtn');
         
@@ -617,6 +655,126 @@ HTML_TEMPLATE = '''
             fileListDiv.style.display = 'none';
             uploadBtn.style.display = 'none';
         }
+    };
+    
+    async function singleUploadHandler() {
+        const file = document.getElementById('resume-file').files[0];
+        if (!file) { alert('Select a file'); return; }
+        const fd = new FormData(); fd.append('resume', file);
+        const div = document.getElementById('parse-result');
+        div.innerHTML = '<div class="spinner"></div><p>🤖 Groq AI parsing resume...</p>';
+        try {
+            const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
+            const result = await res.json();
+            if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
+            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? '⚡ with Groq AI' : ''}</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}${s.years_of_experience ? ` (${s.years_of_experience}y)` : ''}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate (Resume will be auto-attached)</button></div>`;
+            document.getElementById('saveDetailedBtn').onclick = async () => {
+                const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
+                if (saveRes.ok) { alert('Candidate saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
+                else alert('Error saving');
+            };
+        } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing resume</div>'; }
+    }
+    
+    async function multiUploadHandler() {
+        if (selectedFiles.length === 0) { alert('Please select files first'); return; }
+        
+        const div = document.getElementById('multi-upload-result');
+        div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + selectedFiles.length + ' files... This may take a few minutes.</p>';
+        
+        let successCount = 0;
+        let failCount = 0;
+        let errors = [];
+        
+        for (let i = 0; i < selectedFiles.length; i++) {
+            const file = selectedFiles[i];
+            const fd = new FormData();
+            fd.append('resume', file);
+            
+            const percent = Math.round((i / selectedFiles.length) * 100);
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${selectedFiles.length}: ${escapeHtml(file.name)}...</p>`;
+            
+            try {
+                const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
+                const result = await res.json();
+                
+                if (result.error) {
+                    failCount++;
+                    errors.push(`${file.name}: ${result.error}`);
+                } else {
+                    const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
+                    if (saveRes.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        errors.push(`${file.name}: Save failed`);
+                    }
+                }
+            } catch(e) {
+                failCount++;
+                errors.push(`${file.name}: ${e.message}`);
+            }
+        }
+        
+        let resultHtml = `<div class="alert-success"><h4>✅ Bulk Upload Complete!</h4>`;
+        resultHtml += `<p><strong>Total files:</strong> ${selectedFiles.length}</p>`;
+        resultHtml += `<p><strong>Successfully parsed & saved:</strong> ${successCount}</p>`;
+        resultHtml += `<p><strong>Failed:</strong> ${failCount}</p>`;
+        
+        if (errors.length > 0) {
+            resultHtml += `<div style="margin-top: 10px;"><strong>⚠️ Errors:</strong><ul>`;
+            errors.forEach(err => {
+                resultHtml += `<li>${escapeHtml(err)}</li>`;
+            });
+            resultHtml += `</ul></div>`;
+        }
+        
+        resultHtml += `<button class="btn-primary" onclick="switchTab('candidates')" style="margin-top: 15px;">View All Candidates</button></div>`;
+        div.innerHTML = resultHtml;
+        
+        selectedFiles = [];
+        document.getElementById('multi-resume-files').value = '';
+        document.getElementById('selected-files-list').style.display = 'none';
+        document.getElementById('selected-files-list').innerHTML = '';
+        document.getElementById('multiUploadBtn').style.display = 'none';
+        
+        loadCandidates();
+    }
+    
+    async function analyzeHandler() {
+        const jobId = document.getElementById('analyze-job-select').value;
+        const candidateId = document.getElementById('analyze-candidate-select').value;
+        if (!jobId || !candidateId) { alert('Select both Job and Candidate'); return; }
+        const job = jobsData.find(j => j.id == jobId);
+        const cand = candidatesData.find(c => c.id == candidateId);
+        const div = document.getElementById('analyze-result');
+        div.innerHTML = '<div class="spinner"></div><p>🤖 Groq AI analyzing match...</p>';
+        try {
+            const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '', candidate_name: cand.first_name + ' ' + cand.last_name }) });
+            const result = await res.json();
+            if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
+            const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
+            div.innerHTML = `<div class="alert-success"><h4>📊 Groq AI Analysis Complete</h4><p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p><p><strong>📌 Recommendation:</strong> ${result.recommendation || 'Review'}</p><div class="alert-info" style="margin-top:10px;"><strong>📝 ${result.executive_summary?.final_verdict || ''}</strong></div>${result.pre_screening_questions ? `<div style="margin-top:10px;"><strong>📋 Pre-screening Questions:</strong><ul>${result.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>` : ''}<small>✅ Analysis saved</small></div>`;
+            loadCandidates();
+        } catch(e) { div.innerHTML = '<div class="alert-error">Analysis failed</div>'; }
+    }
+    
+    async function createJobHandler(e) {
+        e.preventDefault();
+        const data = { title: document.getElementById('job-title').value, company: document.getElementById('job-company').value, description: document.getElementById('job-desc').value };
+        if (!data.title) { alert('Title required'); return; }
+        const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        if (res.ok) { alert('Job created!'); document.getElementById('job-title').value = ''; document.getElementById('job-company').value = ''; document.getElementById('job-desc').value = ''; switchTab('jobs'); loadJobs(); }
+        else alert('Error');
+    }
+    
+    async function uploadDocumentHandler() {
+        const file = document.getElementById('doc-file').files[0];
+        if (!file || !currentCandidateId) return alert('Select a file');
+        const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
+        const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
+        if (res.ok) { alert('Document uploaded'); closeDocModal(); viewCandidate(currentCandidateId); }
+        else alert('Upload failed');
     }
     
     async function loadJobs() {
@@ -849,135 +1007,16 @@ HTML_TEMPLATE = '''
     
     function openDocModal(id) { currentCandidateId = id; document.getElementById('docModal').style.display = 'block'; }
     
-    document.getElementById('uploadDocBtn').onclick = async () => {
-        const file = document.getElementById('doc-file').files[0];
-        if (!file || !currentCandidateId) return alert('Select a file');
-        const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
-        const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
-        if (res.ok) { alert('Document uploaded'); closeDocModal(); viewCandidate(currentCandidateId); }
-        else alert('Upload failed');
-    };
-    
-    // Single Resume Upload
-    document.getElementById('parseBtn').onclick = async () => {
-        const file = document.getElementById('resume-file').files[0];
-        if (!file) { alert('Select a file'); return; }
-        const fd = new FormData(); fd.append('resume', file);
-        const div = document.getElementById('parse-result');
-        div.innerHTML = '<div class="spinner"></div><p>🤖 Groq AI parsing resume...</p>';
-        try {
-            const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
-            const result = await res.json();
-            if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed ${result.ai_used ? '⚡ with Groq AI' : ''}</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}${s.years_of_experience ? ` (${s.years_of_experience}y)` : ''}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveDetailedBtn">💾 Save Candidate (Resume will be auto-attached)</button></div>`;
-            document.getElementById('saveDetailedBtn').onclick = async () => {
-                const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if (saveRes.ok) { alert('Candidate saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resume-file').value = ''; loadCandidates(); }
-                else alert('Error saving');
-            };
-        } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing resume</div>'; }
-    };
-    
-    // Multiple Resume Upload
-    document.getElementById('multiUploadBtn').onclick = async () => {
-        if (selectedFiles.length === 0) { alert('Please select files first'); return; }
-        
-        const div = document.getElementById('multi-upload-result');
-        div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + selectedFiles.length + ' files... This may take a few minutes.</p>';
-        
-        let successCount = 0;
-        let failCount = 0;
-        let errors = [];
-        
-        for (let i = 0; i < selectedFiles.length; i++) {
-            const file = selectedFiles[i];
-            const fd = new FormData();
-            fd.append('resume', file);
-            
-            const percent = Math.round((i / selectedFiles.length) * 100);
-            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${selectedFiles.length}: ${escapeHtml(file.name)}...</p>`;
-            
-            try {
-                const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
-                const result = await res.json();
-                
-                if (result.error) {
-                    failCount++;
-                    errors.push(`${file.name}: ${result.error}`);
-                } else {
-                    const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                    if (saveRes.ok) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                        errors.push(`${file.name}: Save failed`);
-                    }
-                }
-            } catch(e) {
-                failCount++;
-                errors.push(`${file.name}: ${e.message}`);
-            }
-        }
-        
-        let resultHtml = `<div class="alert-success"><h4>✅ Bulk Upload Complete!</h4>`;
-        resultHtml += `<p><strong>Total files:</strong> ${selectedFiles.length}</p>`;
-        resultHtml += `<p><strong>Successfully parsed & saved:</strong> ${successCount}</p>`;
-        resultHtml += `<p><strong>Failed:</strong> ${failCount}</p>`;
-        
-        if (errors.length > 0) {
-            resultHtml += `<div style="margin-top: 10px;"><strong>⚠️ Errors:</strong><ul>`;
-            errors.forEach(err => {
-                resultHtml += `<li>${escapeHtml(err)}</li>`;
-            });
-            resultHtml += `</ul></div>`;
-        }
-        
-        resultHtml += `<button class="btn-primary" onclick="switchTab('candidates')" style="margin-top: 15px;">View All Candidates</button></div>`;
-        div.innerHTML = resultHtml;
-        
-        // Clear selection
-        selectedFiles = [];
-        document.getElementById('multi-resume-files').value = '';
-        document.getElementById('selected-files-list').style.display = 'none';
-        document.getElementById('selected-files-list').innerHTML = '';
-        document.getElementById('multiUploadBtn').style.display = 'none';
-        
-        loadCandidates();
-    };
-    
-    document.getElementById('analyzeBtn').onclick = async () => {
-        const jobId = document.getElementById('analyze-job-select').value;
-        const candidateId = document.getElementById('analyze-candidate-select').value;
-        if (!jobId || !candidateId) { alert('Select both Job and Candidate'); return; }
-        const job = jobsData.find(j => j.id == jobId);
-        const cand = candidatesData.find(c => c.id == candidateId);
-        const div = document.getElementById('analyze-result');
-        div.innerHTML = '<div class="spinner"></div><p>🤖 Groq AI analyzing match...</p>';
-        try {
-            const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '', candidate_name: cand.first_name + ' ' + cand.last_name }) });
-            const result = await res.json();
-            if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-            div.innerHTML = `<div class="alert-success"><h4>📊 Groq AI Analysis Complete</h4><p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p><p><strong>📌 Recommendation:</strong> ${result.recommendation || 'Review'}</p><div class="alert-info" style="margin-top:10px;"><strong>📝 ${result.executive_summary?.final_verdict || ''}</strong></div>${result.pre_screening_questions ? `<div style="margin-top:10px;"><strong>📋 Pre-screening Questions:</strong><ul>${result.pre_screening_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}</ul></div>` : ''}<small>✅ Analysis saved</small></div>`;
-            loadCandidates();
-        } catch(e) { div.innerHTML = '<div class="alert-error">Analysis failed</div>'; }
-    };
-    
     window.exportToCSV = function() { window.location.href = '/api/export-candidates'; };
-    
-    document.getElementById('jobForm').onsubmit = async (e) => {
-        e.preventDefault();
-        const data = { title: document.getElementById('job-title').value, company: document.getElementById('job-company').value, description: document.getElementById('job-desc').value };
-        if (!data.title) { alert('Title required'); return; }
-        const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-        if (res.ok) { alert('Job created!'); document.getElementById('job-title').value = ''; document.getElementById('job-company').value = ''; document.getElementById('job-desc').value = ''; switchTab('jobs'); loadJobs(); }
-        else alert('Error');
-    };
     
     function escapeHtml(str) { if (!str) return ''; const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
     
-    document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => switchTab(item.getAttribute('data-tab'))));
-    loadJobs(); loadCandidates();
+    // Initialize everything when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initEventListeners();
+        loadJobs();
+        loadCandidates();
+    });
 </script>
 </body>
 </html>
