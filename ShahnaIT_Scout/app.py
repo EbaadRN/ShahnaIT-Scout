@@ -1,4 +1,4 @@
-# app.py - SIMPLIFIED WORKING VERSION (All Buttons Working)
+# app.py - COMPLETE WORKING VERSION (All Features Fixed)
 import os
 import re
 import sqlite3
@@ -378,10 +378,12 @@ HTML_TEMPLATE = '''
         .spinner { border: 3px solid #F9F6F0; border-top: 3px solid #1D5E5A; border-radius: 50%; width: 40px; height: 40px; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
-        .modal-content { background: #F9F6F0; margin: 50px auto; border-radius: 20px; max-width: 700px; width: 90%; }
+        .modal-content { background: #F9F6F0; margin: 50px auto; border-radius: 20px; max-width: 800px; width: 90%; }
         .modal-header { background: #1D5E5A; color: white; padding: 15px 20px; border-radius: 20px 20px 0 0; display: flex; justify-content: space-between; }
         .modal-body { padding: 20px; max-height: 70vh; overflow-y: auto; }
         .close { font-size: 28px; cursor: pointer; color: white; }
+        .doc-link { cursor: pointer; color: #1D5E5A; text-decoration: underline; }
+        .doc-link:hover { color: #2A7A76; }
         .detail-row { display: flex; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
         .detail-label { width: 130px; font-weight: 600; }
         .detail-value { flex: 1; }
@@ -391,6 +393,8 @@ HTML_TEMPLATE = '''
         .flex-1 { flex: 1; }
         .progress-bar { background: #ddd; border-radius: 20px; height: 20px; margin: 10px 0; overflow: hidden; }
         .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
+        .file-list { background: #F9F6F0; border-radius: 12px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .file-list-item { padding: 5px; border-bottom: 1px solid #ddd; font-size: 12px; }
         @media (max-width: 768px) { .container { padding: 10px; } .tab-btn { padding: 8px 12px; } .detail-label { width: 100px; } }
     </style>
 </head>
@@ -401,7 +405,7 @@ HTML_TEMPLATE = '''
         <p>Intelligent Recruitment Platform with AI Resume Parsing & Match Analysis</p>
     </div>
     
-    <div class="tabs" id="mainTabs">
+    <div class="tabs">
         <button class="tab-btn active" onclick="showTab('jobs')">📋 Jobs</button>
         <button class="tab-btn" onclick="showTab('candidates')">👥 Candidates</button>
         <button class="tab-btn" onclick="showTab('upload')">📄 Upload Resume</button>
@@ -438,14 +442,24 @@ HTML_TEMPLATE = '''
     <div id="uploadTab" style="display:none;">
         <div class="card no-click">
             <h3>📄 Single Resume Upload</h3>
-            <div class="alert-info">🤖 AI will auto-fill candidate details</div>
+            <div class="alert-info">🤖 AI will auto-fill candidate details. Resume will be automatically attached.</div>
             <input type="file" id="singleFile" accept=".pdf,.docx">
             <button class="btn-primary" id="singleUploadBtn">🔍 Parse & Auto-Fill</button>
             <div id="singleResult"></div>
         </div>
+        
+        <div class="card no-click">
+            <h3>📚 Multiple Resume Upload (Select Multiple Files)</h3>
+            <div class="alert-info">Hold Ctrl (or Cmd on Mac) to select multiple PDF/DOCX files at once.</div>
+            <input type="file" id="multiFiles" multiple accept=".pdf,.docx">
+            <div id="multiFileList" class="file-list" style="display:none;"></div>
+            <button class="btn-primary" id="multiUploadBtn">🚀 Upload & Parse All Selected Files</button>
+            <div id="multiResult"></div>
+        </div>
+        
         <div class="card no-click">
             <h3>📦 Bulk Resume Upload (ZIP File)</h3>
-            <div class="alert-info">Upload a ZIP file containing multiple PDF/DOCX resumes</div>
+            <div class="alert-info">Upload a ZIP file containing multiple PDF/DOCX resumes.</div>
             <input type="file" id="zipFile" accept=".zip">
             <button class="btn-primary" id="bulkUploadBtn">🚀 Upload ZIP & Parse All</button>
             <div id="bulkResult"></div>
@@ -482,6 +496,13 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
+<div id="docPreviewModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2 id="previewTitle">Document Preview</h2><span class="close" onclick="closeDocPreview()">&times;</span></div>
+        <div class="modal-body" id="previewBody"></div>
+    </div>
+</div>
+
 <script>
     let jobsData = [], candidatesData = [];
     
@@ -498,6 +519,22 @@ HTML_TEMPLATE = '''
         if (tab === 'candidates') loadCandidates();
         if (tab === 'analyze') { loadJobs(); loadCandidates(); }
     }
+    
+    // Multi-file selection display
+    document.getElementById('multiFiles').addEventListener('change', function(e) {
+        const files = e.target.files;
+        const container = document.getElementById('multiFileList');
+        if (files.length > 0) {
+            let html = '<strong>Selected files (' + files.length + '):</strong><br>';
+            for (let i = 0; i < files.length; i++) {
+                html += `<div class="file-list-item">📄 ${escapeHtml(files[i].name)}</div>`;
+            }
+            container.innerHTML = html;
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    });
     
     async function loadJobs() {
         const res = await fetch('/api/jobs');
@@ -569,25 +606,60 @@ HTML_TEMPLATE = '''
         const docRes = await fetch(`/api/candidates/${id}/documents`);
         const docs = await docRes.json();
         const resumeDoc = docs.find(d => d.is_resume === 1);
+        const otherDocs = docs.filter(d => !d.is_resume);
         
         document.getElementById('modalTitle').innerHTML = `👤 ${escapeHtml(name)}`;
         document.getElementById('modalBody').innerHTML = `
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px;">
+                <button class="btn-secondary" onclick="copyCandidateDetails()">📋 Copy All</button>
+            </div>
             <div class="detail-row"><div class="detail-label">Name:</div><div class="detail-value">${escapeHtml(name)}</div></div>
             <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div></div>
             <h4>💼 Work Experience</h4>
-            ${workExp.map(w => `<div><strong>${escapeHtml(w.company)}</strong> - ${escapeHtml(w.role)}</div>`).join('') || 'None'}
+            ${workExp.map(w => `<div><strong>${escapeHtml(w.company)}</strong> - ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date || '')} - ${escapeHtml(w.end_date || 'Present')}</small></div>`).join('') || 'None'}
             <h4>⭐ Skills</h4>
             ${skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || 0}y)</span>`).join('') || 'None'}
             <h4>📜 Certifications</h4>
             ${certs.map(c => `<div>📜 ${escapeHtml(c)}</div>`).join('') || 'None'}
             <h4>📄 Resume</h4>
-            ${resumeDoc ? `<a href="/api/documents/${resumeDoc.id}" target="_blank">${escapeHtml(resumeDoc.original_filename)}</a>` : 'None'}
+            ${resumeDoc ? `<div><span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span> <span style="background:#1B6B2E; color:white; padding:2px 8px; border-radius:12px; font-size:10px;">Original Resume</span></div>` : 'None'}
+            <h4>📎 Other Documents (${otherDocs.length})</h4>
+            ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || 'None'}
             <button class="btn-primary" onclick="closeModal()" style="margin-top:15px;">Close</button>
         `;
         document.getElementById('candidateModal').style.display = 'block';
+    }
+    
+    async function previewDocument(docId) {
+        try {
+            const res = await fetch(`/api/documents/${docId}/preview`);
+            const data = await res.json();
+            document.getElementById('previewTitle').innerHTML = 'Document Preview';
+            if (data.type === 'image') {
+                document.getElementById('previewBody').innerHTML = `<img src="data:image/png;base64,${data.content}" style="max-width:100%;">`;
+            } else {
+                document.getElementById('previewBody').innerHTML = `<div style="white-space: pre-wrap; font-family: monospace;">${escapeHtml(data.content)}</div>`;
+            }
+            document.getElementById('docPreviewModal').style.display = 'block';
+        } catch(e) {
+            alert('Unable to preview document');
+        }
+    }
+    
+    function closeDocPreview() {
+        document.getElementById('docPreviewModal').style.display = 'none';
+    }
+    
+    function copyCandidateDetails() {
+        let text = '';
+        document.querySelectorAll('#modalBody .detail-row, #modalBody h4, #modalBody .skill-tag, #modalBody .doc-link').forEach(el => {
+            text += el.innerText + '\n';
+        });
+        navigator.clipboard.writeText(text);
+        alert('Copied to clipboard!');
     }
     
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
@@ -604,16 +676,50 @@ HTML_TEMPLATE = '''
             const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveCandidateBtn">💾 Save</button></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button class="btn-primary" id="saveCandidateBtn">💾 Save Candidate</button></div>`;
             document.getElementById('saveCandidateBtn').onclick = async function() {
                 const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if (saveRes.ok) { alert('Saved!'); div.innerHTML = ''; document.getElementById('singleFile').value = ''; loadCandidates(); }
-                else alert('Error');
+                if (saveRes.ok) { 
+                    alert('Candidate saved! Resume auto-attached!'); 
+                    div.innerHTML = ''; 
+                    document.getElementById('singleFile').value = ''; 
+                    loadCandidates(); 
+                    showTab('candidates');
+                } else { 
+                    alert('Error saving'); 
+                }
             };
         } catch(e) { div.innerHTML = '<div class="alert-error">Error</div>'; }
     };
     
-    // Bulk Upload
+    // Multiple Files Upload
+    document.getElementById('multiUploadBtn').onclick = async function() {
+        const files = document.getElementById('multiFiles').files;
+        if (!files.length) { alert('Select files first'); return; }
+        const div = document.getElementById('multiResult');
+        div.innerHTML = '<div class="spinner"></div><p>Processing...</p>';
+        let success = 0, fail = 0;
+        for (let i = 0; i < files.length; i++) {
+            const fd = new FormData();
+            fd.append('resume', files[i]);
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width:${Math.round((i/files.length)*100)}%"></div></div><p>Processing ${i+1}/${files.length}: ${escapeHtml(files[i].name)}</p>`;
+            try {
+                const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
+                const result = await res.json();
+                if (!result.error) {
+                    const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
+                    if (saveRes.ok) success++;
+                    else fail++;
+                } else { fail++; }
+            } catch(e) { fail++; }
+        }
+        div.innerHTML = `<div class="alert-success"><h4>✅ Complete!</h4><p>Success: ${success} | Failed: ${fail}</p><button class="btn-primary" onclick="showTab('candidates')">View Candidates</button></div>`;
+        document.getElementById('multiFiles').value = '';
+        document.getElementById('multiFileList').style.display = 'none';
+        loadCandidates();
+    };
+    
+    // Bulk ZIP Upload
     document.getElementById('bulkUploadBtn').onclick = async function() {
         const file = document.getElementById('zipFile').files[0];
         if (!file) { alert('Select a ZIP file'); return; }
@@ -643,7 +749,7 @@ HTML_TEMPLATE = '''
             const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>📊 Analysis</h4><p>🎯 Score: <span class="${result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low')}">${result.match_score || 0}%</span></p><p>📌 ${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>📊 Analysis</h4><p>🎯 Score: <span class="${result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low')}">${result.match_score || 0}%</span></p><p>📌 ${result.recommendation || 'Review'}</p><div style="margin-top:10px;">${result.executive_summary?.final_verdict || ''}</div><small>✅ Saved</small></div>`;
             loadCandidates();
         } catch(e) { div.innerHTML = '<div class="alert-error">Failed</div>'; }
     };
@@ -804,6 +910,18 @@ def get_candidate_documents(candidate_id):
     docs = [dict(row) for row in c.fetchall()]
     conn.close()
     return jsonify(docs)
+
+@app.route('/api/documents/<int:doc_id>/preview', methods=['GET'])
+def preview_document(doc_id):
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidate_documents WHERE id = ?', (doc_id,))
+    doc = c.fetchone()
+    conn.close()
+    if doc and os.path.exists(doc[4]):
+        preview = get_file_preview(doc[4], doc[5])
+        return jsonify(preview)
+    return jsonify({'error': 'File not found'}), 404
 
 @app.route('/api/documents/<int:doc_id>', methods=['GET'])
 def get_document(doc_id):
