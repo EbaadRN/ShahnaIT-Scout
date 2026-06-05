@@ -1,12 +1,8 @@
-# Routes package
-# This file makes the "routes" folder a Python package
+# routes/__init__.py
+from .candidates import candidates_bp
+from .jobs import jobs_bp
+from .analyze import analyze_bp
+from .export import export_bp
+from .documents import documents_bp
 
-from routes.dashboard import *
-from routes.jobs import *
-from routes.candidates import *
-from routes.applications import *
-from routes.interviews import *
-from routes.offers import *
-from routes.analytics import *
-from routes.pipeline import *
-from routes.ai_tools import *
+__all__ = ['candidates_bp', 'jobs_bp', 'analyze_bp', 'export_bp', 'documents_bp']
