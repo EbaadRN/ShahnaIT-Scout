@@ -1,158 +1,85 @@
 # routes/candidates.py
-# Candidate management routes
-
-from flask import jsonify, request
-from datetime import datetime
+import os
 import json
-import base64
-import csv
-import io
+from flask import Blueprint, request, jsonify
+from models.database import get_candidates, create_candidate, update_candidate, add_document, get_documents
+from services.resume_parser import extract_text_from_pdf, extract_text_from_docx, fallback_parse_resume
+from services.groq_service import parse_resume_with_groq
+from werkzeug.utils import secure_filename
+from datetime import datetime
+import shutil
 
-# Global references
-candidates = []
-next_id = 1
-applications = []
+# Create the Blueprint
+candidates_bp = Blueprint('candidates', __name__)
 
-def init_candidates_routes(app, candidates_ref, next_id_ref, applications_ref, resume_parser, matching_engine):
-    """Initialize candidates routes with references to data stores"""
-    global candidates, next_id, applications
-    candidates = candidates_ref
-    next_id = next_id_ref
-    applications = applications_ref
+UPLOAD_FOLDER = '/tmp'
+DOCUMENTS_FOLDER = '/tmp/candidate_docs'
+
+@candidates_bp.route('/candidates', methods=['GET'])
+def get_all_candidates():
+    candidates = get_candidates()
+    return jsonify(candidates)
+
+@candidates_bp.route('/candidates', methods=['POST'])
+def add_candidate():
+    data = request.json
+    candidate_id = create_candidate(data)
     
-    def generate_candidate_code():
-        global next_id
-        code = f"CAN-{next_id:04d}"
-        next_id += 1
-        return code
+    file_path = data.get('file_path')
+    original_filename = data.get('original_filename')
     
-    @app.route('/api/candidates', methods=['GET', 'POST'])
-    def manage_candidates():
-        global candidates, next_id
-        
-        if request.method == 'POST':
-            data = request.get_json()
-            
-            # Check for duplicate email
-            existing = next((c for c in candidates if c.get('email') == data.get('email')), None)
-            if existing:
-                return jsonify({'error': 'Candidate already exists', 'candidate_id': existing['id']}), 409
-            
-            candidate = {
-                'id': len(candidates) + 1,
-                'code': generate_candidate_code(),
-                'first_name': data.get('first_name', ''),
-                'last_name': data.get('last_name', ''),
-                'name': f"{data.get('first_name', '')} {data.get('last_name', '')}".strip(),
-                'email': data.get('email', ''),
-                'phone': data.get('phone', ''),
-                'skills': data.get('skills', ''),
-                'current_company': data.get('current_company', ''),
-                'current_designation': data.get('current_designation', ''),
-                'total_experience': data.get('total_experience', 0),
-                'current_location': data.get('current_location', ''),
-                'source': data.get('source', 'manual'),
-                'created_at': datetime.now().isoformat()
-            }
-            candidates.append(candidate)
-            return jsonify({'success': True, 'candidate_id': candidate['id'], 'candidate_code': candidate['code']})
-        
-        # GET request with pagination
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 20))
-        search = request.args.get('search', '')
-        source = request.args.get('source', '')
-        
-        filtered = candidates.copy()
-        
-        if search:
-            filtered = [c for c in filtered if search.lower() in c.get('name', '').lower() or search.lower() in c.get('email', '').lower() or search.lower() in c.get('skills', '').lower()]
-        if source:
-            filtered = [c for c in filtered if c.get('source') == source]
-        
-        start = (page - 1) * per_page
-        end = start + per_page
-        paginated = filtered[start:end]
-        
-        return jsonify({
-            'candidates': paginated,
-            'total': len(filtered),
-            'page': page,
-            'pages': (len(filtered) + per_page - 1) // per_page
-        })
+    if file_path and os.path.exists(file_path):
+        permanent_filename = secure_filename(f"{candidate_id}_{datetime.now().timestamp()}_{original_filename}")
+        permanent_path = os.path.join(DOCUMENTS_FOLDER, permanent_filename)
+        shutil.move(file_path, permanent_path)
+        add_document(candidate_id, permanent_filename, original_filename, permanent_path, 
+                    original_filename.split('.')[-1], 1)
     
-    @app.route('/api/candidates/parse-resume', methods=['POST'])
-    def parse_resume():
-        """Parse uploaded resume file"""
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file uploaded'}), 400
-        
-        file = request.files['file']
-        parsed_data = resume_parser.parse_resume(file, use_ai=True, ai_parser=None)
-        
-        if parsed_data:
-            return jsonify({'success': True, 'data': parsed_data})
-        return jsonify({'error': 'Could not parse resume'}), 400
+    return jsonify({'message': 'Candidate saved', 'id': candidate_id})
+
+@candidates_bp.route('/candidates/<int:candidate_id>', methods=['PUT'])
+def update_candidate_info(candidate_id):
+    data = request.json
+    update_candidate(candidate_id, data)
+    return jsonify({'message': 'Candidate updated'})
+
+@candidates_bp.route('/candidates/<int:candidate_id>/documents', methods=['GET'])
+def get_candidate_documents(candidate_id):
+    docs = get_documents(candidate_id)
+    return jsonify(docs)
+
+@candidates_bp.route('/parse-resume', methods=['POST'])
+def parse_resume():
+    if 'resume' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['resume']
+    if file.filename == '':
+        return jsonify({'error': 'No file'}), 400
     
-    @app.route('/api/candidates/bulk-import', methods=['POST'])
-    def bulk_import_candidates():
-        """Import candidates from CSV file"""
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file uploaded'}), 400
-        
-        global next_id
-        file = request.files['file']
-        
-        try:
-            content = file.read().decode('utf-8')
-            csv_reader = csv.DictReader(io.StringIO(content))
-        except Exception as e:
-            return jsonify({'error': f'Invalid CSV: {str(e)}'}), 400
-        
-        imported = 0
-        for row in csv_reader:
-            name = row.get('Name', row.get('name', '')).strip()
-            first_name = name.split()[0] if name else ''
-            last_name = ' '.join(name.split()[1:]) if len(name.split()) > 1 else ''
-            
-            candidate = {
-                'id': len(candidates) + 1,
-                'code': generate_candidate_code(),
-                'first_name': first_name,
-                'last_name': last_name,
-                'name': name,
-                'email': row.get('Email', row.get('email', '')),
-                'phone': row.get('Phone', row.get('phone', '')),
-                'skills': row.get('Skills', row.get('skills', '')),
-                'source': 'csv_import',
-                'created_at': datetime.now().isoformat()
-            }
-            candidates.append(candidate)
-            imported += 1
-        
-        return jsonify({'success': True, 'imported': imported})
+    filename = secure_filename(file.filename)
+    original_filename = file.filename
+    temp_filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(temp_filepath)
     
-    @app.route('/api/candidates/<int:candidate_id>/match/<int:jd_id>', methods=['GET'])
-    def get_candidate_job_match(candidate_id, jd_id):
-        """Get match score between candidate and job"""
-        global candidates, jobs
-        
-        candidate = next((c for c in candidates if c['id'] == candidate_id), None)
-        job = next((j for j in jobs if j['id'] == jd_id), None)
-        
-        if not candidate or not job:
-            return jsonify({'error': 'Candidate or job not found'}), 404
-        
-        score, details = matching_engine.calculate_match_score(
-            job.get('skills_required', ''),
-            candidate.get('skills', '')
-        )
-        
-        return jsonify({
-            'candidate_id': candidate_id,
-            'candidate_name': candidate.get('name'),
-            'job_id': jd_id,
-            'job_title': job.get('title'),
-            'match_score': score,
-            'match_details': details
-        })
+    if filename.endswith('.pdf'):
+        text = extract_text_from_pdf(temp_filepath)
+    else:
+        text = extract_text_from_docx(temp_filepath)
+    
+    if not text:
+        os.remove(temp_filepath)
+        return jsonify({'error': 'Could not extract text'}), 400
+    
+    # Try Groq first
+    parsed = parse_resume_with_groq(text)
+    if parsed and parsed.get('first_name'):
+        parsed['resume_text'] = text[:3000]
+        parsed['ai_used'] = True
+    else:
+        parsed = fallback_parse_resume(text)
+        parsed['ai_used'] = False
+    
+    parsed['file_path'] = temp_filepath
+    parsed['original_filename'] = original_filename
+    
+    return jsonify(parsed)
