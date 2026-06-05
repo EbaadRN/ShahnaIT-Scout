@@ -1,8 +1,9 @@
-# Services package
-# This file makes the "services" folder a Python package
+# services/__init__.py
+from .groq_service import call_groq_api, parse_resume_with_groq, analyze_match_with_groq, GROQ_ENABLED
+from .resume_parser import extract_text_from_pdf, extract_text_from_docx, fallback_parse_resume, extract_email, extract_phone, extract_years_from_text, extract_name_from_text
 
-from services.gemini_ai import *
-from services.resume_parser import *
-from services.email_service import *
-from services.linkedin_service import *
-from services.matching_engine import *
+__all__ = [
+    'call_groq_api', 'parse_resume_with_groq', 'analyze_match_with_groq', 'GROQ_ENABLED',
+    'extract_text_from_pdf', 'extract_text_from_docx', 'fallback_parse_resume',
+    'extract_email', 'extract_phone', 'extract_years_from_text', 'extract_name_from_text'
+]
