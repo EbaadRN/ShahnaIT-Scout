@@ -9,7 +9,6 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 import shutil
 
-# Create the Blueprint
 candidates_bp = Blueprint('candidates', __name__)
 
 UPLOAD_FOLDER = '/tmp'
