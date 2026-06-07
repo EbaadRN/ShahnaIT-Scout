@@ -1,4 +1,4 @@
-# app.py - ULTRA SIMPLE WORKING VERSION
+# app.py - WORKING DEBUG VERSION (Buttons work)
 import os
 from flask import Flask, render_template_string
 from flask_cors import CORS
@@ -25,7 +25,7 @@ app.register_blueprint(analyze_bp, url_prefix='/api')
 app.register_blueprint(export_bp, url_prefix='/api')
 app.register_blueprint(documents_bp, url_prefix='/api')
 
-# SIMPLE HTML - WILL DEFINITELY WORK
+# WORKING HTML - BUTTONS WORK
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
@@ -76,12 +76,8 @@ HTML_TEMPLATE = '''
         <button class="tab-btn" id="tabAnalyze">🔍 Analyze Match</button>
     </div>
     
-    <!-- Jobs Panel -->
-    <div id="jobsPanel" style="margin-top: 20px;">
-        <div id="jobsList"></div>
-    </div>
+    <div id="jobsPanel" style="margin-top: 20px;"><div id="jobsList"></div></div>
     
-    <!-- Candidates Panel -->
     <div id="candidatesPanel" style="display:none; margin-top: 20px;">
         <div style="display: flex; justify-content: space-between;">
             <h3>Candidates <span id="candidateCount"></span></h3>
@@ -100,7 +96,6 @@ HTML_TEMPLATE = '''
         <div id="candidatesList"></div>
     </div>
     
-    <!-- Upload Panel -->
     <div id="uploadPanel" style="display:none; margin-top: 20px;">
         <div class="card">
             <h3>Upload Resume (PDF/DOCX)</h3>
@@ -110,7 +105,6 @@ HTML_TEMPLATE = '''
         </div>
     </div>
     
-    <!-- Create Job Panel -->
     <div id="createJobPanel" style="display:none; margin-top: 20px;">
         <div class="card">
             <h3>Create Job</h3>
@@ -121,7 +115,6 @@ HTML_TEMPLATE = '''
         </div>
     </div>
     
-    <!-- Analyze Panel -->
     <div id="analyzePanel" style="display:none; margin-top: 20px;">
         <div class="card">
             <h3>AI Match Analysis</h3>
@@ -135,7 +128,6 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
-<!-- Candidate Modal -->
 <div id="candidateModal" class="modal">
     <div class="modal-content">
         <div class="modal-header"><h3>Candidate Profile</h3><span class="close" onclick="closeModal()">&times;</span></div>
@@ -143,19 +135,10 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
-<!-- Edit Modal -->
-<div id="editModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h3>Edit Candidate</h3><span class="close" onclick="closeEditModal()">&times;</span></div>
-        <div class="modal-body" id="editModalBody"></div>
-    </div>
-</div>
-
 <script>
     let allJobs = [];
     let allCandidates = [];
     
-    // ===== TAB SWITCHING =====
     document.getElementById('tabJobs').onclick = function() { showPanel('jobs'); loadJobs(); };
     document.getElementById('tabCandidates').onclick = function() { showPanel('candidates'); loadCandidates(); };
     document.getElementById('tabUpload').onclick = function() { showPanel('upload'); };
@@ -178,7 +161,6 @@ HTML_TEMPLATE = '''
         if (panel === 'analyze') document.getElementById('tabAnalyze').classList.add('active');
     }
     
-    // ===== LOAD JOBS =====
     async function loadJobs() {
         const res = await fetch('/api/jobs');
         allJobs = await res.json();
@@ -188,7 +170,6 @@ HTML_TEMPLATE = '''
         document.getElementById('jobSelectBox').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
     }
     
-    // ===== LOAD CANDIDATES =====
     async function loadCandidates() {
         const res = await fetch('/api/candidates');
         allCandidates = await res.json();
@@ -232,7 +213,6 @@ HTML_TEMPLATE = '''
         filterCandidates();
     };
     
-    // ===== VIEW CANDIDATE =====
     window.viewCandidate = async function(id) {
         const c = allCandidates.find(c => c.id == id);
         if (!c) return;
@@ -272,7 +252,6 @@ HTML_TEMPLATE = '''
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
     window.closeModal = closeModal;
     
-    // ===== EDIT CANDIDATE =====
     window.openEditModal = async function(id) {
         const c = allCandidates.find(c => c.id == id);
         if (!c) return;
@@ -324,10 +303,8 @@ HTML_TEMPLATE = '''
     function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
     window.closeEditModal = closeEditModal;
     
-    // ===== EXPORT =====
     document.getElementById('exportBtn').onclick = () => window.location.href = '/api/export-candidates';
     
-    // ===== PARSE RESUME =====
     document.getElementById('parseResumeButton').onclick = async function() {
         const file = document.getElementById('resumeFile').files[0];
         if (!file) { alert('Select a file'); return; }
@@ -356,7 +333,6 @@ HTML_TEMPLATE = '''
         } catch(e) { div.innerHTML = '<div class="alert-error">Error</div>'; }
     };
     
-    // ===== CREATE JOB =====
     document.getElementById('createJobButton').onclick = async function() {
         const data = {
             title: document.getElementById('jobTitleField').value,
@@ -375,7 +351,6 @@ HTML_TEMPLATE = '''
         } else { alert('Error'); }
     };
     
-    // ===== ANALYZE =====
     document.getElementById('runAnalysisButton').onclick = async function() {
         const jobId = document.getElementById('jobSelectBox').value;
         const candidateId = document.getElementById('candidateSelectBox').value;
@@ -403,6 +378,17 @@ HTML_TEMPLATE = '''
 </body>
 </html>
 '''
+
+# Add edit modal to the HTML (append to the body)
+# Need to add edit modal div
+HTML_TEMPLATE = HTML_TEMPLATE.replace('</body>', '''
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h3>Edit Candidate</h3><span class="close" onclick="closeEditModal()">&times;</span></div>
+        <div class="modal-body" id="editModalBody"></div>
+    </div>
+</div>
+</body>''')
 
 @app.route('/')
 def index():
