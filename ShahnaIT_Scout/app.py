@@ -1,4 +1,4 @@
-# app.py - SUPER SIMPLE WORKING VERSION
+# app.py - ULTRA SIMPLE WORKING VERSION
 import os
 from flask import Flask, render_template_string
 from flask_cors import CORS
@@ -25,277 +25,405 @@ app.register_blueprint(analyze_bp, url_prefix='/api')
 app.register_blueprint(export_bp, url_prefix='/api')
 app.register_blueprint(documents_bp, url_prefix='/api')
 
-# SIMPLE HTML - ALL BUTTONS WORK
+# SIMPLE WORKING HTML - ALL BUTTONS WILL WORK
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
     <title>ShahnaIT Scout</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: Arial, sans-serif; background: #F9F6F0; margin: 0; padding: 20px; }
-        .header { background: #1D5E5A; color: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        body { font-family: Arial, sans-serif; background: #F5F0E8; margin: 0; padding: 20px; }
+        .header { background: #1A4D4A; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .header h1 { margin: 0; }
         .tabs { display: flex; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
-        .tab-btn { background: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 8px; }
-        .tab-btn.active { background: #1D5E5A; color: white; }
-        .card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; border-left: 3px solid #1D5E5A; }
-        button { background: #1D5E5A; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; margin: 5px; }
-        input, select, textarea { width: 100%; padding: 8px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 5px; }
-        .skill-tag { background: #F9F6F0; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; font-size: 12px; }
-        .match-high { background: #1B6B2E; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
-        .match-medium { background: #CC5500; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
-        .match-low { background: #B22222; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
-        .alert-success { background: #1B6B2E; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
-        .alert-error { background: #B22222; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
-        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #1D5E5A; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
+        .tab-btn { background: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 8px; font-size: 14px; }
+        .tab-btn.active { background: #1A4D4A; color: white; }
+        .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 4px solid #1A4D4A; cursor: pointer; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card.no-click { cursor: default; }
+        .btn { background: #1A4D4A; color: white; border: none; padding: 8px 20px; border-radius: 25px; cursor: pointer; margin: 5px; font-size: 14px; }
+        .btn:hover { background: #2A6B67; }
+        .btn-secondary { background: #6B7B7B; }
+        input, textarea, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; }
+        .skill-tag { display: inline-block; background: #F5F0E8; padding: 4px 12px; border-radius: 20px; margin: 3px; font-size: 12px; }
+        .match-high { background: #1B6B2E; color: white; padding: 2px 10px; border-radius: 20px; display: inline-block; }
+        .match-medium { background: #CC5500; color: white; padding: 2px 10px; border-radius: 20px; display: inline-block; }
+        .match-low { background: #B22222; color: white; padding: 2px 10px; border-radius: 20px; display: inline-block; }
+        .alert-success { background: #1B6B2E; color: white; padding: 12px; border-radius: 8px; margin: 10px 0; }
+        .alert-error { background: #B22222; color: white; padding: 12px; border-radius: 8px; margin: 10px 0; }
+        .alert-info { background: #3498DB; color: white; padding: 12px; border-radius: 8px; margin: 10px 0; }
+        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-        .modal-content { background: #F9F6F0; margin: 50px auto; border-radius: 10px; max-width: 600px; width: 90%; }
-        .modal-header { background: #1D5E5A; color: white; padding: 10px 15px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; }
-        .modal-body { padding: 15px; max-height: 60vh; overflow-y: auto; }
-        .close { cursor: pointer; font-size: 20px; }
-        .flex { display: flex; gap: 10px; }
-        .flex-1 { flex: 1; }
-        .filter-bar { background: white; padding: 10px; border-radius: 10px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .modal-content { background: #F5F0E8; margin: 50px auto; border-radius: 12px; max-width: 600px; width: 90%; }
+        .modal-header { background: #1A4D4A; color: white; padding: 15px; border-radius: 12px 12px 0 0; display: flex; justify-content: space-between; }
+        .modal-body { padding: 20px; max-height: 60vh; overflow-y: auto; }
+        .close { cursor: pointer; font-size: 24px; }
+        .detail-row { margin-bottom: 10px; padding-bottom: 5px; border-bottom: 1px solid #ddd; }
+        .filter-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .filter-bar input, .filter-bar select { width: auto; flex: 1; margin: 0; }
+        .flex { display: flex; gap: 15px; flex-wrap: wrap; }
+        .flex-1 { flex: 1; }
+        .loading { opacity: 0.5; pointer-events: none; }
+        @media (max-width: 600px) { body { padding: 10px; } .filter-bar input, .filter-bar select { min-width: 100px; } }
     </style>
 </head>
 <body>
+
 <div style="max-width: 1200px; margin: 0 auto;">
     <div class="header">
         <h1>🎯 ShahnaIT Scout</h1>
-        <p>AI-Powered Recruitment Platform</p>
+        <p>AI-Powered Recruitment Platform with Groq AI</p>
     </div>
     
     <div class="tabs">
-        <button class="tab-btn active" id="jobsTabBtn">📋 Jobs</button>
-        <button class="tab-btn" id="candidatesTabBtn">👥 Candidates</button>
-        <button class="tab-btn" id="uploadTabBtn">📄 Upload Resume</button>
-        <button class="tab-btn" id="createJobTabBtn">➕ Create Job</button>
-        <button class="tab-btn" id="analyzeTabBtn">🔍 Analyze Match</button>
+        <button class="tab-btn active" id="btnJobs">📋 Jobs</button>
+        <button class="tab-btn" id="btnCandidates">👥 Candidates</button>
+        <button class="tab-btn" id="btnUpload">📄 Upload Resume</button>
+        <button class="tab-btn" id="btnCreateJob">➕ Create Job</button>
+        <button class="tab-btn" id="btnAnalyze">🔍 Analyze Match</button>
     </div>
     
-    <div id="jobsPanel"><div id="jobsList"></div></div>
+    <!-- Jobs Panel -->
+    <div id="panelJobs">
+        <div id="jobsList"></div>
+    </div>
     
-    <div id="candidatesPanel" style="display:none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+    <!-- Candidates Panel -->
+    <div id="panelCandidates" style="display:none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h2>Candidates <span id="candidateCount"></span></h2>
-            <button id="exportBtn">📥 Export CSV</button>
+            <button class="btn" id="exportCsvBtn">📥 Export CSV</button>
         </div>
         <div class="filter-bar">
-            <input type="text" id="searchBox" placeholder="Search by name..." onkeyup="filterCandidates()">
-            <select id="scoreFilter" onchange="filterCandidates()">
+            <input type="text" id="searchInput" placeholder="🔍 Search by name..." autocomplete="off">
+            <select id="scoreSelect">
                 <option value="all">All Scores</option>
                 <option value="high">High (70%+)</option>
                 <option value="medium">Medium (40-69%)</option>
                 <option value="low">Low (<40%)</option>
             </select>
-            <button id="clearFilterBtn">Clear</button>
+            <button class="btn btn-secondary" id="clearFiltersBtn">Clear</button>
         </div>
         <div id="candidatesList"></div>
     </div>
     
-    <div id="uploadPanel" style="display:none;">
-        <div class="card">
-            <h3>Upload Resume (PDF/DOCX)</h3>
-            <input type="file" id="resumeInput" accept=".pdf,.docx">
-            <button id="parseBtn">🔍 Parse & Save</button>
-            <div id="parseResult"></div>
+    <!-- Upload Panel -->
+    <div id="panelUpload" style="display:none;">
+        <div class="card no-click">
+            <h3>📄 Upload Resume (PDF or DOCX)</h3>
+            <p>AI will auto-fill candidate details</p>
+            <input type="file" id="resumeFileInput" accept=".pdf,.docx">
+            <button class="btn" id="parseResumeBtn">🔍 Parse & Save</button>
+            <div id="parseResultDiv"></div>
         </div>
     </div>
     
-    <div id="createJobPanel" style="display:none;">
-        <div class="card">
-            <h3>Create New Job</h3>
+    <!-- Create Job Panel -->
+    <div id="panelCreateJob" style="display:none;">
+        <div class="card no-click">
+            <h3>➕ Create New Job Posting</h3>
             <input type="text" id="jobTitleInput" placeholder="Job Title *">
             <input type="text" id="jobCompanyInput" placeholder="Company Name">
-            <textarea id="jobDescInput" rows="4" placeholder="Job Description"></textarea>
-            <button id="createJobSubmitBtn">Create Job</button>
+            <textarea id="jobDescInput" rows="4" placeholder="Job Description (be detailed for better matching)"></textarea>
+            <button class="btn" id="createJobSubmitBtn">Create Job</button>
         </div>
     </div>
     
-    <div id="analyzePanel" style="display:none;">
-        <div class="card">
-            <h3>AI Match Analysis</h3>
+    <!-- Analyze Panel -->
+    <div id="panelAnalyze" style="display:none;">
+        <div class="card no-click">
+            <h3>🔍 AI-Powered Resume-JD Match Analysis</h3>
             <div class="flex">
-                <div class="flex-1"><select id="jobSelectBox"><option value="">-- Select Job --</option></select></div>
-                <div class="flex-1"><select id="candidateSelectBox"><option value="">-- Select Candidate --</option></select></div>
+                <div class="flex-1"><select id="jobSelectDropdown"><option value="">-- Select Job --</option></select></div>
+                <div class="flex-1"><select id="candidateSelectDropdown"><option value="">-- Select Candidate --</option></select></div>
             </div>
-            <button id="runAnalysisBtn">🤖 Run Analysis</button>
-            <div id="analysisResult"></div>
+            <button class="btn" id="runAnalysisBtn">🤖 Run AI Analysis</button>
+            <div id="analysisResultDiv"></div>
         </div>
     </div>
 </div>
 
-<div id="candidateDetailModal" class="modal">
+<!-- Candidate Modal -->
+<div id="candidateModal" class="modal">
     <div class="modal-content">
-        <div class="modal-header"><h2>Candidate Details</h2><span class="close" onclick="closeModal()">&times;</span></div>
-        <div class="modal-body" id="candidateDetailBody"></div>
+        <div class="modal-header"><h2>Candidate Profile</h2><span class="close" onclick="closeModal()">&times;</span></div>
+        <div class="modal-body" id="modalBody"></div>
     </div>
 </div>
 
 <script>
-    let allJobs = [], allCandidates = [];
+    let jobsArray = [];
+    let candidatesArray = [];
     
-    // Tab Switching
-    document.getElementById('jobsTabBtn').onclick = function() { showPanel('jobs'); loadJobs(); };
-    document.getElementById('candidatesTabBtn').onclick = function() { showPanel('candidates'); loadCandidates(); };
-    document.getElementById('uploadTabBtn').onclick = function() { showPanel('upload'); };
-    document.getElementById('createJobTabBtn').onclick = function() { showPanel('createJob'); };
-    document.getElementById('analyzeTabBtn').onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
+    // ========== TAB SWITCHING ==========
+    document.getElementById('btnJobs').onclick = function() { switchTab('jobs'); loadJobs(); };
+    document.getElementById('btnCandidates').onclick = function() { switchTab('candidates'); loadCandidates(); };
+    document.getElementById('btnUpload').onclick = function() { switchTab('upload'); };
+    document.getElementById('btnCreateJob').onclick = function() { switchTab('createJob'); };
+    document.getElementById('btnAnalyze').onclick = function() { switchTab('analyze'); loadJobs(); loadCandidates(); };
     
-    function showPanel(panel) {
-        document.getElementById('jobsPanel').style.display = 'none';
-        document.getElementById('candidatesPanel').style.display = 'none';
-        document.getElementById('uploadPanel').style.display = 'none';
-        document.getElementById('createJobPanel').style.display = 'none';
-        document.getElementById('analyzePanel').style.display = 'none';
-        document.getElementById(panel + 'Panel').style.display = 'block';
+    function switchTab(tab) {
+        document.getElementById('panelJobs').style.display = 'none';
+        document.getElementById('panelCandidates').style.display = 'none';
+        document.getElementById('panelUpload').style.display = 'none';
+        document.getElementById('panelCreateJob').style.display = 'none';
+        document.getElementById('panelAnalyze').style.display = 'none';
+        document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1)).style.display = 'block';
         
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        if (panel === 'jobs') document.getElementById('jobsTabBtn').classList.add('active');
-        if (panel === 'candidates') document.getElementById('candidatesTabBtn').classList.add('active');
-        if (panel === 'upload') document.getElementById('uploadTabBtn').classList.add('active');
-        if (panel === 'createJob') document.getElementById('createJobTabBtn').classList.add('active');
-        if (panel === 'analyze') document.getElementById('analyzeTabBtn').classList.add('active');
+        if (tab === 'jobs') document.getElementById('btnJobs').classList.add('active');
+        if (tab === 'candidates') document.getElementById('btnCandidates').classList.add('active');
+        if (tab === 'upload') document.getElementById('btnUpload').classList.add('active');
+        if (tab === 'createJob') document.getElementById('btnCreateJob').classList.add('active');
+        if (tab === 'analyze') document.getElementById('btnAnalyze').classList.add('active');
     }
     
+    // ========== LOAD JOBS ==========
     async function loadJobs() {
-        const res = await fetch('/api/jobs');
-        allJobs = await res.json();
-        const container = document.getElementById('jobsList');
-        if (!allJobs.length) { container.innerHTML = '<div class="card">No jobs yet. Create one.</div>'; return; }
-        container.innerHTML = allJobs.map(j => `<div class="card"><h3>${escapeHtml(j.title)}</h3>${j.company ? `<p>${escapeHtml(j.company)}</p>` : ''}<small>${new Date(j.created_at).toLocaleDateString()}</small></div>`).join('');
-        document.getElementById('jobSelectBox').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
+        try {
+            const res = await fetch('/api/jobs');
+            jobsArray = await res.json();
+            const container = document.getElementById('jobsList');
+            if (!jobsArray.length) {
+                container.innerHTML = '<div class="card no-click">No jobs yet. Create one using the "Create Job" tab.</div>';
+                return;
+            }
+            container.innerHTML = jobsArray.map(job => `
+                <div class="card no-click">
+                    <h3>${escapeHtml(job.title)}</h3>
+                    ${job.company ? `<p>🏢 ${escapeHtml(job.company)}</p>` : ''}
+                    <small>📅 Created: ${new Date(job.created_at).toLocaleDateString()}</small>
+                </div>
+            `).join('');
+            
+            const jobSelect = document.getElementById('jobSelectDropdown');
+            if (jobSelect) {
+                jobSelect.innerHTML = '<option value="">-- Select Job --</option>' + jobsArray.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
+            }
+        } catch(e) { console.error(e); }
     }
     
+    // ========== LOAD CANDIDATES ==========
     async function loadCandidates() {
-        const res = await fetch('/api/candidates');
-        allCandidates = await res.json();
-        filterCandidates();
-        document.getElementById('candidateSelectBox').innerHTML = '<option value="">-- Select Candidate --</option>' + allCandidates.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
+        try {
+            const res = await fetch('/api/candidates');
+            candidatesArray = await res.json();
+            filterAndRenderCandidates();
+            
+            const candidateSelect = document.getElementById('candidateSelectDropdown');
+            if (candidateSelect) {
+                candidateSelect.innerHTML = '<option value="">-- Select Candidate --</option>' + candidatesArray.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
+            }
+        } catch(e) { console.error(e); }
     }
     
-    function filterCandidates() {
-        const search = document.getElementById('searchBox').value.toLowerCase();
-        const score = document.getElementById('scoreFilter').value;
-        let filtered = allCandidates;
-        if (search) filtered = filtered.filter(c => (c.first_name + ' ' + c.last_name).toLowerCase().includes(search));
-        if (score === 'high') filtered = filtered.filter(c => (c.match_score || 0) >= 70);
-        else if (score === 'medium') filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
-        else if (score === 'low') filtered = filtered.filter(c => (c.match_score || 0) < 40);
-        renderCandidateList(filtered);
-        document.getElementById('candidateCount').innerHTML = `(${filtered.length})`;
+    function filterAndRenderCandidates() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const scoreFilter = document.getElementById('scoreSelect').value;
+        
+        let filtered = candidatesArray;
+        if (searchTerm) {
+            filtered = filtered.filter(c => (c.first_name + ' ' + c.last_name).toLowerCase().includes(searchTerm));
+        }
+        if (scoreFilter === 'high') {
+            filtered = filtered.filter(c => (c.match_score || 0) >= 70);
+        } else if (scoreFilter === 'medium') {
+            filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
+        } else if (scoreFilter === 'low') {
+            filtered = filtered.filter(c => (c.match_score || 0) < 40);
+        }
+        
+        renderCandidates(filtered);
+        document.getElementById('candidateCount').innerHTML = `(${filtered.length} of ${candidatesArray.length})`;
     }
     
-    function renderCandidateList(candidates) {
+    function renderCandidates(candidates) {
         const container = document.getElementById('candidatesList');
-        if (!candidates.length) { container.innerHTML = '<div class="card">No candidates found</div>'; return; }
+        if (!candidates.length) {
+            container.innerHTML = '<div class="card no-click">No candidates found. Upload resumes to get started.</div>';
+            return;
+        }
         container.innerHTML = candidates.map(c => {
-            const name = (c.first_name + ' ' + c.last_name).trim() || 'Unknown';
+            const fullName = (c.first_name || '') + ' ' + (c.last_name || '');
             const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
             const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
-            return `<div class="card" onclick="viewCandidate(${c.id})">
-                <h3>👤 ${escapeHtml(name)}</h3>
-                <p>${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>
-                ${c.match_score ? `<p>Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
-                <small>${new Date(c.created_at).toLocaleDateString()}</small>
-            </div>`;
+            return `
+                <div class="card" onclick="viewCandidate(${c.id})">
+                    <h3>👤 ${escapeHtml(fullName.trim() || 'Unknown')}</h3>
+                    ${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}
+                    <p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>
+                    ${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
+                    <small>📅 Added: ${new Date(c.created_at).toLocaleDateString()}</small>
+                </div>
+            `;
         }).join('');
     }
     
-    document.getElementById('clearFilterBtn').onclick = function() {
-        document.getElementById('searchBox').value = '';
-        document.getElementById('scoreFilter').value = 'all';
-        filterCandidates();
+    document.getElementById('searchInput').onkeyup = filterAndRenderCandidates;
+    document.getElementById('scoreSelect').onchange = filterAndRenderCandidates;
+    document.getElementById('clearFiltersBtn').onclick = function() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('scoreSelect').value = 'all';
+        filterAndRenderCandidates();
     };
     
-    async function viewCandidate(id) {
-        const c = allCandidates.find(c => c.id == id);
+    // ========== VIEW CANDIDATE ==========
+    window.viewCandidate = async function(id) {
+        const c = candidatesArray.find(c => c.id == id);
         if (!c) return;
-        const name = (c.first_name + ' ' + c.last_name).trim();
+        const fullName = (c.first_name || '') + ' ' + (c.last_name || '');
         const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
         const certs = c.certifications ? JSON.parse(c.certifications) : [];
+        const workExp = c.work_experience ? JSON.parse(c.work_experience) : [];
         
-        document.getElementById('candidateDetailBody').innerHTML = `
-            <div class="detail-row"><strong>Name:</strong> ${escapeHtml(name)}</div>
+        document.getElementById('modalBody').innerHTML = `
+            <div class="detail-row"><strong>Name:</strong> ${escapeHtml(fullName.trim() || 'Unknown')}</div>
             <div class="detail-row"><strong>Email:</strong> ${escapeHtml(c.email || 'N/A')}</div>
             <div class="detail-row"><strong>Phone:</strong> ${escapeHtml(c.phone || 'N/A')}</div>
-            <div class="detail-row"><strong>Role:</strong> ${escapeHtml(c.current_role || 'N/A')}</div>
-            <h4>Skills</h4>
-            ${skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || 0}y)</span>`).join('') || 'None'}
-            <h4>Certifications</h4>
-            ${certs.map(c => `<div>${escapeHtml(c)}</div>`).join('') || 'None'}
-            <button onclick="closeModal()" style="margin-top:10px;">Close</button>
+            <div class="detail-row"><strong>Current Role:</strong> ${escapeHtml(c.current_role || 'N/A')}</div>
+            <div class="detail-row"><strong>Status:</strong> ${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div>
+            <div class="detail-row"><strong>Current CTC:</strong> ${escapeHtml(c.current_ctc || 'N/A')}</div>
+            <div class="detail-row"><strong>Expected CTC:</strong> ${escapeHtml(c.expected_ctc || 'N/A')}</div>
+            <div class="detail-row"><strong>Address:</strong> ${escapeHtml(c.address || 'N/A')}</div>
+            <div class="detail-row"><strong>LinkedIn:</strong> ${escapeHtml(c.linkedin || 'N/A')}</div>
+            <h4>💼 Work Experience</h4>
+            ${workExp.map(w => `<div><strong>${escapeHtml(w.company)}</strong> - ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date || '')} - ${escapeHtml(w.end_date || 'Present')}</small></div>`).join('') || 'None'}
+            <h4>⭐ Core Skills</h4>
+            ${skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || 0} yrs)</span>`).join('') || 'None'}
+            <h4>📜 Certifications</h4>
+            ${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || 'None'}
+            <h4>🎓 Education</h4>
+            <p>${escapeHtml(c.education || 'N/A')}</p>
+            <button class="btn" onclick="closeModal()" style="margin-top:15px;">Close</button>
         `;
-        document.getElementById('candidateDetailModal').style.display = 'block';
-    }
+        document.getElementById('candidateModal').style.display = 'block';
+    };
     
-    function closeModal() { document.getElementById('candidateDetailModal').style.display = 'none'; }
-    window.exportToCSV = () => window.location.href = '/api/export-candidates';
-    document.getElementById('exportBtn').onclick = () => window.location.href = '/api/export-candidates';
+    function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
+    window.closeModal = closeModal;
     
-    // Parse Resume
-    document.getElementById('parseBtn').onclick = async function() {
-        const file = document.getElementById('resumeInput').files[0];
-        if (!file) { alert('Select a file'); return; }
-        const fd = new FormData(); fd.append('resume', file);
-        const div = document.getElementById('parseResult');
-        div.innerHTML = '<div class="spinner"></div><p>Parsing...</p>';
+    // ========== EXPORT CSV ==========
+    document.getElementById('exportCsvBtn').onclick = function() {
+        window.location.href = '/api/export-candidates';
+    };
+    
+    // ========== PARSE RESUME ==========
+    document.getElementById('parseResumeBtn').onclick = async function() {
+        const file = document.getElementById('resumeFileInput').files[0];
+        if (!file) { alert('Please select a file'); return; }
+        
+        const fd = new FormData();
+        fd.append('resume', file);
+        const div = document.getElementById('parseResultDiv');
+        div.innerHTML = '<div class="spinner"></div><p>🤖 AI parsing resume...</p>';
+        
         try {
             const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button id="saveCandidateBtn">💾 Save Candidate</button></div>`;
-            document.getElementById('saveCandidateBtn').onclick = async function() {
+            
+            div.innerHTML = `
+                <div class="alert-success">
+                    <h4>✅ Resume Parsed Successfully</h4>
+                    <p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p>
+                    <p><strong>Email:</strong> ${escapeHtml(result.email || 'Not found')}</p>
+                    <p><strong>Phone:</strong> ${escapeHtml(result.phone || 'Not found')}</p>
+                    <p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p>
+                    <button class="btn" id="confirmSaveBtn">💾 Save Candidate</button>
+                </div>
+            `;
+            
+            document.getElementById('confirmSaveBtn').onclick = async function() {
                 const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if (saveRes.ok) { alert('Saved!'); div.innerHTML = ''; document.getElementById('resumeInput').value = ''; loadCandidates(); showPanel('candidates'); }
-                else alert('Error');
+                if (saveRes.ok) {
+                    alert('Candidate saved successfully!');
+                    div.innerHTML = '';
+                    document.getElementById('resumeFileInput').value = '';
+                    loadCandidates();
+                    switchTab('candidates');
+                } else {
+                    alert('Error saving candidate');
+                }
             };
-        } catch(e) { div.innerHTML = '<div class="alert-error">Error</div>'; }
+        } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing resume</div>'; }
     };
     
-    // Create Job
+    // ========== CREATE JOB ==========
     document.getElementById('createJobSubmitBtn').onclick = async function() {
-        const data = {
-            title: document.getElementById('jobTitleInput').value,
-            company: document.getElementById('jobCompanyInput').value,
-            description: document.getElementById('jobDescInput').value
-        };
-        if (!data.title) { alert('Title required'); return; }
-        const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-        if (res.ok) {
-            alert('Job created!');
-            document.getElementById('jobTitleInput').value = '';
-            document.getElementById('jobCompanyInput').value = '';
-            document.getElementById('jobDescInput').value = '';
-            showPanel('jobs');
-            loadJobs();
-        } else { alert('Error'); }
+        const title = document.getElementById('jobTitleInput').value;
+        const company = document.getElementById('jobCompanyInput').value;
+        const description = document.getElementById('jobDescInput').value;
+        
+        if (!title) { alert('Job title is required'); return; }
+        
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+        
+        try {
+            const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ title, company, description }) });
+            if (res.ok) {
+                alert('Job created successfully!');
+                document.getElementById('jobTitleInput').value = '';
+                document.getElementById('jobCompanyInput').value = '';
+                document.getElementById('jobDescInput').value = '';
+                switchTab('jobs');
+                loadJobs();
+            } else {
+                alert('Error creating job');
+            }
+        } catch(e) { alert('Error creating job'); }
+        finally { btn.disabled = false; btn.textContent = 'Create Job'; }
     };
     
-    // Analyze Match
+    // ========== ANALYZE MATCH ==========
     document.getElementById('runAnalysisBtn').onclick = async function() {
-        const jobId = document.getElementById('jobSelectBox').value;
-        const candidateId = document.getElementById('candidateSelectBox').value;
-        if (!jobId || !candidateId) { alert('Select both'); return; }
-        const job = allJobs.find(j => j.id == jobId);
-        const cand = allCandidates.find(c => c.id == candidateId);
-        const div = document.getElementById('analysisResult');
-        div.innerHTML = '<div class="spinner"></div><p>Analyzing...</p>';
+        const jobId = document.getElementById('jobSelectDropdown').value;
+        const candidateId = document.getElementById('candidateSelectDropdown').value;
+        if (!jobId || !candidateId) { alert('Please select both a Job and a Candidate'); return; }
+        
+        const job = jobsArray.find(j => j.id == jobId);
+        const candidate = candidatesArray.find(c => c.id == candidateId);
+        if (!job || !candidate) { alert('Job or Candidate not found'); return; }
+        
+        const div = document.getElementById('analysisResultDiv');
+        div.innerHTML = '<div class="spinner"></div><p>🤖 AI analyzing match...</p>';
+        
         try {
-            const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
+            const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: candidate.resume_text || '' }) });
             const result = await res.json();
             if (result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
+            
             const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-            div.innerHTML = `<div class="alert-success"><h4>Analysis Complete</h4><p><strong>Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p><p><strong>Recommendation:</strong> ${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
+            div.innerHTML = `
+                <div class="alert-success">
+                    <h4>📊 Groq AI Analysis Complete</h4>
+                    <p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p>
+                    <p><strong>📌 Recommendation:</strong> ${result.recommendation || 'Review'}</p>
+                    <div style="margin-top:10px; padding:10px; background:#F5F0E8; border-radius:8px;">
+                        <strong>📝 Executive Summary:</strong><br>${result.executive_summary?.final_verdict || 'No summary available'}
+                    </div>
+                    <small style="display:block; margin-top:10px;">✅ Analysis saved to candidate record</small>
+                </div>
+            `;
             loadCandidates();
-        } catch(e) { div.innerHTML = '<div class="alert-error">Failed</div>'; }
+        } catch(e) { div.innerHTML = '<div class="alert-error">Analysis failed</div>'; }
     };
     
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+    function escapeHtml(str) { 
+        if (!str) return ''; 
+        return str.replace(/[&<>]/g, function(m) { 
+            if (m === '&') return '&amp;'; 
+            if (m === '<') return '&lt;'; 
+            if (m === '>') return '&gt;'; 
+            return m; 
+        }); 
+    }
     
-    // Initialize
-    showPanel('jobs');
+    // Initial load
+    switchTab('jobs');
     loadJobs();
     loadCandidates();
 </script>
