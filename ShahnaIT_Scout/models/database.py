@@ -47,15 +47,6 @@ def get_candidates():
     conn.close()
     return candidates
 
-def get_candidate_by_id(candidate_id):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,))
-    result = c.fetchone()
-    conn.close()
-    return dict(result) if result else None
-
 def create_candidate(data):
     skills = json.dumps(data.get('core_skills', []))
     work_exp = json.dumps(data.get('work_experience', []))
