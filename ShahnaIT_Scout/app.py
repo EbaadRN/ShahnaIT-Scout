@@ -1,4 +1,4 @@
-# app.py - WITH VISIBLE BUTTONS
+# app.py - WITH BULK RESUME UPLOAD ONLY (No other changes)
 import os
 from flask import Flask, render_template_string
 from flask_cors import CORS
@@ -30,7 +30,6 @@ HTML_TEMPLATE = '''
         body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
         .header { background: #1A4D4A; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
         
-        /* FIXED BUTTON STYLES - VISIBLE */
         button, .btn {
             background: #1A4D4A;
             color: white;
@@ -45,7 +44,6 @@ HTML_TEMPLATE = '''
             background: #2A6B67;
         }
         
-        /* Tab buttons */
         .tab-btn {
             background: white;
             color: #1A4D4A;
@@ -77,6 +75,13 @@ HTML_TEMPLATE = '''
         .flex { display: flex; gap: 10px; }
         .flex-1 { flex: 1; }
         .filter-bar { background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        
+        /* Bulk upload styles */
+        .file-list { background: #F9F6F0; border-radius: 8px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .file-list-item { padding: 5px; border-bottom: 1px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; }
+        .remove-file { color: #B22222; cursor: pointer; margin-left: 10px; }
+        .progress-bar { background: #ddd; border-radius: 10px; height: 15px; margin: 10px 0; overflow: hidden; }
+        .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
     </style>
 </head>
 <body>
@@ -113,11 +118,21 @@ HTML_TEMPLATE = '''
     
     <div id="panel3" style="display:none;">
         <div class="card">
-            <h3>📄 Upload Resume (PDF/DOCX)</h3>
+            <h3>📄 Single Resume Upload</h3>
             <p>AI will auto-fill candidate details</p>
             <input type="file" id="resumeFile" accept=".pdf,.docx">
             <button id="parseBtn">🔍 Parse & Save Candidate</button>
             <div id="parseResult"></div>
+        </div>
+        
+        <!-- NEW: Bulk Resume Upload Section -->
+        <div class="card" style="margin-top: 20px;">
+            <h3>📚 Bulk Resume Upload (Select Multiple Files)</h3>
+            <p>Hold Ctrl (or Cmd on Mac) to select multiple PDF/DOCX files at once</p>
+            <input type="file" id="multiResumeFiles" multiple accept=".pdf,.docx">
+            <div id="selectedFilesList" class="file-list" style="display:none;"></div>
+            <button id="bulkUploadBtn">🚀 Upload & Parse All Selected Files</button>
+            <div id="bulkUploadResult"></div>
         </div>
     </div>
     
@@ -146,6 +161,7 @@ HTML_TEMPLATE = '''
 
 <script>
     let allJobs = [], allCandidates = [];
+    let selectedBulkFiles = [];
     
     // Tab switching
     document.getElementById('tab1').onclick = function() { showPanel(1); loadJobs(); };
@@ -162,6 +178,111 @@ HTML_TEMPLATE = '''
         document.getElementById('panel'+num).style.display = 'block';
         document.getElementById('tab'+num).classList.add('active');
     }
+    
+    // ========== BULK UPLOAD FUNCTIONS ==========
+    document.getElementById('multiResumeFiles').addEventListener('change', function(e) {
+        selectedBulkFiles = Array.from(e.target.files);
+        const fileListDiv = document.getElementById('selectedFilesList');
+        if (selectedBulkFiles.length > 0) {
+            let html = '<strong>Selected files (' + selectedBulkFiles.length + '):</strong><br>';
+            selectedBulkFiles.forEach((file, index) => {
+                html += `<div class="file-list-item">
+                    📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)
+                    <span class="remove-file" onclick="removeBulkFile(${index})">✕ Remove</span>
+                </div>`;
+            });
+            fileListDiv.innerHTML = html;
+            fileListDiv.style.display = 'block';
+        } else {
+            fileListDiv.style.display = 'none';
+        }
+    });
+    
+    function removeBulkFile(index) {
+        selectedBulkFiles.splice(index, 1);
+        const dataTransfer = new DataTransfer();
+        selectedBulkFiles.forEach(file => dataTransfer.items.add(file));
+        document.getElementById('multiResumeFiles').files = dataTransfer.files;
+        
+        const fileListDiv = document.getElementById('selectedFilesList');
+        if (selectedBulkFiles.length > 0) {
+            let html = '<strong>Selected files (' + selectedBulkFiles.length + '):</strong><br>';
+            selectedBulkFiles.forEach((file, idx) => {
+                html += `<div class="file-list-item">
+                    📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)
+                    <span class="remove-file" onclick="removeBulkFile(${idx})">✕ Remove</span>
+                </div>`;
+            });
+            fileListDiv.innerHTML = html;
+            fileListDiv.style.display = 'block';
+        } else {
+            fileListDiv.style.display = 'none';
+        }
+    }
+    
+    document.getElementById('bulkUploadBtn').onclick = async function() {
+        if (selectedBulkFiles.length === 0) { alert('Please select files first'); return; }
+        
+        const div = document.getElementById('bulkUploadResult');
+        div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + selectedBulkFiles.length + ' files...</p>';
+        
+        let successCount = 0;
+        let failCount = 0;
+        let errors = [];
+        
+        for (let i = 0; i < selectedBulkFiles.length; i++) {
+            const file = selectedBulkFiles[i];
+            const fd = new FormData();
+            fd.append('resume', file);
+            
+            const percent = Math.round((i / selectedBulkFiles.length) * 100);
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${selectedBulkFiles.length}: ${escapeHtml(file.name)}...</p>`;
+            
+            try {
+                const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
+                const result = await res.json();
+                
+                if (result.error) {
+                    failCount++;
+                    errors.push(`${file.name}: ${result.error}`);
+                } else {
+                    const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
+                    if (saveRes.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        errors.push(`${file.name}: Save failed`);
+                    }
+                }
+            } catch(e) {
+                failCount++;
+                errors.push(`${file.name}: ${e.message}`);
+            }
+        }
+        
+        let resultHtml = `<div class="alert-success"><h4>✅ Bulk Upload Complete!</h4>`;
+        resultHtml += `<p><strong>Total files:</strong> ${selectedBulkFiles.length}</p>`;
+        resultHtml += `<p><strong>Successfully parsed & saved:</strong> ${successCount}</p>`;
+        resultHtml += `<p><strong>Failed:</strong> ${failCount}</p>`;
+        
+        if (errors.length > 0) {
+            resultHtml += `<div style="margin-top: 10px;"><strong>⚠️ Errors:</strong><ul>`;
+            errors.forEach(err => {
+                resultHtml += `<li>${escapeHtml(err)}</li>`;
+            });
+            resultHtml += `</ul></div>`;
+        }
+        
+        resultHtml += `<button class="btn" onclick="document.getElementById('tab2').click()" style="margin-top: 15px;">View All Candidates</button></div>`;
+        div.innerHTML = resultHtml;
+        
+        // Clear selection
+        selectedBulkFiles = [];
+        document.getElementById('multiResumeFiles').value = '';
+        document.getElementById('selectedFilesList').style.display = 'none';
+        
+        loadCandidates();
+    };
     
     async function loadJobs() {
         const res = await fetch('/api/jobs');
