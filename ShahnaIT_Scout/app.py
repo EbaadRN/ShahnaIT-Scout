@@ -1,19 +1,40 @@
-# app.py - FEATURE 4: Edit Job Description
+# app.py - FEATURE 5: Attach Document to JD
 import os
-from flask import Flask, render_template_string
+import json
+from flask import Flask, render_template_string, request, jsonify
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
+from datetime import datetime
 from routes.candidates import candidates_bp
 from routes.jobs import jobs_bp
 from routes.analyze import analyze_bp
 from routes.export import export_bp
 from routes.documents import documents_bp
-from models.database import init_db
+from models.database import init_db, get_jobs, create_job, get_job_documents, add_job_document
+import shutil
 
 app = Flask(__name__)
 CORS(app)
 
 init_db()
 os.makedirs('/tmp/candidate_docs', exist_ok=True)
+os.makedirs('/tmp/job_docs', exist_ok=True)
+
+# Create job_documents table
+conn = sqlite3.connect('shahnai.db')
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER,
+    filename TEXT,
+    original_filename TEXT,
+    file_path TEXT,
+    file_type TEXT,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (job_id) REFERENCES jobs(id)
+)''')
+conn.commit()
+conn.close()
 
 app.register_blueprint(candidates_bp, url_prefix='/api')
 app.register_blueprint(jobs_bp, url_prefix='/api')
@@ -67,6 +88,10 @@ HTML_TEMPLATE = '''
         .company-item { background: #F9F6F0; padding: 8px; margin-bottom: 5px; border-radius: 5px; border-left: 3px solid #1A4D4A; }
         .btn-edit { background: #C9A96E; }
         .btn-secondary { background: #6B7B7B; }
+        .doc-link { cursor: pointer; color: #1A4D4A; text-decoration: underline; }
+        .file-list { background: #F9F6F0; border-radius: 8px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
+        .file-list-item { padding: 5px; border-bottom: 1px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; }
+        .remove-file { color: #B22222; cursor: pointer; margin-left: 10px; }
     </style>
 </head>
 <body>
@@ -233,20 +258,61 @@ HTML_TEMPLATE = '''
         filterCandidates();
     };
     
-    // ========== EDIT JOB ==========
-    window.editJob = function(id) {
+    // ========== EDIT JOB WITH DOCUMENT ATTACHMENT ==========
+    window.editJob = async function(id) {
         const job = allJobs.find(j => j.id == id);
         if (!job) return;
+        
+        // Fetch job documents
+        const docRes = await fetch(`/api/jobs/${id}/documents`);
+        const documents = await docRes.json();
+        
+        let docsHtml = '';
+        if (documents.length > 0) {
+            docsHtml = '<h4>📎 Attached Documents</h4><div class="file-list">';
+            documents.forEach(doc => {
+                docsHtml += `<div class="file-list-item">📄 ${escapeHtml(doc.original_filename)} <span class="remove-file" onclick="deleteJobDocument(${doc.id}, ${id})">✕ Remove</span></div>`;
+            });
+            docsHtml += '</div>';
+        }
         
         document.getElementById('editJobModalBody').innerHTML = `
             <form id="editJobForm">
                 <label>Job Title</label><input type="text" id="editJobTitle" value="${escapeHtml(job.title || '')}">
                 <label>Company Name</label><input type="text" id="editJobCompany" value="${escapeHtml(job.company || '')}">
                 <label>Job Description</label><textarea id="editJobDesc" rows="5">${escapeHtml(job.description || '')}</textarea>
+                
+                <h4>📄 Attach JD Document (PDF/DOCX)</h4>
+                <input type="file" id="jobDocFile" accept=".pdf,.docx">
+                <button type="button" class="btn btn-secondary" id="uploadJobDocBtn">Upload Document</button>
+                <div id="jobDocUploadStatus"></div>
+                
+                ${docsHtml}
+                
                 <div style="margin-top: 20px;"><button type="submit" class="btn">Save Changes</button><button type="button" class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button></div>
             </form>
         `;
         document.getElementById('editJobModal').style.display = 'block';
+        
+        // Upload document handler
+        document.getElementById('uploadJobDocBtn').onclick = async function() {
+            const file = document.getElementById('jobDocFile').files[0];
+            if (!file) { alert('Select a file'); return; }
+            const fd = new FormData();
+            fd.append('document', file);
+            fd.append('job_id', id);
+            const statusDiv = document.getElementById('jobDocUploadStatus');
+            statusDiv.innerHTML = '<div class="spinner"></div><p>Uploading...</p>';
+            try {
+                const res = await fetch('/api/jobs/upload-document', { method: 'POST', body: fd });
+                if (res.ok) {
+                    alert('Document uploaded!');
+                    statusDiv.innerHTML = '';
+                    document.getElementById('jobDocFile').value = '';
+                    editJob(id);
+                } else { alert('Upload failed'); statusDiv.innerHTML = ''; }
+            } catch(e) { alert('Upload failed'); statusDiv.innerHTML = ''; }
+        };
         
         document.getElementById('editJobForm').onsubmit = async (e) => {
             e.preventDefault();
@@ -259,6 +325,14 @@ HTML_TEMPLATE = '''
             if (res.ok) { alert('Job updated!'); closeEditJobModal(); loadJobs(); }
             else alert('Error updating job');
         };
+    };
+    
+    window.deleteJobDocument = async function(docId, jobId) {
+        if (confirm('Delete this document?')) {
+            const res = await fetch(`/api/jobs/documents/${docId}`, { method: 'DELETE' });
+            if (res.ok) { editJob(jobId); }
+            else alert('Error deleting');
+        }
     };
     
     function closeEditJobModal() { document.getElementById('editJobModal').style.display = 'none'; }
@@ -454,7 +528,44 @@ HTML_TEMPLATE = '''
 </html>
 '''
 
-# Add PUT endpoint for jobs
+# ========== JOB DOCUMENT API ROUTES ==========
+@app.route('/api/jobs/<int:job_id>/documents', methods=['GET'])
+def get_job_documents_api(job_id):
+    from models.database import get_job_documents
+    docs = get_job_documents(job_id)
+    return jsonify(docs)
+
+@app.route('/api/jobs/upload-document', methods=['POST'])
+def upload_job_document():
+    job_id = request.form.get('job_id')
+    if 'document' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['document']
+    if file.filename == '':
+        return jsonify({'error': 'No file'}), 400
+    
+    original_filename = file.filename
+    filename = secure_filename(f"{job_id}_{datetime.now().timestamp()}_{file.filename}")
+    filepath = os.path.join('/tmp/job_docs', filename)
+    file.save(filepath)
+    
+    from models.database import add_job_document
+    add_job_document(job_id, filename, original_filename, filepath, original_filename.split('.')[-1])
+    return jsonify({'message': 'Document uploaded'})
+
+@app.route('/api/jobs/documents/<int:doc_id>', methods=['DELETE'])
+def delete_job_document(doc_id):
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('SELECT file_path FROM job_documents WHERE id = ?', (doc_id,))
+    row = c.fetchone()
+    if row and os.path.exists(row[0]):
+        os.remove(row[0])
+    c.execute('DELETE FROM job_documents WHERE id = ?', (doc_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Document deleted'})
+
 @app.route('/api/jobs/<int:job_id>', methods=['PUT'])
 def update_job(job_id):
     from models.database import update_job
@@ -465,6 +576,16 @@ def update_job(job_id):
 @app.route('/')
 def index():
     return HTML_TEMPLATE
+
+# Add update_job function to models/database.py
+import sqlite3
+def update_job(job_id, title, company, description):
+    conn = sqlite3.connect('shahnai.db')
+    c = conn.cursor()
+    c.execute('UPDATE jobs SET title = ?, company = ?, description = ? WHERE id = ?',
+              (title, company, description, job_id))
+    conn.commit()
+    conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
