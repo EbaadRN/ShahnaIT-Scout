@@ -1,4 +1,4 @@
-# app.py - FEATURE 3: Edit Candidate Profile
+# app.py - FEATURE 4: Edit Job Description
 import os
 from flask import Flask, render_template_string
 from flask_cors import CORS
@@ -149,6 +149,14 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
+<!-- Edit Job Modal -->
+<div id="editJobModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>✏️ Edit Job</h2><span class="close" onclick="closeEditJobModal()">&times;</span></div>
+        <div class="modal-body" id="editJobModalBody"></div>
+    </div>
+</div>
+
 <script>
     let allJobs = [], allCandidates = [];
     
@@ -172,7 +180,13 @@ HTML_TEMPLATE = '''
         allJobs = await res.json();
         const container = document.getElementById('jobsList');
         if(!allJobs.length) { container.innerHTML = '<div class="card no-click">No jobs yet. Create one.</div>'; return; }
-        container.innerHTML = allJobs.map(j => `<div class="card no-click"><h3>${escapeHtml(j.title)}</h3>${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}<small>${new Date(j.created_at).toLocaleDateString()}</small></div>`).join('');
+        container.innerHTML = allJobs.map(j => `
+            <div class="card" onclick="editJob(${j.id})">
+                <h3>${escapeHtml(j.title)}</h3>
+                ${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}
+                <small>📅 ${new Date(j.created_at).toLocaleDateString()}</small>
+            </div>
+        `).join('');
         document.getElementById('jobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
     }
     
@@ -219,7 +233,38 @@ HTML_TEMPLATE = '''
         filterCandidates();
     };
     
-    // View Candidate with Edit Button
+    // ========== EDIT JOB ==========
+    window.editJob = function(id) {
+        const job = allJobs.find(j => j.id == id);
+        if (!job) return;
+        
+        document.getElementById('editJobModalBody').innerHTML = `
+            <form id="editJobForm">
+                <label>Job Title</label><input type="text" id="editJobTitle" value="${escapeHtml(job.title || '')}">
+                <label>Company Name</label><input type="text" id="editJobCompany" value="${escapeHtml(job.company || '')}">
+                <label>Job Description</label><textarea id="editJobDesc" rows="5">${escapeHtml(job.description || '')}</textarea>
+                <div style="margin-top: 20px;"><button type="submit" class="btn">Save Changes</button><button type="button" class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button></div>
+            </form>
+        `;
+        document.getElementById('editJobModal').style.display = 'block';
+        
+        document.getElementById('editJobForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const data = {
+                title: document.getElementById('editJobTitle').value,
+                company: document.getElementById('editJobCompany').value,
+                description: document.getElementById('editJobDesc').value
+            };
+            const res = await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+            if (res.ok) { alert('Job updated!'); closeEditJobModal(); loadJobs(); }
+            else alert('Error updating job');
+        };
+    };
+    
+    function closeEditJobModal() { document.getElementById('editJobModal').style.display = 'none'; }
+    window.closeEditJobModal = closeEditJobModal;
+    
+    // ========== VIEW CANDIDATE ==========
     window.viewCandidate = async function(id) {
         const c = allCandidates.find(c => c.id == id);
         if (!c) return;
@@ -263,7 +308,7 @@ HTML_TEMPLATE = '''
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
     window.closeModal = closeModal;
     
-    // Edit Candidate
+    // ========== EDIT CANDIDATE ==========
     window.openEditModal = async function(id) {
         const c = allCandidates.find(c => c.id == id);
         if (!c) return;
@@ -408,6 +453,14 @@ HTML_TEMPLATE = '''
 </body>
 </html>
 '''
+
+# Add PUT endpoint for jobs
+@app.route('/api/jobs/<int:job_id>', methods=['PUT'])
+def update_job(job_id):
+    from models.database import update_job
+    data = request.json
+    update_job(job_id, data.get('title'), data.get('company'), data.get('description'))
+    return jsonify({'message': 'Job updated'})
 
 @app.route('/')
 def index():
