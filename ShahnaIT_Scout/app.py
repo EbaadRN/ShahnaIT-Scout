@@ -1,12 +1,14 @@
-# app.py - COMPLETE WORKING VERSION (Features 1-5)
+# app.py - COMPLETE WITH ALL FEATURES (Resume Auto-Attachment + Documents)
 import os
 import sqlite3
 import json
 import re
+import io
+import csv
 import shutil
 import base64
 from datetime import datetime
-from flask import Flask, render_template_string, request, jsonify, send_file
+from flask import Flask, render_template_string, request, jsonify, send_file, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import PyPDF2
@@ -357,6 +359,7 @@ HTML_TEMPLATE = '''
     <div id="panel3" style="display:none;">
         <div class="card no-click">
             <h3>📄 Upload Resume (PDF/DOCX)</h3>
+            <p>🤖 AI will auto-fill candidate details. Resume will be automatically attached.</p>
             <input type="file" id="resumeFile" accept=".pdf,.docx">
             <button id="parseBtn">🔍 Parse & Save</button>
             <div id="parseResult"></div>
@@ -402,6 +405,26 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
+<!-- Add Document Modal -->
+<div id="docModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>📎 Add Document</h2><span class="close" onclick="closeDocModal()">&times;</span></div>
+        <div class="modal-body">
+            <input type="file" id="docFile" accept=".pdf,.docx,.png,.jpg,.jpeg">
+            <button id="uploadDocBtn" class="btn">Upload Document</button>
+            <div id="docUploadStatus"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Preview Modal -->
+<div id="previewModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>Document Preview</h2><span class="close" onclick="closePreviewModal()">&times;</span></div>
+        <div class="modal-body" id="previewBody"></div>
+    </div>
+</div>
+
 <!-- Edit Job Modal -->
 <div id="editJobModal" class="modal">
     <div class="modal-content">
@@ -411,7 +434,7 @@ HTML_TEMPLATE = '''
 </div>
 
 <script>
-    let allJobs = [], allCandidates = [];
+    let allJobs = [], allCandidates = [], currentCandidateId = null;
     
     document.getElementById('tab1').onclick = function() { showPanel(1); loadJobs(); };
     document.getElementById('tab2').onclick = function() { showPanel(2); loadCandidates(); };
@@ -566,6 +589,7 @@ HTML_TEMPLATE = '''
     
     // ========== VIEW CANDIDATE ==========
     window.viewCandidate = async function(id) {
+        currentCandidateId = id;
         const c = allCandidates.find(c => c.id == id);
         if (!c) return;
         
@@ -574,9 +598,17 @@ HTML_TEMPLATE = '''
         const certs = c.certifications ? JSON.parse(c.certifications) : [];
         const workExp = c.work_experience ? JSON.parse(c.work_experience) : [];
         
+        // Load documents
+        const docRes = await fetch(`/api/candidates/${id}/documents`);
+        const documents = await docRes.json();
+        const resumeDoc = documents.find(d => d.is_resume === 1);
+        const otherDocs = documents.filter(d => !d.is_resume);
+        
         document.getElementById('modalBody').innerHTML = `
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px;">
                 <button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit Profile</button>
+                <button class="btn btn-secondary" onclick="openAddDocumentModal(${c.id})">📎 Add Document</button>
+                <button class="btn btn-secondary" onclick="copyAllDetails()">📋 Copy All</button>
             </div>
             <div class="detail-row"><div class="detail-label">Full Name:</div><div class="detail-value">${escapeHtml(fullName.trim() || 'Unknown')}</div></div>
             <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
@@ -600,13 +632,68 @@ HTML_TEMPLATE = '''
             <h4>🎓 Education</h4>
             <p>${escapeHtml(c.education || 'N/A')}</p>
             
+            <h4>📄 Resume</h4>
+            ${resumeDoc ? `<div><span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span> <span style="background:#1B6B2E; color:white; padding:2px 8px; border-radius:12px; font-size:10px;">Original Resume</span></div>` : '<p>No resume attached</p>'}
+            
+            <h4>📎 Other Documents (${otherDocs.length})</h4>
+            ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>No additional documents</p>'}
+            
             <button class="btn" onclick="closeModal()" style="margin-top: 20px;">Close</button>
         `;
         document.getElementById('candidateModal').style.display = 'block';
     };
     
+    window.previewDocument = async function(docId) {
+        try {
+            const res = await fetch(`/api/documents/${docId}/preview`);
+            const data = await res.json();
+            document.getElementById('previewBody').innerHTML = data.type === 'image' ? 
+                `<img src="data:image/png;base64,${data.content}" style="max-width:100%;">` : 
+                `<div style="white-space: pre-wrap; background: white; padding: 15px; border-radius: 8px;">${escapeHtml(data.content)}</div>`;
+            document.getElementById('previewModal').style.display = 'block';
+        } catch(e) { alert('Cannot preview'); }
+    };
+    
+    function closePreviewModal() { document.getElementById('previewModal').style.display = 'none'; }
+    window.closePreviewModal = closePreviewModal;
+    
+    window.copyAllDetails = function() {
+        let text = '';
+        document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-with-years').forEach(el => {
+            text += el.innerText + '\n';
+        });
+        navigator.clipboard.writeText(text);
+        alert('Copied to clipboard!');
+    };
+    
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
     window.closeModal = closeModal;
+    
+    // ========== ADD DOCUMENT ==========
+    window.openAddDocumentModal = function(id) {
+        currentCandidateId = id;
+        document.getElementById('docModal').style.display = 'block';
+    };
+    
+    function closeDocModal() { document.getElementById('docModal').style.display = 'none'; }
+    window.closeDocModal = closeDocModal;
+    
+    document.getElementById('uploadDocBtn').onclick = async function() {
+        const file = document.getElementById('docFile').files[0];
+        if (!file || !currentCandidateId) { alert('Select a file'); return; }
+        const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
+        const statusDiv = document.getElementById('docUploadStatus');
+        statusDiv.innerHTML = '<div class="spinner"></div><p>Uploading...</p>';
+        try {
+            const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
+            if (res.ok) {
+                alert('Document uploaded!');
+                statusDiv.innerHTML = '';
+                closeDocModal();
+                viewCandidate(currentCandidateId);
+            } else { alert('Upload failed'); statusDiv.innerHTML = ''; }
+        } catch(e) { alert('Upload failed'); statusDiv.innerHTML = ''; }
+    };
     
     // ========== EDIT CANDIDATE ==========
     window.openEditModal = async function(id) {
@@ -703,7 +790,7 @@ HTML_TEMPLATE = '''
                 <button id="saveBtn">💾 Save Candidate</button></div>`;
             document.getElementById('saveBtn').onclick = async function() {
                 const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if(saveRes.ok) { alert('Saved!'); div.innerHTML = ''; document.getElementById('resumeFile').value = ''; loadCandidates(); showPanel(2); }
+                if(saveRes.ok) { alert('Saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resumeFile').value = ''; loadCandidates(); showPanel(2); }
                 else alert('Error');
             };
         } catch(e) { div.innerHTML = '<div class="alert-error">Error</div>'; }
@@ -897,6 +984,52 @@ def get_candidate_documents(candidate_id):
     conn.close()
     return jsonify(docs)
 
+@app.route('/api/candidates/upload-document', methods=['POST'])
+def upload_candidate_document():
+    candidate_id = request.form.get('candidate_id')
+    if 'document' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['document']
+    if file.filename == '':
+        return jsonify({'error': 'No file'}), 400
+    
+    original_filename = file.filename
+    filename = secure_filename(f"{candidate_id}_{datetime.now().timestamp()}_{file.filename}")
+    filepath = os.path.join(app.config['DOCUMENTS_FOLDER'], filename)
+    file.save(filepath)
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type, is_resume) VALUES (?, ?, ?, ?, ?, ?)',
+              (candidate_id, filename, original_filename, filepath, original_filename.split('.')[-1], 0))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Document uploaded'})
+
+@app.route('/api/documents/<int:doc_id>/preview', methods=['GET'])
+def preview_document(doc_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidate_documents WHERE id = ?', (doc_id,))
+    doc = c.fetchone()
+    conn.close()
+    if doc and os.path.exists(doc[4]):
+        file_path = doc[4]
+        file_type = doc[5]
+        
+        if file_type == 'pdf':
+            text = extract_text_from_pdf(file_path)
+            return jsonify({'type': 'text', 'content': text[:2000]})
+        elif file_type == 'docx':
+            text = extract_text_from_docx(file_path)
+            return jsonify({'type': 'text', 'content': text[:2000]})
+        elif file_type in ['png', 'jpg', 'jpeg']:
+            with open(file_path, 'rb') as f:
+                img_data = base64.b64encode(f.read()).decode('utf-8')
+                return jsonify({'type': 'image', 'content': img_data})
+    
+    return jsonify({'error': 'File not found'}), 404
+
 @app.route('/api/parse-resume', methods=['POST'])
 def parse_resume():
     if 'resume' not in request.files:
@@ -963,6 +1096,8 @@ def analyze_match():
 
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
+    import io
+    import csv
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
