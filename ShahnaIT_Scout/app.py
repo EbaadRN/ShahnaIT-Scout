@@ -1,47 +1,275 @@
-# app.py - FEATURE 5: Attach Document to JD
+# app.py - COMPLETE WORKING VERSION (Features 1-5)
 import os
+import sqlite3
 import json
-from flask import Flask, render_template_string, request, jsonify
+import re
+import shutil
+import base64
+from datetime import datetime
+from flask import Flask, render_template_string, request, jsonify, send_file
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from datetime import datetime
-from routes.candidates import candidates_bp
-from routes.jobs import jobs_bp
-from routes.analyze import analyze_bp
-from routes.export import export_bp
-from routes.documents import documents_bp
-from models.database import init_db, get_jobs, create_job, get_job_documents, add_job_document
-import shutil
+import PyPDF2
+import docx
+import requests
 
 app = Flask(__name__)
 CORS(app)
 
+# Configuration
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
+app.config['UPLOAD_FOLDER'] = '/tmp'
+app.config['DOCUMENTS_FOLDER'] = '/tmp/candidate_docs'
+app.config['JOB_DOCUMENTS_FOLDER'] = '/tmp/job_docs'
+
+os.makedirs(app.config['DOCUMENTS_FOLDER'], exist_ok=True)
+os.makedirs(app.config['JOB_DOCUMENTS_FOLDER'], exist_ok=True)
+
+# ============ DATABASE SETUP ============
+DB_PATH = 'shahnai.db'
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    c.execute('DROP TABLE IF EXISTS candidates')
+    c.execute('''CREATE TABLE candidates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        first_name TEXT, last_name TEXT, middle_name TEXT, phone TEXT, email TEXT,
+        address TEXT, linkedin TEXT, other_social TEXT, current_role TEXT,
+        current_ctc TEXT, expected_ctc TEXT,
+        employment_status TEXT, notice_period_days INTEGER DEFAULT 0,
+        work_experience TEXT, certifications TEXT, core_skills TEXT, education TEXT,
+        resume_text TEXT, resume_filename TEXT, match_score INTEGER DEFAULT 0,
+        recommendation TEXT DEFAULT '', detailed_analysis TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    c.execute('DROP TABLE IF EXISTS candidate_documents')
+    c.execute('''CREATE TABLE candidate_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, candidate_id INTEGER,
+        filename TEXT, original_filename TEXT, file_path TEXT, file_type TEXT,
+        is_resume BOOLEAN DEFAULT 0, uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id)
+    )''')
+    
+    c.execute('DROP TABLE IF EXISTS jobs')
+    c.execute('''CREATE TABLE jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
+        company TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        job_id INTEGER,
+        filename TEXT,
+        original_filename TEXT,
+        file_path TEXT,
+        file_type TEXT,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (job_id) REFERENCES jobs(id)
+    )''')
+    
+    conn.commit()
+    conn.close()
+    print("✅ Database initialized")
+
 init_db()
-os.makedirs('/tmp/candidate_docs', exist_ok=True)
-os.makedirs('/tmp/job_docs', exist_ok=True)
 
-# Create job_documents table
-conn = sqlite3.connect('shahnai.db')
-c = conn.cursor()
-c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    job_id INTEGER,
-    filename TEXT,
-    original_filename TEXT,
-    file_path TEXT,
-    file_type TEXT,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (job_id) REFERENCES jobs(id)
-)''')
-conn.commit()
-conn.close()
+# ============ GROQ API SETUP ============
+GROQ_ENABLED = False
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
-app.register_blueprint(candidates_bp, url_prefix='/api')
-app.register_blueprint(jobs_bp, url_prefix='/api')
-app.register_blueprint(analyze_bp, url_prefix='/api')
-app.register_blueprint(export_bp, url_prefix='/api')
-app.register_blueprint(documents_bp, url_prefix='/api')
+if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
+    GROQ_ENABLED = True
+    print("✅✅✅ Groq API configured")
 
+def call_groq_api(prompt, max_tokens=2500):
+    if not GROQ_API_KEY:
+        return None
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.1,
+        "max_tokens": max_tokens
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=45)
+        if response.status_code == 200:
+            result = response.json()['choices'][0]['message']['content']
+            result = result.strip()
+            if result.startswith('```json'):
+                result = result[7:]
+            if result.startswith('```'):
+                result = result[3:]
+            if result.endswith('```'):
+                result = result[:-3]
+            return result
+        return None
+    except Exception as e:
+        print(f"Groq error: {e}")
+        return None
+
+def parse_resume_with_groq(resume_text):
+    prompt = f"""Parse this resume. Extract years of experience for each skill. Return ONLY valid JSON.
+
+RESUME: {resume_text[:3500]}
+
+Return: {{
+    "first_name": "",
+    "last_name": "",
+    "middle_name": "",
+    "phone": "",
+    "email": "",
+    "address": "",
+    "linkedin": "",
+    "current_role": "",
+    "current_ctc": "",
+    "expected_ctc": "",
+    "employment_status": "working",
+    "notice_period_days": 0,
+    "work_experience": [],
+    "certifications": [],
+    "core_skills": [],
+    "education": ""
+}}"""
+    response = call_groq_api(prompt, max_tokens=2500)
+    if response:
+        try:
+            return json.loads(response)
+        except:
+            return None
+    return None
+
+def analyze_match_with_groq(resume_text, jd_text):
+    if not GROQ_ENABLED:
+        return None
+    prompt = f"""Analyze this resume against the job description. Return ONLY valid JSON.
+
+JOB: {jd_text[:2500]}
+RESUME: {resume_text[:3000]}
+
+Return: {{"match_score": 0, "recommendation": "hire/interview/reject", "executive_summary": {{"final_verdict": "text"}}, "pre_screening_questions": []}}"""
+    response = call_groq_api(prompt, max_tokens=1500)
+    if response:
+        try:
+            return json.loads(response)
+        except:
+            return None
+    return None
+
+# ============ RESUME PARSING HELPERS ============
+def extract_text_from_pdf(file_path):
+    try:
+        text = ""
+        with open(file_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            for page in reader.pages:
+                text += page.extract_text()
+        return text
+    except:
+        return ""
+
+def extract_text_from_docx(file_path):
+    try:
+        doc = docx.Document(file_path)
+        return "\n".join([p.text for p in doc.paragraphs])
+    except:
+        return ""
+
+def extract_email(text):
+    match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
+    return match.group(0) if match else ""
+
+def extract_phone(text):
+    match = re.search(r'\b\d{10}\b|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\+\d{2}\s?\d{10}\b', text)
+    return match.group(0) if match else ""
+
+def extract_years_from_text(text, skill):
+    patterns = [
+        r'(\d+)\+?\s*years? of experience in ' + re.escape(skill),
+        r'(\d+)\+?\s*years? in ' + re.escape(skill),
+        r'(\d+)\+?\s*yrs? of experience with ' + re.escape(skill),
+        r'(\d+)\+?\s*years?.*?' + re.escape(skill),
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+    return 0
+
+def extract_name_from_text(text):
+    lines = text.strip().split('\n')
+    name = lines[0].strip() if lines else "Unknown"
+    name_parts = name.split()
+    first_name = name_parts[0] if name_parts else ""
+    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+    middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+    return first_name, last_name, middle_name
+
+def fallback_parse_resume(text):
+    first_name, last_name, middle_name = extract_name_from_text(text)
+    email = extract_email(text)
+    phone = extract_phone(text)
+    
+    common_skills = [
+        'Python', 'Java', 'JavaScript', 'React', 'Angular', 'Node.js', 'SQL', 'AWS', 
+        'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps', 'Entra ID'
+    ]
+    found_skills = []
+    for skill in common_skills:
+        if skill.lower() in text.lower():
+            years = extract_years_from_text(text, skill)
+            found_skills.append({"skill": skill, "years_of_experience": years})
+    
+    return {
+        'first_name': first_name,
+        'last_name': last_name,
+        'middle_name': middle_name,
+        'phone': phone,
+        'email': email,
+        'address': "",
+        'linkedin': "",
+        'current_role': "",
+        'current_ctc': "",
+        'expected_ctc': "",
+        'employment_status': "working",
+        'notice_period_days': 0,
+        'work_experience': [],
+        'certifications': [],
+        'core_skills': found_skills[:5],
+        'education': "",
+        'resume_text': text[:3000],
+        'ai_used': False
+    }
+
+def save_candidate_to_db(candidate_data):
+    skills = json.dumps(candidate_data.get('core_skills', []))
+    work_exp = json.dumps(candidate_data.get('work_experience', []))
+    certs = json.dumps(candidate_data.get('certifications', []))
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''INSERT INTO candidates 
+        (first_name, last_name, middle_name, phone, email, address, linkedin,
+         current_role, current_ctc, expected_ctc,
+         employment_status, notice_period_days, work_experience, certifications,
+         core_skills, education, resume_text, resume_filename)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (candidate_data.get('first_name'), candidate_data.get('last_name'), candidate_data.get('middle_name'),
+         candidate_data.get('phone'), candidate_data.get('email'), candidate_data.get('address'), candidate_data.get('linkedin'),
+         candidate_data.get('current_role'), candidate_data.get('current_ctc'), candidate_data.get('expected_ctc'),
+         candidate_data.get('employment_status'), candidate_data.get('notice_period_days', 0),
+         work_exp, certs, skills, candidate_data.get('education'), candidate_data.get('resume_text'), candidate_data.get('resume_filename')))
+    
+    candidate_id = c.lastrowid
+    conn.commit()
+    conn.close()
+    return candidate_id
+
+# ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
@@ -263,7 +491,6 @@ HTML_TEMPLATE = '''
         const job = allJobs.find(j => j.id == id);
         if (!job) return;
         
-        // Fetch job documents
         const docRes = await fetch(`/api/jobs/${id}/documents`);
         const documents = await docRes.json();
         
@@ -294,7 +521,6 @@ HTML_TEMPLATE = '''
         `;
         document.getElementById('editJobModal').style.display = 'block';
         
-        // Upload document handler
         document.getElementById('uploadJobDocBtn').onclick = async function() {
             const file = document.getElementById('jobDocFile').files[0];
             if (!file) { alert('Select a file'); return; }
@@ -528,11 +754,51 @@ HTML_TEMPLATE = '''
 </html>
 '''
 
-# ========== JOB DOCUMENT API ROUTES ==========
+# ============ API ROUTES ============
+@app.route('/')
+def index():
+    return HTML_TEMPLATE
+
+@app.route('/api/jobs', methods=['GET'])
+def get_jobs():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM jobs ORDER BY created_at DESC')
+    jobs = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(jobs)
+
+@app.route('/api/jobs', methods=['POST'])
+def create_job():
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('INSERT INTO jobs (title, company, description) VALUES (?, ?, ?)',
+              (data.get('title'), data.get('company'), data.get('description', '')))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Job created'})
+
+@app.route('/api/jobs/<int:job_id>', methods=['PUT'])
+def update_job(job_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('UPDATE jobs SET title = ?, company = ?, description = ? WHERE id = ?',
+              (data.get('title'), data.get('company'), data.get('description', ''), job_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Job updated'})
+
 @app.route('/api/jobs/<int:job_id>/documents', methods=['GET'])
-def get_job_documents_api(job_id):
-    from models.database import get_job_documents
-    docs = get_job_documents(job_id)
+def get_job_documents(job_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM job_documents WHERE job_id = ? ORDER BY uploaded_at DESC', (job_id,))
+    docs = [dict(row) for row in c.fetchall()]
+    conn.close()
     return jsonify(docs)
 
 @app.route('/api/jobs/upload-document', methods=['POST'])
@@ -546,16 +812,20 @@ def upload_job_document():
     
     original_filename = file.filename
     filename = secure_filename(f"{job_id}_{datetime.now().timestamp()}_{file.filename}")
-    filepath = os.path.join('/tmp/job_docs', filename)
+    filepath = os.path.join(app.config['JOB_DOCUMENTS_FOLDER'], filename)
     file.save(filepath)
     
-    from models.database import add_job_document
-    add_job_document(job_id, filename, original_filename, filepath, original_filename.split('.')[-1])
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('INSERT INTO job_documents (job_id, filename, original_filename, file_path, file_type) VALUES (?, ?, ?, ?, ?)',
+              (job_id, filename, original_filename, filepath, original_filename.split('.')[-1]))
+    conn.commit()
+    conn.close()
     return jsonify({'message': 'Document uploaded'})
 
 @app.route('/api/jobs/documents/<int:doc_id>', methods=['DELETE'])
 def delete_job_document(doc_id):
-    conn = sqlite3.connect('shahnai.db')
+    conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('SELECT file_path FROM job_documents WHERE id = ?', (doc_id,))
     row = c.fetchone()
@@ -566,26 +836,149 @@ def delete_job_document(doc_id):
     conn.close()
     return jsonify({'message': 'Document deleted'})
 
-@app.route('/api/jobs/<int:job_id>', methods=['PUT'])
-def update_job(job_id):
-    from models.database import update_job
-    data = request.json
-    update_job(job_id, data.get('title'), data.get('company'), data.get('description'))
-    return jsonify({'message': 'Job updated'})
-
-@app.route('/')
-def index():
-    return HTML_TEMPLATE
-
-# Add update_job function to models/database.py
-import sqlite3
-def update_job(job_id, title, company, description):
-    conn = sqlite3.connect('shahnai.db')
+@app.route('/api/candidates', methods=['GET'])
+def get_candidates():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('UPDATE jobs SET title = ?, company = ?, description = ? WHERE id = ?',
-              (title, company, description, job_id))
+    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(candidates)
+
+@app.route('/api/candidates', methods=['POST'])
+def create_candidate():
+    data = request.json
+    candidate_id = save_candidate_to_db(data)
+    
+    file_path = data.get('file_path')
+    original_filename = data.get('original_filename')
+    
+    if file_path and os.path.exists(file_path):
+        permanent_filename = secure_filename(f"{candidate_id}_{datetime.now().timestamp()}_{original_filename}")
+        permanent_path = os.path.join(app.config['DOCUMENTS_FOLDER'], permanent_filename)
+        shutil.move(file_path, permanent_path)
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type, is_resume) VALUES (?, ?, ?, ?, ?, ?)',
+                  (candidate_id, permanent_filename, original_filename, permanent_path, original_filename.split('.')[-1], 1))
+        conn.commit()
+        conn.close()
+    
+    return jsonify({'message': 'Candidate saved', 'id': candidate_id})
+
+@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
+def update_candidate(candidate_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''UPDATE candidates SET 
+        first_name=?, middle_name=?, last_name=?, email=?, phone=?, address=?, linkedin=?,
+        current_role=?, current_ctc=?, expected_ctc=?,
+        employment_status=?, notice_period_days=?, education=?,
+        core_skills=?, certifications=?
+        WHERE id=?''',
+        (data.get('first_name'), data.get('middle_name'), data.get('last_name'),
+         data.get('email'), data.get('phone'), data.get('address'), data.get('linkedin'),
+         data.get('current_role'), data.get('current_ctc'), data.get('expected_ctc'),
+         data.get('employment_status'), data.get('notice_period_days', 0),
+         data.get('education'), data.get('core_skills'), data.get('certifications'), candidate_id))
     conn.commit()
     conn.close()
+    return jsonify({'message': 'Candidate updated'})
+
+@app.route('/api/candidates/<int:candidate_id>/documents', methods=['GET'])
+def get_candidate_documents(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidate_documents WHERE candidate_id = ? ORDER BY is_resume DESC', (candidate_id,))
+    docs = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(docs)
+
+@app.route('/api/parse-resume', methods=['POST'])
+def parse_resume():
+    if 'resume' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['resume']
+    if file.filename == '':
+        return jsonify({'error': 'No file'}), 400
+    
+    filename = secure_filename(file.filename)
+    original_filename = file.filename
+    temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(temp_filepath)
+    
+    if filename.endswith('.pdf'):
+        text = extract_text_from_pdf(temp_filepath)
+    else:
+        text = extract_text_from_docx(temp_filepath)
+    
+    if not text:
+        os.remove(temp_filepath)
+        return jsonify({'error': 'Could not extract text'}), 400
+    
+    parsed = parse_resume_with_groq(text)
+    if parsed and parsed.get('first_name'):
+        parsed['resume_text'] = text[:3000]
+        parsed['ai_used'] = True
+    else:
+        parsed = fallback_parse_resume(text)
+        parsed['ai_used'] = False
+    
+    parsed['file_path'] = temp_filepath
+    parsed['original_filename'] = original_filename
+    
+    return jsonify(parsed)
+
+@app.route('/api/analyze-match', methods=['POST'])
+def analyze_match():
+    data = request.json
+    resume_text = data.get('resume_text', '')
+    jd_text = data.get('jd_text', '')
+    candidate_id = data.get('candidate_id')
+    
+    if not resume_text or not jd_text:
+        return jsonify({'error': 'Missing text'}), 400
+    
+    if not GROQ_ENABLED:
+        return jsonify({'error': 'Groq API not configured'}), 503
+    
+    result = analyze_match_with_groq(resume_text, jd_text)
+    
+    if result and candidate_id:
+        detailed_json = json.dumps(result, indent=2)
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('UPDATE candidates SET match_score = ?, recommendation = ?, detailed_analysis = ? WHERE id = ?',
+                  (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, candidate_id))
+        conn.commit()
+        conn.close()
+        return jsonify(result)
+    elif result:
+        return jsonify(result)
+    
+    return jsonify({'error': 'Analysis failed'}), 500
+
+@app.route('/api/export-candidates', methods=['GET'])
+def export_candidates():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT id, first_name, last_name, email, phone, current_role, match_score, created_at FROM candidates ORDER BY created_at DESC')
+    rows = c.fetchall()
+    conn.close()
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Match Score', 'Created Date'])
+    for row in rows:
+        writer.writerow([row['id'], row['first_name'] or '', row['last_name'] or '',
+                         row['email'] or '', row['phone'] or '', row['current_role'] or '',
+                         row['match_score'] or 0, row['created_at']])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
