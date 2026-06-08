@@ -1,4 +1,4 @@
-# app.py - COMPLETE WITH ALL FEATURES (Resume Auto-Attachment + Documents)
+# app.py - COMPLETE FIXED VERSION (All Buttons Working)
 import os
 import sqlite3
 import json
@@ -280,18 +280,13 @@ HTML_TEMPLATE = '''
     <style>
         body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
         .header { background: #1A4D4A; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        
         button, .btn { background: #1A4D4A; color: white; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 8px; }
         button:hover, .btn:hover { background: #2A6B67; }
-        
         .tab-btn { background: white; color: #1A4D4A; border: 1px solid #1A4D4A; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 8px; }
         .tab-btn.active { background: #1A4D4A; color: white; }
-        
         .card { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #1A4D4A; cursor: pointer; transition: transform 0.2s; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .card.no-click { cursor: default; }
-        .card.no-click:hover { transform: none; }
-        
         input, select, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
         .skill-tag { background: #F5F0E8; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; }
         .skill-with-years { background: #E8F5E9; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; color: #1B5E20; }
@@ -332,137 +327,58 @@ HTML_TEMPLATE = '''
     </div>
     
     <div>
-        <button class="tab-btn active" id="tab1">📋 Jobs</button>
-        <button class="tab-btn" id="tab2">👥 Candidates</button>
-        <button class="tab-btn" id="tab3">📄 Upload Resume</button>
-        <button class="tab-btn" id="tab4">➕ Create Job</button>
-        <button class="tab-btn" id="tab5">🔍 Analyze Match</button>
+        <button class="tab-btn active" id="tabJobs">📋 Jobs</button>
+        <button class="tab-btn" id="tabCandidates">👥 Candidates</button>
+        <button class="tab-btn" id="tabUpload">📄 Upload Resume</button>
+        <button class="tab-btn" id="tabCreateJob">➕ Create Job</button>
+        <button class="tab-btn" id="tabAnalyze">🔍 Analyze Match</button>
     </div>
     
-    <div id="panel1"><div id="jobsList"></div></div>
-    
-    <div id="panel2" style="display:none;">
-        <button id="exportBtn">📥 Export CSV</button>
-        <div class="filter-bar">
-            <input type="text" id="searchBox" placeholder="Search by name...">
-            <select id="scoreSelect">
-                <option value="all">All Scores</option>
-                <option value="high">High (70%+)</option>
-                <option value="medium">Medium (40-69%)</option>
-                <option value="low">Low (<40%)</option>
-            </select>
-            <button id="clearBtn">Clear Filters</button>
-        </div>
-        <div id="candidatesList"></div>
-    </div>
-    
-    <div id="panel3" style="display:none;">
-        <div class="card no-click">
-            <h3>📄 Upload Resume (PDF/DOCX)</h3>
-            <p>🤖 AI will auto-fill candidate details. Resume will be automatically attached.</p>
-            <input type="file" id="resumeFile" accept=".pdf,.docx">
-            <button id="parseBtn">🔍 Parse & Save</button>
-            <div id="parseResult"></div>
-        </div>
-    </div>
-    
-    <div id="panel4" style="display:none;">
-        <div class="card no-click">
-            <h3>➕ Create New Job</h3>
-            <input type="text" id="jobTitle" placeholder="Job Title *">
-            <input type="text" id="jobCompany" placeholder="Company Name">
-            <textarea id="jobDesc" rows="4" placeholder="Job Description"></textarea>
-            <button id="createJobBtn">Create Job</button>
-        </div>
-    </div>
-    
-    <div id="panel5" style="display:none;">
-        <div class="card no-click">
-            <h3>🔍 AI Match Analysis</h3>
-            <div class="flex">
-                <div class="flex-1"><select id="jobSelect"><option value="">-- Select Job --</option></select></div>
-                <div class="flex-1"><select id="candidateSelect"><option value="">-- Select Candidate --</option></select></div>
-            </div>
-            <button id="analyzeBtn">🤖 Run AI Analysis</button>
-            <div id="analysisResult"></div>
-        </div>
-    </div>
+    <div id="jobsPanel"><div id="jobsList"></div></div>
+    <div id="candidatesPanel" style="display:none;"><button id="exportBtn">📥 Export CSV</button><div class="filter-bar"><input type="text" id="searchBox" placeholder="Search..."><select id="scoreSelect"><option value="all">All Scores</option><option value="high">High (70%+)</option><option value="medium">Medium (40-69%)</option><option value="low">Low (<40%)</option></select><button id="clearBtn">Clear</button></div><div id="candidatesList"></div></div>
+    <div id="uploadPanel" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume</h3><input type="file" id="resumeFile" accept=".pdf,.docx"><button id="parseBtn">🔍 Parse & Save</button><div id="parseResult"></div></div></div>
+    <div id="createJobPanel" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><input type="text" id="jobTitle" placeholder="Job Title *"><input type="text" id="jobCompany" placeholder="Company"><textarea id="jobDesc" rows="4" placeholder="Job Description"></textarea><button id="createJobBtn">Create Job</button></div></div>
+    <div id="analyzePanel" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="jobSelect"></select></div><div class="flex-1"><select id="candidateSelect"></select></div></div><button id="analyzeBtn">🤖 Run Analysis</button><div id="analysisResult"></div></div></div>
 </div>
 
-<!-- Candidate Modal -->
-<div id="candidateModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h2>Candidate Profile</h2><span class="close" onclick="closeModal()">&times;</span></div>
-        <div class="modal-body" id="modalBody"></div>
-    </div>
-</div>
-
-<!-- Edit Candidate Modal -->
-<div id="editModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h2>✏️ Edit Candidate</h2><span class="close" onclick="closeEditModal()">&times;</span></div>
-        <div class="modal-body" id="editModalBody"></div>
-    </div>
-</div>
-
-<!-- Add Document Modal -->
-<div id="docModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h2>📎 Add Document</h2><span class="close" onclick="closeDocModal()">&times;</span></div>
-        <div class="modal-body">
-            <input type="file" id="docFile" accept=".pdf,.docx,.png,.jpg,.jpeg">
-            <button id="uploadDocBtn" class="btn">Upload Document</button>
-            <div id="docUploadStatus"></div>
-        </div>
-    </div>
-</div>
-
-<!-- Document Preview Modal -->
-<div id="previewModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h2>Document Preview</h2><span class="close" onclick="closePreviewModal()">&times;</span></div>
-        <div class="modal-body" id="previewBody"></div>
-    </div>
-</div>
-
-<!-- Edit Job Modal -->
-<div id="editJobModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header"><h2>✏️ Edit Job</h2><span class="close" onclick="closeEditJobModal()">&times;</span></div>
-        <div class="modal-body" id="editJobModalBody"></div>
-    </div>
-</div>
+<!-- Modals -->
+<div id="candidateModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Candidate Profile</h2><span class="close" onclick="closeModal()">&times;</span></div><div class="modal-body" id="modalBody"></div></div></div>
+<div id="editModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>✏️ Edit Candidate</h2><span class="close" onclick="closeEditModal()">&times;</span></div><div class="modal-body" id="editModalBody"></div></div></div>
+<div id="docModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📎 Add Document</h2><span class="close" onclick="closeDocModal()">&times;</span></div><div class="modal-body"><input type="file" id="docFile"><button id="uploadDocBtn" class="btn">Upload</button><div id="docUploadStatus"></div></div></div></div>
+<div id="previewModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Preview</h2><span class="close" onclick="closePreviewModal()">&times;</span></div><div class="modal-body" id="previewBody"></div></div></div>
+<div id="editJobModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>✏️ Edit Job</h2><span class="close" onclick="closeEditJobModal()">&times;</span></div><div class="modal-body" id="editJobModalBody"></div></div></div>
 
 <script>
     let allJobs = [], allCandidates = [], currentCandidateId = null;
     
-    document.getElementById('tab1').onclick = function() { showPanel(1); loadJobs(); };
-    document.getElementById('tab2').onclick = function() { showPanel(2); loadCandidates(); };
-    document.getElementById('tab3').onclick = function() { showPanel(3); };
-    document.getElementById('tab4').onclick = function() { showPanel(4); };
-    document.getElementById('tab5').onclick = function() { showPanel(5); loadJobs(); loadCandidates(); };
+    // Tab switching
+    document.getElementById('tabJobs').onclick = function() { showPanel('jobs'); loadJobs(); };
+    document.getElementById('tabCandidates').onclick = function() { showPanel('candidates'); loadCandidates(); };
+    document.getElementById('tabUpload').onclick = function() { showPanel('upload'); };
+    document.getElementById('tabCreateJob').onclick = function() { showPanel('createJob'); };
+    document.getElementById('tabAnalyze').onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     
-    function showPanel(num) {
-        for(let i=1; i<=5; i++) {
-            document.getElementById('panel'+i).style.display = 'none';
-            document.getElementById('tab'+i).classList.remove('active');
-        }
-        document.getElementById('panel'+num).style.display = 'block';
-        document.getElementById('tab'+num).classList.add('active');
+    function showPanel(panel) {
+        document.getElementById('jobsPanel').style.display = 'none';
+        document.getElementById('candidatesPanel').style.display = 'none';
+        document.getElementById('uploadPanel').style.display = 'none';
+        document.getElementById('createJobPanel').style.display = 'none';
+        document.getElementById('analyzePanel').style.display = 'none';
+        document.getElementById(panel + 'Panel').style.display = 'block';
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        if(panel === 'jobs') document.getElementById('tabJobs').classList.add('active');
+        if(panel === 'candidates') document.getElementById('tabCandidates').classList.add('active');
+        if(panel === 'upload') document.getElementById('tabUpload').classList.add('active');
+        if(panel === 'createJob') document.getElementById('tabCreateJob').classList.add('active');
+        if(panel === 'analyze') document.getElementById('tabAnalyze').classList.add('active');
     }
     
     async function loadJobs() {
         const res = await fetch('/api/jobs');
         allJobs = await res.json();
         const container = document.getElementById('jobsList');
-        if(!allJobs.length) { container.innerHTML = '<div class="card no-click">No jobs yet. Create one.</div>'; return; }
-        container.innerHTML = allJobs.map(j => `
-            <div class="card" onclick="editJob(${j.id})">
-                <h3>${escapeHtml(j.title)}</h3>
-                ${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}
-                <small>📅 ${new Date(j.created_at).toLocaleDateString()}</small>
-            </div>
-        `).join('');
+        if(!allJobs.length) { container.innerHTML = '<div class="card no-click">No jobs yet</div>'; return; }
+        container.innerHTML = allJobs.map(j => `<div class="card" onclick="editJob(${j.id})"><h3>${escapeHtml(j.title)}</h3>${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}<small>${new Date(j.created_at).toLocaleDateString()}</small></div>`).join('');
         document.getElementById('jobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
     }
     
@@ -486,354 +402,188 @@ HTML_TEMPLATE = '''
     
     function renderCandidates(candidates) {
         const container = document.getElementById('candidatesList');
-        if(!candidates.length) { container.innerHTML = '<div class="card no-click">No candidates yet. Upload resumes.</div>'; return; }
+        if(!candidates.length) { container.innerHTML = '<div class="card no-click">No candidates</div>'; return; }
         container.innerHTML = candidates.map(c => {
             const name = (c.first_name + ' ' + c.last_name).trim() || 'Unknown';
             const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
             const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
-            return `<div class="card" onclick="viewCandidate(${c.id})">
-                <h3>👤 ${escapeHtml(name)}</h3>
-                ${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}
-                <p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>
-                ${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
-                <small>📅 ${new Date(c.created_at).toLocaleDateString()}</small>
-            </div>`;
+            return `<div class="card" onclick="viewCandidate(${c.id})"><h3>👤 ${escapeHtml(name)}</h3>${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}<p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}<small>${new Date(c.created_at).toLocaleDateString()}</small></div>`;
         }).join('');
     }
     
     document.getElementById('searchBox').onkeyup = filterCandidates;
     document.getElementById('scoreSelect').onchange = filterCandidates;
-    document.getElementById('clearBtn').onclick = function() {
-        document.getElementById('searchBox').value = '';
-        document.getElementById('scoreSelect').value = 'all';
-        filterCandidates();
-    };
+    document.getElementById('clearBtn').onclick = function() { document.getElementById('searchBox').value = ''; document.getElementById('scoreSelect').value = 'all'; filterCandidates(); };
     
-    // ========== EDIT JOB WITH DOCUMENT ATTACHMENT ==========
+    // Edit Job
     window.editJob = async function(id) {
         const job = allJobs.find(j => j.id == id);
-        if (!job) return;
-        
         const docRes = await fetch(`/api/jobs/${id}/documents`);
         const documents = await docRes.json();
-        
         let docsHtml = '';
         if (documents.length > 0) {
-            docsHtml = '<h4>📎 Attached Documents</h4><div class="file-list">';
-            documents.forEach(doc => {
-                docsHtml += `<div class="file-list-item">📄 ${escapeHtml(doc.original_filename)} <span class="remove-file" onclick="deleteJobDocument(${doc.id}, ${id})">✕ Remove</span></div>`;
-            });
+            docsHtml = '<h4>Attached Documents</h4><div class="file-list">';
+            documents.forEach(doc => { docsHtml += `<div class="file-list-item">📄 ${escapeHtml(doc.original_filename)} <span class="remove-file" onclick="deleteJobDocument(${doc.id}, ${id})">✕ Remove</span></div>`; });
             docsHtml += '</div>';
         }
-        
-        document.getElementById('editJobModalBody').innerHTML = `
-            <form id="editJobForm">
-                <label>Job Title</label><input type="text" id="editJobTitle" value="${escapeHtml(job.title || '')}">
-                <label>Company Name</label><input type="text" id="editJobCompany" value="${escapeHtml(job.company || '')}">
-                <label>Job Description</label><textarea id="editJobDesc" rows="5">${escapeHtml(job.description || '')}</textarea>
-                
-                <h4>📄 Attach JD Document (PDF/DOCX)</h4>
-                <input type="file" id="jobDocFile" accept=".pdf,.docx">
-                <button type="button" class="btn btn-secondary" id="uploadJobDocBtn">Upload Document</button>
-                <div id="jobDocUploadStatus"></div>
-                
-                ${docsHtml}
-                
-                <div style="margin-top: 20px;"><button type="submit" class="btn">Save Changes</button><button type="button" class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button></div>
-            </form>
-        `;
+        document.getElementById('editJobModalBody').innerHTML = `<form id="editJobForm"><label>Job Title</label><input type="text" id="editJobTitle" value="${escapeHtml(job.title || '')}"><label>Company</label><input type="text" id="editJobCompany" value="${escapeHtml(job.company || '')}"><label>Description</label><textarea id="editJobDesc" rows="5">${escapeHtml(job.description || '')}</textarea><h4>Attach Document</h4><input type="file" id="jobDocFile"><button type="button" id="uploadJobDocBtn" class="btn btn-secondary">Upload</button><div id="jobDocUploadStatus"></div>${docsHtml}<div style="margin-top:20px;"><button type="submit" class="btn">Save</button><button type="button" class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button></div></form>`;
         document.getElementById('editJobModal').style.display = 'block';
-        
         document.getElementById('uploadJobDocBtn').onclick = async function() {
             const file = document.getElementById('jobDocFile').files[0];
-            if (!file) { alert('Select a file'); return; }
-            const fd = new FormData();
-            fd.append('document', file);
-            fd.append('job_id', id);
-            const statusDiv = document.getElementById('jobDocUploadStatus');
-            statusDiv.innerHTML = '<div class="spinner"></div><p>Uploading...</p>';
-            try {
-                const res = await fetch('/api/jobs/upload-document', { method: 'POST', body: fd });
-                if (res.ok) {
-                    alert('Document uploaded!');
-                    statusDiv.innerHTML = '';
-                    document.getElementById('jobDocFile').value = '';
-                    editJob(id);
-                } else { alert('Upload failed'); statusDiv.innerHTML = ''; }
-            } catch(e) { alert('Upload failed'); statusDiv.innerHTML = ''; }
+            if (!file) return;
+            const fd = new FormData(); fd.append('document', file); fd.append('job_id', id);
+            document.getElementById('jobDocUploadStatus').innerHTML = '<div class="spinner"></div>';
+            const res = await fetch('/api/jobs/upload-document', { method: 'POST', body: fd });
+            if (res.ok) { alert('Uploaded!'); editJob(id); }
+            document.getElementById('jobDocUploadStatus').innerHTML = '';
         };
-        
         document.getElementById('editJobForm').onsubmit = async (e) => {
             e.preventDefault();
-            const data = {
-                title: document.getElementById('editJobTitle').value,
-                company: document.getElementById('editJobCompany').value,
-                description: document.getElementById('editJobDesc').value
-            };
+            const data = { title: document.getElementById('editJobTitle').value, company: document.getElementById('editJobCompany').value, description: document.getElementById('editJobDesc').value };
             const res = await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
             if (res.ok) { alert('Job updated!'); closeEditJobModal(); loadJobs(); }
-            else alert('Error updating job');
         };
     };
     
     window.deleteJobDocument = async function(docId, jobId) {
-        if (confirm('Delete this document?')) {
-            const res = await fetch(`/api/jobs/documents/${docId}`, { method: 'DELETE' });
-            if (res.ok) { editJob(jobId); }
-            else alert('Error deleting');
-        }
+        if (confirm('Delete?')) { await fetch(`/api/jobs/documents/${docId}`, { method: 'DELETE' }); editJob(jobId); }
     };
-    
     function closeEditJobModal() { document.getElementById('editJobModal').style.display = 'none'; }
     window.closeEditJobModal = closeEditJobModal;
     
-    // ========== VIEW CANDIDATE ==========
+    // View Candidate
     window.viewCandidate = async function(id) {
         currentCandidateId = id;
         const c = allCandidates.find(c => c.id == id);
-        if (!c) return;
-        
-        const fullName = (c.first_name || '') + ' ' + (c.last_name || '');
         const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
         const certs = c.certifications ? JSON.parse(c.certifications) : [];
         const workExp = c.work_experience ? JSON.parse(c.work_experience) : [];
-        
-        // Load documents
         const docRes = await fetch(`/api/candidates/${id}/documents`);
         const documents = await docRes.json();
         const resumeDoc = documents.find(d => d.is_resume === 1);
         const otherDocs = documents.filter(d => !d.is_resume);
         
-        document.getElementById('modalBody').innerHTML = `
-            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px;">
-                <button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit Profile</button>
-                <button class="btn btn-secondary" onclick="openAddDocumentModal(${c.id})">📎 Add Document</button>
-                <button class="btn btn-secondary" onclick="copyAllDetails()">📋 Copy All</button>
-            </div>
-            <div class="detail-row"><div class="detail-label">Full Name:</div><div class="detail-value">${escapeHtml(fullName.trim() || 'Unknown')}</div></div>
+        document.getElementById('modalBody').innerHTML = `<div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:15px;"><button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit</button><button class="btn btn-secondary" onclick="openDocModal(${c.id})">📎 Add Document</button><button class="btn btn-secondary" onclick="copyAllDetails()">📋 Copy</button></div>
+            <div class="detail-row"><div class="detail-label">Name:</div><div class="detail-value">${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}</div></div>
             <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Current CTC:</div><div class="detail-value">${escapeHtml(c.current_ctc || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Expected CTC:</div><div class="detail-value">${escapeHtml(c.expected_ctc || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Address:</div><div class="detail-value">${escapeHtml(c.address || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">LinkedIn:</div><div class="detail-value">${escapeHtml(c.linkedin || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Current Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">CTC:</div><div class="detail-value">Current: ${escapeHtml(c.current_ctc || 'N/A')} | Expected: ${escapeHtml(c.expected_ctc || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div></div>
-            
-            <h4 style="margin-top: 20px;">💼 Work Experience</h4>
-            ${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date || '')} - ${escapeHtml(w.end_date || 'Present')}</small></div>`).join('') || '<p>None</p>'}
-            
-            <h4>⭐ Core Skills</h4>
-            ${skills.map(s => `<span class="skill-with-years">${escapeHtml(s.skill)} (${s.years_of_experience || 0} yrs)</span>`).join('') || '<p>None</p>'}
-            
-            <h4>📜 Certifications</h4>
-            ${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
-            
-            <h4>🎓 Education</h4>
-            <p>${escapeHtml(c.education || 'N/A')}</p>
-            
-            <h4>📄 Resume</h4>
-            ${resumeDoc ? `<div><span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span> <span style="background:#1B6B2E; color:white; padding:2px 8px; border-radius:12px; font-size:10px;">Original Resume</span></div>` : '<p>No resume attached</p>'}
-            
-            <h4>📎 Other Documents (${otherDocs.length})</h4>
-            ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>No additional documents</p>'}
-            
-            <button class="btn" onclick="closeModal()" style="margin-top: 20px;">Close</button>
-        `;
+            <h4>Work Experience</h4>${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date||'')} - ${escapeHtml(w.end_date||'Present')}</small></div>`).join('') || '<p>None</p>'}
+            <h4>Skills</h4>${skills.map(s => `<span class="skill-with-years">${escapeHtml(s.skill)} (${s.years_of_experience||0}y)</span>`).join('') || '<p>None</p>'}
+            <h4>Certifications</h4>${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
+            <h4>Resume</h4>${resumeDoc ? `<div><span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span> <span style="background:#1B6B2E;color:white;padding:2px 8px;border-radius:12px;font-size:10px;">Original</span></div>` : '<p>None</p>'}
+            <h4>Other Documents</h4>${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>None</p>'}
+            <button class="btn" onclick="closeModal()">Close</button>`;
         document.getElementById('candidateModal').style.display = 'block';
     };
     
     window.previewDocument = async function(docId) {
-        try {
-            const res = await fetch(`/api/documents/${docId}/preview`);
-            const data = await res.json();
-            document.getElementById('previewBody').innerHTML = data.type === 'image' ? 
-                `<img src="data:image/png;base64,${data.content}" style="max-width:100%;">` : 
-                `<div style="white-space: pre-wrap; background: white; padding: 15px; border-radius: 8px;">${escapeHtml(data.content)}</div>`;
-            document.getElementById('previewModal').style.display = 'block';
-        } catch(e) { alert('Cannot preview'); }
+        const res = await fetch(`/api/documents/${docId}/preview`);
+        const data = await res.json();
+        document.getElementById('previewBody').innerHTML = data.type === 'image' ? `<img src="data:image/png;base64,${data.content}" style="max-width:100%;">` : `<div style="white-space:pre-wrap; background:white; padding:15px;">${escapeHtml(data.content)}</div>`;
+        document.getElementById('previewModal').style.display = 'block';
     };
-    
     function closePreviewModal() { document.getElementById('previewModal').style.display = 'none'; }
     window.closePreviewModal = closePreviewModal;
     
     window.copyAllDetails = function() {
         let text = '';
-        document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-with-years').forEach(el => {
-            text += el.innerText + '\n';
-        });
+        document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-with-years').forEach(el => text += el.innerText + '\\n');
         navigator.clipboard.writeText(text);
-        alert('Copied to clipboard!');
+        alert('Copied!');
     };
     
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
     window.closeModal = closeModal;
-    
-    // ========== ADD DOCUMENT ==========
-    window.openAddDocumentModal = function(id) {
-        currentCandidateId = id;
-        document.getElementById('docModal').style.display = 'block';
-    };
-    
+    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+    window.closeEditModal = closeEditModal;
     function closeDocModal() { document.getElementById('docModal').style.display = 'none'; }
     window.closeDocModal = closeDocModal;
     
-    document.getElementById('uploadDocBtn').onclick = async function() {
-        const file = document.getElementById('docFile').files[0];
-        if (!file || !currentCandidateId) { alert('Select a file'); return; }
-        const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
-        const statusDiv = document.getElementById('docUploadStatus');
-        statusDiv.innerHTML = '<div class="spinner"></div><p>Uploading...</p>';
-        try {
-            const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
-            if (res.ok) {
-                alert('Document uploaded!');
-                statusDiv.innerHTML = '';
-                closeDocModal();
-                viewCandidate(currentCandidateId);
-            } else { alert('Upload failed'); statusDiv.innerHTML = ''; }
-        } catch(e) { alert('Upload failed'); statusDiv.innerHTML = ''; }
-    };
-    
-    // ========== EDIT CANDIDATE ==========
     window.openEditModal = async function(id) {
         const c = allCandidates.find(c => c.id == id);
-        if (!c) return;
-        
         const skillsStr = c.core_skills ? JSON.parse(c.core_skills).map(s => s.skill).join(', ') : '';
         const certsStr = c.certifications ? JSON.parse(c.certifications).join(', ') : '';
-        
-        document.getElementById('editModalBody').innerHTML = `
-            <form id="editForm">
-                <div class="flex">
-                    <div class="flex-1"><label>First Name</label><input type="text" id="editFirst" value="${escapeHtml(c.first_name || '')}"></div>
-                    <div class="flex-1"><label>Middle Name</label><input type="text" id="editMiddle" value="${escapeHtml(c.middle_name || '')}"></div>
-                    <div class="flex-1"><label>Last Name</label><input type="text" id="editLast" value="${escapeHtml(c.last_name || '')}"></div>
-                </div>
-                <div class="flex">
-                    <div class="flex-1"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(c.email || '')}"></div>
-                    <div class="flex-1"><label>Phone</label><input type="text" id="editPhone" value="${escapeHtml(c.phone || '')}"></div>
-                </div>
-                <div class="flex">
-                    <div class="flex-1"><label>Current CTC</label><input type="text" id="editCurrentCTC" value="${escapeHtml(c.current_ctc || '')}"></div>
-                    <div class="flex-1"><label>Expected CTC</label><input type="text" id="editExpectedCTC" value="${escapeHtml(c.expected_ctc || '')}"></div>
-                </div>
-                <label>Address</label><input type="text" id="editAddress" value="${escapeHtml(c.address || '')}">
-                <label>LinkedIn</label><input type="text" id="editLinkedin" value="${escapeHtml(c.linkedin || '')}">
-                <label>Current Role</label><input type="text" id="editRole" value="${escapeHtml(c.current_role || '')}">
-                <div class="flex">
-                    <div class="flex-1"><label>Status</label>
-                        <select id="editStatus">
-                            <option value="working" ${c.employment_status === 'working' ? 'selected' : ''}>Working</option>
-                            <option value="bench" ${c.employment_status === 'bench' ? 'selected' : ''}>On Bench</option>
-                            <option value="notice_period" ${c.employment_status === 'notice_period' ? 'selected' : ''}>Notice Period</option>
-                        </select>
-                    </div>
-                    <div class="flex-1"><label>Notice Days</label><input type="number" id="editNoticeDays" value="${c.notice_period_days || 0}"></div>
-                </div>
-                <label>Education</label><textarea id="editEducation" rows="2">${escapeHtml(c.education || '')}</textarea>
-                <label>Skills (comma separated)</label><input type="text" id="editSkills" value="${escapeHtml(skillsStr)}">
-                <label>Certifications (comma separated)</label><input type="text" id="editCerts" value="${escapeHtml(certsStr)}">
-                <div style="margin-top: 20px;"><button type="submit" class="btn">Save Changes</button><button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button></div>
-            </form>
-        `;
+        document.getElementById('editModalBody').innerHTML = `<form id="editForm"><div class="flex"><div class="flex-1"><label>First Name</label><input type="text" id="editFirst" value="${escapeHtml(c.first_name||'')}"></div><div class="flex-1"><label>Middle</label><input type="text" id="editMiddle" value="${escapeHtml(c.middle_name||'')}"></div><div class="flex-1"><label>Last</label><input type="text" id="editLast" value="${escapeHtml(c.last_name||'')}"></div></div><div class="flex"><div class="flex-1"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(c.email||'')}"></div><div class="flex-1"><label>Phone</label><input type="text" id="editPhone" value="${escapeHtml(c.phone||'')}"></div></div><div class="flex"><div class="flex-1"><label>Current CTC</label><input type="text" id="editCurrentCTC" value="${escapeHtml(c.current_ctc||'')}"></div><div class="flex-1"><label>Expected CTC</label><input type="text" id="editExpectedCTC" value="${escapeHtml(c.expected_ctc||'')}"></div></div><label>Address</label><input type="text" id="editAddress" value="${escapeHtml(c.address||'')}"><label>LinkedIn</label><input type="text" id="editLinkedin" value="${escapeHtml(c.linkedin||'')}"><label>Current Role</label><input type="text" id="editRole" value="${escapeHtml(c.current_role||'')}"><div class="flex"><div class="flex-1"><label>Status</label><select id="editStatus"><option value="working" ${c.employment_status==='working'?'selected':''}>Working</option><option value="bench" ${c.employment_status==='bench'?'selected':''}>Bench</option><option value="notice_period" ${c.employment_status==='notice_period'?'selected':''}>Notice</option></select></div><div class="flex-1"><label>Notice Days</label><input type="number" id="editNoticeDays" value="${c.notice_period_days||0}"></div></div><label>Education</label><textarea id="editEducation" rows="2">${escapeHtml(c.education||'')}</textarea><label>Skills (comma)</label><input type="text" id="editSkills" value="${escapeHtml(skillsStr)}"><label>Certifications (comma)</label><input type="text" id="editCerts" value="${escapeHtml(certsStr)}"><div style="margin-top:20px;"><button type="submit" class="btn">Save</button><button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button></div></form>`;
         document.getElementById('editModal').style.display = 'block';
-        
         document.getElementById('editForm').onsubmit = async (e) => {
             e.preventDefault();
             const skillsArray = document.getElementById('editSkills').value.split(',').map(s => ({skill: s.trim(), years_of_experience: 0})).filter(s => s.skill);
             const certsArray = document.getElementById('editCerts').value.split(',').map(c => c.trim()).filter(c => c);
-            
             const data = {
-                first_name: document.getElementById('editFirst').value,
-                middle_name: document.getElementById('editMiddle').value,
-                last_name: document.getElementById('editLast').value,
-                email: document.getElementById('editEmail').value,
-                phone: document.getElementById('editPhone').value,
-                current_ctc: document.getElementById('editCurrentCTC').value,
-                expected_ctc: document.getElementById('editExpectedCTC').value,
-                address: document.getElementById('editAddress').value,
-                linkedin: document.getElementById('editLinkedin').value,
-                current_role: document.getElementById('editRole').value,
-                employment_status: document.getElementById('editStatus').value,
-                notice_period_days: parseInt(document.getElementById('editNoticeDays').value) || 0,
-                education: document.getElementById('editEducation').value,
-                core_skills: JSON.stringify(skillsArray),
-                certifications: JSON.stringify(certsArray)
+                first_name: document.getElementById('editFirst').value, middle_name: document.getElementById('editMiddle').value, last_name: document.getElementById('editLast').value,
+                email: document.getElementById('editEmail').value, phone: document.getElementById('editPhone').value,
+                current_ctc: document.getElementById('editCurrentCTC').value, expected_ctc: document.getElementById('editExpectedCTC').value,
+                address: document.getElementById('editAddress').value, linkedin: document.getElementById('editLinkedin').value,
+                current_role: document.getElementById('editRole').value, employment_status: document.getElementById('editStatus').value,
+                notice_period_days: parseInt(document.getElementById('editNoticeDays').value) || 0, education: document.getElementById('editEducation').value,
+                core_skills: JSON.stringify(skillsArray), certifications: JSON.stringify(certsArray)
             };
             const res = await fetch(`/api/candidates/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-            if (res.ok) { alert('Candidate updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
-            else alert('Error updating');
+            if (res.ok) { alert('Updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
+            else alert('Error');
         };
     };
     
-    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
-    window.closeEditModal = closeEditModal;
+    window.openDocModal = function(id) { currentCandidateId = id; document.getElementById('docModal').style.display = 'block'; };
+    document.getElementById('uploadDocBtn').onclick = async function() {
+        const file = document.getElementById('docFile').files[0];
+        if (!file || !currentCandidateId) return;
+        const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
+        document.getElementById('docUploadStatus').innerHTML = '<div class="spinner"></div>';
+        const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
+        if (res.ok) { alert('Uploaded!'); closeDocModal(); viewCandidate(currentCandidateId); }
+        document.getElementById('docUploadStatus').innerHTML = '';
+    };
     
     document.getElementById('exportBtn').onclick = () => window.location.href = '/api/export-candidates';
     
     document.getElementById('parseBtn').onclick = async function() {
         const file = document.getElementById('resumeFile').files[0];
-        if(!file) { alert('Select a file'); return; }
+        if(!file) return;
         const fd = new FormData(); fd.append('resume', file);
         const div = document.getElementById('parseResult');
         div.innerHTML = '<div class="spinner"></div><p>Parsing...</p>';
-        try {
-            const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
-            const result = await res.json();
-            if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4>
-                <p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p>
-                <p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p>
-                <p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p>
-                <p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p>
-                <button id="saveBtn">💾 Save Candidate</button></div>`;
-            document.getElementById('saveBtn').onclick = async function() {
-                const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if(saveRes.ok) { alert('Saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resumeFile').value = ''; loadCandidates(); showPanel(2); }
-                else alert('Error');
-            };
-        } catch(e) { div.innerHTML = '<div class="alert-error">Error</div>'; }
+        const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
+        const result = await res.json();
+        if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
+        div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name||'')} ${escapeHtml(result.last_name||'')}</p><p><strong>Email:</strong> ${escapeHtml(result.email||'')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone||'')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button id="saveBtn">💾 Save</button></div>`;
+        document.getElementById('saveBtn').onclick = async function() {
+            const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
+            if(saveRes.ok) { alert('Saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resumeFile').value = ''; loadCandidates(); showPanel('candidates'); }
+            else alert('Error');
+        };
     };
     
     document.getElementById('createJobBtn').onclick = async function() {
-        const data = {
-            title: document.getElementById('jobTitle').value,
-            company: document.getElementById('jobCompany').value,
-            description: document.getElementById('jobDesc').value
-        };
-        if(!data.title) { alert('Title required'); return; }
+        const data = { title: document.getElementById('jobTitle').value, company: document.getElementById('jobCompany').value, description: document.getElementById('jobDesc').value };
+        if(!data.title) return;
         const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-        if(res.ok) {
-            alert('Job created!');
-            document.getElementById('jobTitle').value = '';
-            document.getElementById('jobCompany').value = '';
-            document.getElementById('jobDesc').value = '';
-            showPanel(1); loadJobs();
-        } else { alert('Error'); }
+        if(res.ok) { alert('Job created!'); document.getElementById('jobTitle').value = ''; document.getElementById('jobCompany').value = ''; document.getElementById('jobDesc').value = ''; showPanel('jobs'); loadJobs(); }
+        else alert('Error');
     };
     
     document.getElementById('analyzeBtn').onclick = async function() {
         const jobId = document.getElementById('jobSelect').value;
         const candidateId = document.getElementById('candidateSelect').value;
-        if(!jobId || !candidateId) { alert('Select both'); return; }
+        if(!jobId || !candidateId) return;
         const job = allJobs.find(j => j.id == jobId);
         const cand = allCandidates.find(c => c.id == candidateId);
         const div = document.getElementById('analysisResult');
         div.innerHTML = '<div class="spinner"></div><p>Analyzing...</p>';
-        try {
-            const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
-            const result = await res.json();
-            if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-            const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-            div.innerHTML = `<div class="alert-success"><h4>Analysis</h4><p>Score: <span class="${matchClass}">${result.match_score || 0}%</span></p><p>${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
-            loadCandidates();
-        } catch(e) { div.innerHTML = '<div class="alert-error">Failed</div>'; }
+        const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
+        const result = await res.json();
+        if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
+        const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
+        div.innerHTML = `<div class="alert-success"><h4>Analysis</h4><p>Score: <span class="${matchClass}">${result.match_score || 0}%</span></p><p>${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
+        loadCandidates();
     };
     
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
-    showPanel(1);
+    showPanel('jobs');
     loadJobs();
     loadCandidates();
 </script>
@@ -1096,8 +846,6 @@ def analyze_match():
 
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
-    import io
-    import csv
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
