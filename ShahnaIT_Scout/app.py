@@ -1,4 +1,4 @@
-# app.py - FEATURE 2: Clickable Candidates & Profile Modal
+# app.py - FEATURE 3: Edit Candidate Profile
 import os
 from flask import Flask, render_template_string
 from flask_cors import CORS
@@ -43,6 +43,7 @@ HTML_TEMPLATE = '''
         
         input, select, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
         .skill-tag { background: #F5F0E8; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; }
+        .skill-with-years { background: #E8F5E9; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; color: #1B5E20; }
         .match-high { background: #1B6B2E; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
         .match-medium { background: #CC5500; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
         .match-low { background: #B22222; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
@@ -55,15 +56,17 @@ HTML_TEMPLATE = '''
         .filter-bar { background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .filter-bar input, .filter-bar select { width: auto; flex: 1; }
         
-        /* Modal styles */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
-        .modal-content { background: #F5F0E8; margin: 50px auto; border-radius: 10px; max-width: 600px; width: 90%; }
+        .modal-content { background: #F5F0E8; margin: 50px auto; border-radius: 10px; max-width: 700px; width: 90%; }
         .modal-header { background: #1A4D4A; color: white; padding: 15px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; }
         .modal-body { padding: 20px; max-height: 60vh; overflow-y: auto; }
         .close { cursor: pointer; font-size: 24px; }
         .detail-row { margin-bottom: 10px; display: flex; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-        .detail-label { width: 120px; font-weight: bold; }
+        .detail-label { width: 130px; font-weight: bold; }
         .detail-value { flex: 1; }
+        .company-item { background: #F9F6F0; padding: 8px; margin-bottom: 5px; border-radius: 5px; border-left: 3px solid #1A4D4A; }
+        .btn-edit { background: #C9A96E; }
+        .btn-secondary { background: #6B7B7B; }
     </style>
 </head>
 <body>
@@ -138,6 +141,14 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 
+<!-- Edit Candidate Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>✏️ Edit Candidate</h2><span class="close" onclick="closeEditModal()">&times;</span></div>
+        <div class="modal-body" id="editModalBody"></div>
+    </div>
+</div>
+
 <script>
     let allJobs = [], allCandidates = [];
     
@@ -208,6 +219,7 @@ HTML_TEMPLATE = '''
         filterCandidates();
     };
     
+    // View Candidate with Edit Button
     window.viewCandidate = async function(id) {
         const c = allCandidates.find(c => c.id == id);
         if (!c) return;
@@ -218,24 +230,30 @@ HTML_TEMPLATE = '''
         const workExp = c.work_experience ? JSON.parse(c.work_experience) : [];
         
         document.getElementById('modalBody').innerHTML = `
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 15px;">
+                <button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit Profile</button>
+            </div>
             <div class="detail-row"><div class="detail-label">Full Name:</div><div class="detail-value">${escapeHtml(fullName.trim() || 'Unknown')}</div></div>
             <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Current Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Current CTC:</div><div class="detail-value">${escapeHtml(c.current_ctc || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Expected CTC:</div><div class="detail-value">${escapeHtml(c.expected_ctc || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Address:</div><div class="detail-value">${escapeHtml(c.address || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">LinkedIn:</div><div class="detail-value">${escapeHtml(c.linkedin || 'N/A')}</div></div>
+            <div class="detail-row"><div class="detail-label">Current Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div></div>
             
             <h4 style="margin-top: 20px;">💼 Work Experience</h4>
-            ${workExp.map(w => `<div class="company-item" style="background:#F9F6F0; padding:8px; margin-bottom:5px; border-radius:5px;"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date || '')} - ${escapeHtml(w.end_date || 'Present')}</small></div>`).join('') || '<p>None</p>'}
+            ${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date || '')} - ${escapeHtml(w.end_date || 'Present')}</small></div>`).join('') || '<p>None</p>'}
             
             <h4>⭐ Core Skills</h4>
-            ${skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)} (${s.years_of_experience || 0} yrs)</span>`).join('') || '<p>None</p>'}
+            ${skills.map(s => `<span class="skill-with-years">${escapeHtml(s.skill)} (${s.years_of_experience || 0} yrs)</span>`).join('') || '<p>None</p>'}
             
             <h4>📜 Certifications</h4>
             ${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
+            
+            <h4>🎓 Education</h4>
+            <p>${escapeHtml(c.education || 'N/A')}</p>
             
             <button class="btn" onclick="closeModal()" style="margin-top: 20px;">Close</button>
         `;
@@ -244,6 +262,81 @@ HTML_TEMPLATE = '''
     
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
     window.closeModal = closeModal;
+    
+    // Edit Candidate
+    window.openEditModal = async function(id) {
+        const c = allCandidates.find(c => c.id == id);
+        if (!c) return;
+        
+        const skillsStr = c.core_skills ? JSON.parse(c.core_skills).map(s => s.skill).join(', ') : '';
+        const certsStr = c.certifications ? JSON.parse(c.certifications).join(', ') : '';
+        
+        document.getElementById('editModalBody').innerHTML = `
+            <form id="editForm">
+                <div class="flex">
+                    <div class="flex-1"><label>First Name</label><input type="text" id="editFirst" value="${escapeHtml(c.first_name || '')}"></div>
+                    <div class="flex-1"><label>Middle Name</label><input type="text" id="editMiddle" value="${escapeHtml(c.middle_name || '')}"></div>
+                    <div class="flex-1"><label>Last Name</label><input type="text" id="editLast" value="${escapeHtml(c.last_name || '')}"></div>
+                </div>
+                <div class="flex">
+                    <div class="flex-1"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(c.email || '')}"></div>
+                    <div class="flex-1"><label>Phone</label><input type="text" id="editPhone" value="${escapeHtml(c.phone || '')}"></div>
+                </div>
+                <div class="flex">
+                    <div class="flex-1"><label>Current CTC</label><input type="text" id="editCurrentCTC" value="${escapeHtml(c.current_ctc || '')}"></div>
+                    <div class="flex-1"><label>Expected CTC</label><input type="text" id="editExpectedCTC" value="${escapeHtml(c.expected_ctc || '')}"></div>
+                </div>
+                <label>Address</label><input type="text" id="editAddress" value="${escapeHtml(c.address || '')}">
+                <label>LinkedIn</label><input type="text" id="editLinkedin" value="${escapeHtml(c.linkedin || '')}">
+                <label>Current Role</label><input type="text" id="editRole" value="${escapeHtml(c.current_role || '')}">
+                <div class="flex">
+                    <div class="flex-1"><label>Status</label>
+                        <select id="editStatus">
+                            <option value="working" ${c.employment_status === 'working' ? 'selected' : ''}>Working</option>
+                            <option value="bench" ${c.employment_status === 'bench' ? 'selected' : ''}>On Bench</option>
+                            <option value="notice_period" ${c.employment_status === 'notice_period' ? 'selected' : ''}>Notice Period</option>
+                        </select>
+                    </div>
+                    <div class="flex-1"><label>Notice Days</label><input type="number" id="editNoticeDays" value="${c.notice_period_days || 0}"></div>
+                </div>
+                <label>Education</label><textarea id="editEducation" rows="2">${escapeHtml(c.education || '')}</textarea>
+                <label>Skills (comma separated)</label><input type="text" id="editSkills" value="${escapeHtml(skillsStr)}">
+                <label>Certifications (comma separated)</label><input type="text" id="editCerts" value="${escapeHtml(certsStr)}">
+                <div style="margin-top: 20px;"><button type="submit" class="btn">Save Changes</button><button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button></div>
+            </form>
+        `;
+        document.getElementById('editModal').style.display = 'block';
+        
+        document.getElementById('editForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const skillsArray = document.getElementById('editSkills').value.split(',').map(s => ({skill: s.trim(), years_of_experience: 0})).filter(s => s.skill);
+            const certsArray = document.getElementById('editCerts').value.split(',').map(c => c.trim()).filter(c => c);
+            
+            const data = {
+                first_name: document.getElementById('editFirst').value,
+                middle_name: document.getElementById('editMiddle').value,
+                last_name: document.getElementById('editLast').value,
+                email: document.getElementById('editEmail').value,
+                phone: document.getElementById('editPhone').value,
+                current_ctc: document.getElementById('editCurrentCTC').value,
+                expected_ctc: document.getElementById('editExpectedCTC').value,
+                address: document.getElementById('editAddress').value,
+                linkedin: document.getElementById('editLinkedin').value,
+                current_role: document.getElementById('editRole').value,
+                employment_status: document.getElementById('editStatus').value,
+                notice_period_days: parseInt(document.getElementById('editNoticeDays').value) || 0,
+                education: document.getElementById('editEducation').value,
+                core_skills: JSON.stringify(skillsArray),
+                certifications: JSON.stringify(certsArray)
+            };
+            const res = await fetch(`/api/candidates/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+            if (res.ok) { alert('Candidate updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
+            else alert('Error updating');
+        };
+    };
+    
+    function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+    window.closeEditModal = closeEditModal;
     
     document.getElementById('exportBtn').onclick = () => window.location.href = '/api/export-candidates';
     
