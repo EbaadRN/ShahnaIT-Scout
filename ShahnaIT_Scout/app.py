@@ -1,4 +1,4 @@
-# app.py - COMPLETE WORKING VERSION WITH ALL FEATURES
+# app.py - COMPLETE VERSION WITH ALL FEATURES + WORKING BUTTONS
 import os
 from flask import Flask, render_template_string
 from flask_cors import CORS
@@ -30,34 +30,17 @@ HTML_TEMPLATE = '''
         body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
         .header { background: #1A4D4A; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
         
-        button, .btn {
-            background: #1A4D4A;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            cursor: pointer;
-            border-radius: 8px;
-            font-size: 14px;
-        }
+        button, .btn { background: #1A4D4A; color: white; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 8px; }
         button:hover, .btn:hover { background: #2A6B67; }
         
-        .tab-btn {
-            background: white;
-            color: #1A4D4A;
-            border: 1px solid #1A4D4A;
-            padding: 10px 20px;
-            margin: 5px;
-            cursor: pointer;
-            border-radius: 8px;
-        }
+        .tab-btn { background: white; color: #1A4D4A; border: 1px solid #1A4D4A; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 8px; }
         .tab-btn:hover { background: #1A4D4A; color: white; }
         .tab-btn.active { background: #1A4D4A; color: white; }
         
-        .card { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #1A4D4A; cursor: pointer; }
+        .card { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #1A4D4A; cursor: pointer; transition: transform 0.2s; }
         .card:hover { transform: translateY(-2px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .card.no-click { cursor: default; }
-        .card.no-click:hover { transform: none; box-shadow: none; }
+        .card.no-click:hover { transform: none; }
         
         input, select, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
         .skill-tag { background: #F5F0E8; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; }
@@ -74,7 +57,6 @@ HTML_TEMPLATE = '''
         .filter-bar { background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .filter-bar input, .filter-bar select { width: auto; flex: 1; }
         
-        /* Modal styles */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
         .modal-content { background: #F5F0E8; margin: 50px auto; border-radius: 10px; max-width: 700px; width: 90%; }
         .modal-header { background: #1A4D4A; color: white; padding: 15px; border-radius: 10px 10px 0 0; display: flex; justify-content: space-between; }
@@ -85,16 +67,14 @@ HTML_TEMPLATE = '''
         .detail-value { flex: 1; }
         .company-item { background: #F9F6F0; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 3px solid #1A4D4A; }
         .doc-link { cursor: pointer; color: #1A4D4A; text-decoration: underline; }
+        .btn-edit { background: #C9A96E; }
+        .btn-secondary { background: #6B7B7B; }
         
-        /* Bulk upload styles */
         .file-list { background: #F9F6F0; border-radius: 8px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
         .file-list-item { padding: 5px; border-bottom: 1px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; }
         .remove-file { color: #B22222; cursor: pointer; margin-left: 10px; }
         .progress-bar { background: #ddd; border-radius: 10px; height: 15px; margin: 10px 0; overflow: hidden; }
         .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
-        
-        .btn-edit { background: #C9A96E; color: white; }
-        .btn-secondary { background: #6B7B7B; color: white; }
     </style>
 </head>
 <body>
@@ -281,7 +261,7 @@ HTML_TEMPLATE = '''
         filterCandidates();
     };
     
-    // ========== VIEW CANDIDATE (Clickable) ==========
+    // ========== VIEW CANDIDATE (CLICKABLE) ==========
     window.viewCandidate = async function(id) {
         currentCandidateId = id;
         const c = allCandidates.find(c => c.id == id);
@@ -292,7 +272,6 @@ HTML_TEMPLATE = '''
         const certs = c.certifications ? JSON.parse(c.certifications) : [];
         const workExp = c.work_experience ? JSON.parse(c.work_experience) : [];
         
-        // Load documents
         const docRes = await fetch(`/api/candidates/${id}/documents`);
         const documents = await docRes.json();
         const resumeDoc = documents.find(d => d.is_resume === 1);
@@ -373,32 +352,18 @@ HTML_TEMPLATE = '''
         
         document.getElementById('editModalBody').innerHTML = `
             <form id="editForm">
-                <div class="flex">
-                    <div class="flex-1"><label>First Name</label><input type="text" id="editFirst" value="${escapeHtml(c.first_name || '')}"></div>
-                    <div class="flex-1"><label>Middle Name</label><input type="text" id="editMiddle" value="${escapeHtml(c.middle_name || '')}"></div>
-                    <div class="flex-1"><label>Last Name</label><input type="text" id="editLast" value="${escapeHtml(c.last_name || '')}"></div>
-                </div>
-                <div class="flex">
-                    <div class="flex-1"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(c.email || '')}"></div>
-                    <div class="flex-1"><label>Phone</label><input type="text" id="editPhone" value="${escapeHtml(c.phone || '')}"></div>
-                </div>
-                <div class="flex">
-                    <div class="flex-1"><label>Current CTC</label><input type="text" id="editCurrentCTC" value="${escapeHtml(c.current_ctc || '')}"></div>
-                    <div class="flex-1"><label>Expected CTC</label><input type="text" id="editExpectedCTC" value="${escapeHtml(c.expected_ctc || '')}"></div>
-                </div>
+                <div class="flex"><div class="flex-1"><label>First Name</label><input type="text" id="editFirst" value="${escapeHtml(c.first_name || '')}"></div>
+                <div class="flex-1"><label>Middle Name</label><input type="text" id="editMiddle" value="${escapeHtml(c.middle_name || '')}"></div>
+                <div class="flex-1"><label>Last Name</label><input type="text" id="editLast" value="${escapeHtml(c.last_name || '')}"></div></div>
+                <div class="flex"><div class="flex-1"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(c.email || '')}"></div>
+                <div class="flex-1"><label>Phone</label><input type="text" id="editPhone" value="${escapeHtml(c.phone || '')}"></div></div>
+                <div class="flex"><div class="flex-1"><label>Current CTC</label><input type="text" id="editCurrentCTC" value="${escapeHtml(c.current_ctc || '')}"></div>
+                <div class="flex-1"><label>Expected CTC</label><input type="text" id="editExpectedCTC" value="${escapeHtml(c.expected_ctc || '')}"></div></div>
                 <label>Address</label><input type="text" id="editAddress" value="${escapeHtml(c.address || '')}">
                 <label>LinkedIn</label><input type="text" id="editLinkedin" value="${escapeHtml(c.linkedin || '')}">
                 <label>Current Role</label><input type="text" id="editRole" value="${escapeHtml(c.current_role || '')}">
-                <div class="flex">
-                    <div class="flex-1"><label>Status</label>
-                        <select id="editStatus">
-                            <option value="working" ${c.employment_status === 'working' ? 'selected' : ''}>Working</option>
-                            <option value="bench" ${c.employment_status === 'bench' ? 'selected' : ''}>On Bench</option>
-                            <option value="notice_period" ${c.employment_status === 'notice_period' ? 'selected' : ''}>Notice Period</option>
-                        </select>
-                    </div>
-                    <div class="flex-1"><label>Notice Days</label><input type="number" id="editNoticeDays" value="${c.notice_period_days || 0}"></div>
-                </div>
+                <div class="flex"><div class="flex-1"><label>Status</label><select id="editStatus"><option value="working" ${c.employment_status === 'working' ? 'selected' : ''}>Working</option><option value="bench" ${c.employment_status === 'bench' ? 'selected' : ''}>On Bench</option><option value="notice_period" ${c.employment_status === 'notice_period' ? 'selected' : ''}>Notice Period</option></select></div>
+                <div class="flex-1"><label>Notice Days</label><input type="number" id="editNoticeDays" value="${c.notice_period_days || 0}"></div></div>
                 <label>Education</label><textarea id="editEducation" rows="2">${escapeHtml(c.education || '')}</textarea>
                 <label>Skills (comma separated)</label><input type="text" id="editSkills" value="${escapeHtml(skillsStr)}">
                 <label>Certifications (comma separated)</label><input type="text" id="editCerts" value="${escapeHtml(certsStr)}">
@@ -411,7 +376,6 @@ HTML_TEMPLATE = '''
             e.preventDefault();
             const skillsArray = document.getElementById('editSkills').value.split(',').map(s => ({skill: s.trim(), years_of_experience: 0})).filter(s => s.skill);
             const certsArray = document.getElementById('editCerts').value.split(',').map(c => c.trim()).filter(c => c);
-            
             const data = {
                 first_name: document.getElementById('editFirst').value,
                 middle_name: document.getElementById('editMiddle').value,
@@ -555,19 +519,14 @@ HTML_TEMPLATE = '''
             description: document.getElementById('jobDesc').value
         };
         if(!data.title) { alert('Title required'); return; }
-        const btn = this;
-        btn.disabled = true; btn.textContent = 'Creating...';
-        try {
-            const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-            if(res.ok) {
-                alert('Job created!');
-                document.getElementById('jobTitle').value = '';
-                document.getElementById('jobCompany').value = '';
-                document.getElementById('jobDesc').value = '';
-                showPanel(1); loadJobs();
-            } else { alert('Error'); }
-        } catch(e) { alert('Error'); }
-        finally { btn.disabled = false; btn.textContent = 'Create Job'; }
+        const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+        if(res.ok) {
+            alert('Job created!');
+            document.getElementById('jobTitle').value = '';
+            document.getElementById('jobCompany').value = '';
+            document.getElementById('jobDesc').value = '';
+            showPanel(1); loadJobs();
+        } else { alert('Error'); }
     };
     
     // ========== ANALYZE ==========
@@ -584,7 +543,7 @@ HTML_TEMPLATE = '''
             const result = await res.json();
             if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
             const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-            div.innerHTML = `<div class="alert-success"><h4>Analysis Complete</h4><p>Score: <span class="${matchClass}">${result.match_score || 0}%</span></p><p>${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>Analysis</h4><p>Score: <span class="${matchClass}">${result.match_score || 0}%</span></p><p>${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
             loadCandidates();
         } catch(e) { div.innerHTML = '<div class="alert-error">Failed</div>'; }
     };
