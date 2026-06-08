@@ -1,4 +1,4 @@
-# app.py - ULTRA SIMPLE WORKING VERSION
+# app.py - WITH VISIBLE BUTTONS
 import os
 from flask import Flask, render_template_string
 from flask_cors import CORS
@@ -29,7 +29,41 @@ HTML_TEMPLATE = '''
     <style>
         body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
         .header { background: #1A4D4A; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        button { background: #1A4D4A; color: white; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 8px; }
+        
+        /* FIXED BUTTON STYLES - VISIBLE */
+        button, .btn {
+            background: #1A4D4A;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        button:hover, .btn:hover {
+            background: #2A6B67;
+        }
+        
+        /* Tab buttons */
+        .tab-btn {
+            background: white;
+            color: #1A4D4A;
+            border: 1px solid #1A4D4A;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        .tab-btn:hover {
+            background: #1A4D4A;
+            color: white;
+        }
+        .tab-btn.active {
+            background: #1A4D4A;
+            color: white;
+        }
+        
         .card { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #1A4D4A; }
         input, select, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
         .skill-tag { background: #F5F0E8; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; }
@@ -37,12 +71,11 @@ HTML_TEMPLATE = '''
         .match-medium { background: #CC5500; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
         .match-low { background: #B22222; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
         .alert-success { background: #1B6B2E; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
+        .alert-error { background: #B22222; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
         .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .flex { display: flex; gap: 10px; }
         .flex-1 { flex: 1; }
-        .tab-btn { background: white; border: none; padding: 10px 20px; margin: 5px; cursor: pointer; border-radius: 8px; }
-        .tab-btn.active { background: #1A4D4A; color: white; }
         .filter-bar { background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
     </style>
 </head>
@@ -62,45 +95,50 @@ HTML_TEMPLATE = '''
     </div>
     
     <div id="panel1"><div id="jobsList"></div></div>
+    
     <div id="panel2" style="display:none;">
-        <button id="exportBtn">Export CSV</button>
+        <button id="exportBtn">📥 Export CSV</button>
         <div class="filter-bar">
-            <input type="text" id="searchBox" placeholder="Search...">
+            <input type="text" id="searchBox" placeholder="Search by name...">
             <select id="scoreSelect">
                 <option value="all">All Scores</option>
                 <option value="high">High (70%+)</option>
                 <option value="medium">Medium (40-69%)</option>
                 <option value="low">Low (<40%)</option>
             </select>
-            <button id="clearBtn">Clear</button>
+            <button id="clearBtn">Clear Filters</button>
         </div>
         <div id="candidatesList"></div>
     </div>
+    
     <div id="panel3" style="display:none;">
         <div class="card">
-            <h3>Upload Resume</h3>
+            <h3>📄 Upload Resume (PDF/DOCX)</h3>
+            <p>AI will auto-fill candidate details</p>
             <input type="file" id="resumeFile" accept=".pdf,.docx">
-            <button id="parseBtn">Parse & Save</button>
+            <button id="parseBtn">🔍 Parse & Save Candidate</button>
             <div id="parseResult"></div>
         </div>
     </div>
+    
     <div id="panel4" style="display:none;">
         <div class="card">
-            <h3>Create Job</h3>
-            <input type="text" id="jobTitle" placeholder="Job Title">
-            <input type="text" id="jobCompany" placeholder="Company">
-            <textarea id="jobDesc" rows="3" placeholder="Description"></textarea>
-            <button id="createJobBtn">Create</button>
+            <h3>➕ Create New Job</h3>
+            <input type="text" id="jobTitle" placeholder="Job Title *">
+            <input type="text" id="jobCompany" placeholder="Company Name">
+            <textarea id="jobDesc" rows="4" placeholder="Job Description"></textarea>
+            <button id="createJobBtn">Create Job</button>
         </div>
     </div>
+    
     <div id="panel5" style="display:none;">
         <div class="card">
-            <h3>AI Match Analysis</h3>
+            <h3>🔍 AI Match Analysis</h3>
             <div class="flex">
-                <div class="flex-1"><select id="jobSelect"></select></div>
-                <div class="flex-1"><select id="candidateSelect"></select></div>
+                <div class="flex-1"><select id="jobSelect"><option value="">-- Select Job --</option></select></div>
+                <div class="flex-1"><select id="candidateSelect"><option value="">-- Select Candidate --</option></select></div>
             </div>
-            <button id="analyzeBtn">Run Analysis</button>
+            <button id="analyzeBtn">🤖 Run AI Analysis</button>
             <div id="analysisResult"></div>
         </div>
     </div>
@@ -129,8 +167,8 @@ HTML_TEMPLATE = '''
         const res = await fetch('/api/jobs');
         allJobs = await res.json();
         const container = document.getElementById('jobsList');
-        if(!allJobs.length) { container.innerHTML = '<div class="card">No jobs yet</div>'; return; }
-        container.innerHTML = allJobs.map(j => `<div class="card"><h3>${escapeHtml(j.title)}</h3><small>${new Date(j.created_at).toLocaleDateString()}</small></div>`).join('');
+        if(!allJobs.length) { container.innerHTML = '<div class="card">No jobs yet. Create one.</div>'; return; }
+        container.innerHTML = allJobs.map(j => `<div class="card"><h3>${escapeHtml(j.title)}</h3>${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}<small>${new Date(j.created_at).toLocaleDateString()}</small></div>`).join('');
         document.getElementById('jobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
     }
     
@@ -154,12 +192,18 @@ HTML_TEMPLATE = '''
     
     function renderCandidates(candidates) {
         const container = document.getElementById('candidatesList');
-        if(!candidates.length) { container.innerHTML = '<div class="card">No candidates</div>'; return; }
+        if(!candidates.length) { container.innerHTML = '<div class="card">No candidates yet. Upload resumes.</div>'; return; }
         container.innerHTML = candidates.map(c => {
             const name = (c.first_name + ' ' + c.last_name).trim() || 'Unknown';
             const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
             const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
-            return `<div class="card"><h3>${escapeHtml(name)}</h3><p>${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>${c.match_score ? `<p>Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}<small>${new Date(c.created_at).toLocaleDateString()}</small></div>`;
+            return `<div class="card">
+                <h3>👤 ${escapeHtml(name)}</h3>
+                ${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}
+                <p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>
+                ${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}
+                <small>📅 ${new Date(c.created_at).toLocaleDateString()}</small>
+            </div>`;
         }).join('');
     }
     
@@ -175,21 +219,26 @@ HTML_TEMPLATE = '''
     
     document.getElementById('parseBtn').onclick = async function() {
         const file = document.getElementById('resumeFile').files[0];
-        if(!file) { alert('Select file'); return; }
+        if(!file) { alert('Please select a file'); return; }
         const fd = new FormData(); fd.append('resume', file);
         const div = document.getElementById('parseResult');
-        div.innerHTML = '<div class="spinner"></div><p>Parsing...</p>';
+        div.innerHTML = '<div class="spinner"></div><p>🤖 AI parsing resume...</p>';
         try {
             const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
             const result = await res.json();
-            if(result.error) { div.innerHTML = `<div class="alert-success" style="background:#B22222">${result.error}</div>`; return; }
-            div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button id="saveBtn">💾 Save</button></div>`;
+            if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
+            div.innerHTML = `<div class="alert-success"><h4>✅ Resume Parsed Successfully</h4>
+                <p><strong>Name:</strong> ${escapeHtml(result.first_name || '')} ${escapeHtml(result.last_name || '')}</p>
+                <p><strong>Email:</strong> ${escapeHtml(result.email || '')}</p>
+                <p><strong>Phone:</strong> ${escapeHtml(result.phone || '')}</p>
+                <p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p>
+                <button id="saveBtn">💾 Save Candidate</button></div>`;
             document.getElementById('saveBtn').onclick = async function() {
                 const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-                if(saveRes.ok) { alert('Saved!'); div.innerHTML = ''; document.getElementById('resumeFile').value = ''; loadCandidates(); showPanel(2); }
-                else alert('Error');
+                if(saveRes.ok) { alert('Candidate saved successfully!'); div.innerHTML = ''; document.getElementById('resumeFile').value = ''; loadCandidates(); showPanel(2); }
+                else alert('Error saving candidate');
             };
-        } catch(e) { div.innerHTML = '<div class="alert-success" style="background:#B22222">Error</div>'; }
+        } catch(e) { div.innerHTML = '<div class="alert-error">Error parsing resume</div>'; }
     };
     
     document.getElementById('createJobBtn').onclick = async function() {
@@ -198,34 +247,43 @@ HTML_TEMPLATE = '''
             company: document.getElementById('jobCompany').value,
             description: document.getElementById('jobDesc').value
         };
-        if(!data.title) { alert('Title required'); return; }
-        const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-        if(res.ok) {
-            alert('Job created!');
-            document.getElementById('jobTitle').value = '';
-            document.getElementById('jobCompany').value = '';
-            document.getElementById('jobDesc').value = '';
-            showPanel(1);
-            loadJobs();
-        } else { alert('Error'); }
+        if(!data.title) { alert('Job title required'); return; }
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+        try {
+            const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+            if(res.ok) {
+                alert('Job created successfully!');
+                document.getElementById('jobTitle').value = '';
+                document.getElementById('jobCompany').value = '';
+                document.getElementById('jobDesc').value = '';
+                showPanel(1);
+                loadJobs();
+            } else { alert('Error creating job'); }
+        } catch(e) { alert('Error creating job'); }
+        finally { btn.disabled = false; btn.textContent = 'Create Job'; }
     };
     
     document.getElementById('analyzeBtn').onclick = async function() {
         const jobId = document.getElementById('jobSelect').value;
         const candidateId = document.getElementById('candidateSelect').value;
-        if(!jobId || !candidateId) { alert('Select both'); return; }
+        if(!jobId || !candidateId) { alert('Please select both a Job and a Candidate'); return; }
         const job = allJobs.find(j => j.id == jobId);
         const cand = allCandidates.find(c => c.id == candidateId);
         const div = document.getElementById('analysisResult');
-        div.innerHTML = '<div class="spinner"></div><p>Analyzing...</p>';
+        div.innerHTML = '<div class="spinner"></div><p>🤖 AI analyzing match...</p>';
         try {
             const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
             const result = await res.json();
-            if(result.error) { div.innerHTML = `<div class="alert-success" style="background:#B22222">${result.error}</div>`; return; }
+            if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
             const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-            div.innerHTML = `<div class="alert-success"><h4>Analysis Complete</h4><p>Score: <span class="${matchClass}">${result.match_score || 0}%</span></p><p>${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
+            div.innerHTML = `<div class="alert-success"><h4>📊 Analysis Complete</h4>
+                <p><strong>🎯 Match Score:</strong> <span class="${matchClass}">${result.match_score || 0}%</span></p>
+                <p><strong>📌 Recommendation:</strong> ${result.recommendation || 'Review'}</p>
+                <small>✅ Analysis saved to candidate record</small></div>`;
             loadCandidates();
-        } catch(e) { div.innerHTML = '<div class="alert-success" style="background:#B22222">Failed</div>'; }
+        } catch(e) { div.innerHTML = '<div class="alert-error">Analysis failed</div>'; }
     };
     
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
