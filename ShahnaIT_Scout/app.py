@@ -1,4 +1,4 @@
-# app.py - COMPLETE WITH FEATURE 9 (Match JD Against ALL Candidates)
+# app.py - COMPLETE WITH BULK RESUME UPLOAD
 import os
 import sqlite3
 import json
@@ -271,56 +271,6 @@ def save_candidate_to_db(candidate_data):
     conn.close()
     return candidate_id
 
-# ============ BATCH MATCH FUNCTION ============
-def batch_match_jd_against_all_candidates(jd_text):
-    """Simple keyword-based matching for speed. Returns list of all candidates with scores."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT id, first_name, last_name, email, resume_text FROM candidates ORDER BY created_at DESC')
-    candidates = [dict(row) for row in c.fetchall()]
-    conn.close()
-    
-    # Extract keywords from JD
-    jd_lower = jd_text.lower()
-    jd_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', jd_lower))
-    
-    results = []
-    for cand in candidates:
-        name = (cand.get('first_name', '') + ' ' + cand.get('last_name', '')).strip() or 'Unknown'
-        resume_text = cand.get('resume_text', '') or ''
-        
-        if not resume_text:
-            results.append({
-                'candidate_id': cand['id'],
-                'name': name,
-                'email': cand.get('email', ''),
-                'match_score': 0,
-                'recommendation': 'No resume text'
-            })
-            continue
-        
-        # Keyword matching
-        resume_lower = resume_text.lower()
-        resume_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', resume_lower))
-        
-        common = resume_words & jd_words
-        match_score = min(100, int(len(common) / max(len(jd_words), 1) * 100))
-        
-        recommendation = 'hire' if match_score >= 70 else ('interview' if match_score >= 40 else 'reject')
-        
-        results.append({
-            'candidate_id': cand['id'],
-            'name': name,
-            'email': cand.get('email', ''),
-            'match_score': match_score,
-            'recommendation': recommendation
-        })
-    
-    # Sort by match score (highest first)
-    results.sort(key=lambda x: x['match_score'], reverse=True)
-    return results
-
 # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -367,6 +317,8 @@ HTML_TEMPLATE = '''
         .file-list { background: #F9F6F0; border-radius: 8px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto; }
         .file-list-item { padding: 5px; border-bottom: 1px solid #ddd; font-size: 12px; display: flex; justify-content: space-between; }
         .remove-file { color: #B22222; cursor: pointer; margin-left: 10px; }
+        .progress-bar { background: #ddd; border-radius: 10px; height: 15px; margin: 10px 0; overflow: hidden; }
+        .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
     </style>
 </head>
 <body>
@@ -386,30 +338,27 @@ HTML_TEMPLATE = '''
     
     <div id="jobsPanel"><div id="jobsList"></div></div>
     <div id="candidatesPanel" style="display:none;"><button id="exportBtn">📥 Export CSV</button><div class="filter-bar"><input type="text" id="searchBox" placeholder="Search..."><select id="scoreSelect"><option value="all">All Scores</option><option value="high">High (70%+)</option><option value="medium">Medium (40-69%)</option><option value="low">Low (<40%)</option></select><button id="clearBtn">Clear</button></div><div id="candidatesList"></div></div>
-    <div id="uploadPanel" style="display:none;"><div class="card no-click"><h3>📄 Upload Resume</h3><input type="file" id="resumeFile" accept=".pdf,.docx"><button id="parseBtn">🔍 Parse & Save</button><div id="parseResult"></div></div></div>
-    <div id="createJobPanel" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><input type="text" id="jobTitle" placeholder="Job Title *"><input type="text" id="jobCompany" placeholder="Company"><textarea id="jobDesc" rows="4" placeholder="Job Description"></textarea><button id="createJobBtn">Create Job</button></div></div>
     
-    <div id="analyzePanel" style="display:none;">
+    <div id="uploadPanel" style="display:none;">
         <div class="card no-click">
-            <h3>🔍 AI Match Analysis - Single Candidate</h3>
-            <div class="flex">
-                <div class="flex-1"><select id="jobSelect"></select></div>
-                <div class="flex-1"><select id="candidateSelect"></select></div>
-            </div>
-            <button id="analyzeBtn">🤖 Run Analysis</button>
-            <div id="analysisResult"></div>
+            <h3>📄 Single Resume Upload</h3>
+            <input type="file" id="resumeFile" accept=".pdf,.docx">
+            <button id="parseBtn">🔍 Parse & Save</button>
+            <div id="parseResult"></div>
         </div>
         
         <div class="card no-click" style="margin-top: 20px;">
-            <h3>📊 Match JD Against ALL Candidates</h3>
-            <p>Select a Job Description to see how ALL candidates match (even 1% matches)</p>
-            <div class="flex">
-                <div class="flex-1"><select id="batchJobSelect"></select></div>
-            </div>
-            <button id="batchAnalyzeBtn">🎯 Match Against All Candidates</button>
-            <div id="batchAnalysisResult"></div>
+            <h3>📚 Bulk Resume Upload (Select Multiple Files)</h3>
+            <p>Hold Ctrl (or Cmd on Mac) to select multiple PDF/DOCX files</p>
+            <input type="file" id="multiResumeFiles" multiple accept=".pdf,.docx">
+            <div id="selectedFilesList" class="file-list" style="display:none;"></div>
+            <button id="bulkUploadBtn" class="btn">🚀 Upload & Parse All</button>
+            <div id="bulkUploadResult"></div>
         </div>
     </div>
+    
+    <div id="createJobPanel" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><input type="text" id="jobTitle" placeholder="Job Title *"><input type="text" id="jobCompany" placeholder="Company"><textarea id="jobDesc" rows="4" placeholder="Job Description"></textarea><button id="createJobBtn">Create Job</button></div></div>
+    <div id="analyzePanel" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="jobSelect"></select></div><div class="flex-1"><select id="candidateSelect"></select></div></div><button id="analyzeBtn">🤖 Run Analysis</button><div id="analysisResult"></div></div></div>
 </div>
 
 <!-- Modals -->
@@ -421,6 +370,7 @@ HTML_TEMPLATE = '''
 
 <script>
     let allJobs = [], allCandidates = [], currentCandidateId = null;
+    let selectedBulkFiles = [];
     
     // Tab switching
     document.getElementById('tabJobs').onclick = function() { showPanel('jobs'); loadJobs(); };
@@ -451,7 +401,6 @@ HTML_TEMPLATE = '''
         if(!allJobs.length) { container.innerHTML = '<div class="card no-click">No jobs yet</div>'; return; }
         container.innerHTML = allJobs.map(j => `<div class="card" onclick="editJob(${j.id})"><h3>${escapeHtml(j.title)}</h3>${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}<small>${new Date(j.created_at).toLocaleDateString()}</small></div>`).join('');
         document.getElementById('jobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
-        document.getElementById('batchJobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
     }
     
     async function loadCandidates() {
@@ -653,52 +602,110 @@ HTML_TEMPLATE = '''
         loadCandidates();
     };
     
-    // Batch analyze - match JD against ALL candidates
-    document.getElementById('batchAnalyzeBtn').onclick = async function() {
-        const jobId = document.getElementById('batchJobSelect').value;
-        if (!jobId) { alert('Please select a Job'); return; }
-        
-        const job = allJobs.find(j => j.id == jobId);
-        if (!job) { alert('Job not found'); return; }
-        
-        const div = document.getElementById('batchAnalysisResult');
-        div.innerHTML = '<div class="spinner"></div><p>📊 Analyzing ' + allCandidates.length + ' candidates...</p>';
-        
-        try {
-            const res = await fetch('/api/batch-analyze', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ jd_text: job.description || '' })
+    // ========== BULK RESUME UPLOAD ==========
+    document.getElementById('multiResumeFiles').addEventListener('change', function(e) {
+        selectedBulkFiles = Array.from(e.target.files);
+        const fileListDiv = document.getElementById('selectedFilesList');
+        if (selectedBulkFiles.length > 0) {
+            let html = '<strong>Selected files (' + selectedBulkFiles.length + '):</strong><br>';
+            selectedBulkFiles.forEach((file, index) => {
+                html += `<div class="file-list-item">📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)<span class="remove-file" onclick="removeBulkFile(${index})">✕ Remove</span></div>`;
             });
-            const results = await res.json();
-            
-            if (results.error) {
-                div.innerHTML = `<div class="alert-error">${results.error}</div>`;
-                return;
-            }
-            
-            let html = `<div class="alert-success"><h4>📊 Analysis Complete</h4>`;
-            html += `<p><strong>Job:</strong> ${escapeHtml(job.title)}</p>`;
-            html += `<p><strong>Total Candidates:</strong> ${results.length}</p>`;
-            html += `<p><strong>Candidates with any match (>0%):</strong> ${results.filter(r => r.match_score > 0).length}</p>`;
-            html += `<hr><div style="max-height: 500px; overflow-y: auto;">`;
-            
-            results.forEach((r, index) => {
-                const matchClass = r.match_score >= 70 ? 'match-high' : (r.match_score >= 40 ? 'match-medium' : 'match-low');
-                html += `<div class="card" style="cursor: pointer; margin: 8px 0;" onclick="viewCandidate(${r.candidate_id})">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div><strong>#${index + 1}</strong> 👤 ${escapeHtml(r.name)}${r.email ? `<br><small>📧 ${escapeHtml(r.email)}</small>` : ''}</div>
-                        <div><span class="${matchClass}">${r.match_score}%</span><br><small>${r.recommendation || 'Review'}</small></div>
-                    </div>
-                </div>`;
-            });
-            
-            html += `</div><button class="btn" onclick="document.getElementById('tabCandidates').click()" style="margin-top:15px;">View All Candidates</button></div>`;
-            div.innerHTML = html;
-            
-        } catch(e) {
-            div.innerHTML = '<div class="alert-error">Analysis failed</div>';
+            fileListDiv.innerHTML = html;
+            fileListDiv.style.display = 'block';
+        } else {
+            fileListDiv.style.display = 'none';
         }
+    });
+    
+    window.removeBulkFile = function(index) {
+        selectedBulkFiles.splice(index, 1);
+        const dataTransfer = new DataTransfer();
+        selectedBulkFiles.forEach(file => dataTransfer.items.add(file));
+        document.getElementById('multiResumeFiles').files = dataTransfer.files;
+        
+        const fileListDiv = document.getElementById('selectedFilesList');
+        if (selectedBulkFiles.length > 0) {
+            let html = '<strong>Selected files (' + selectedBulkFiles.length + '):</strong><br>';
+            selectedBulkFiles.forEach((file, idx) => {
+                html += `<div class="file-list-item">📄 ${escapeHtml(file.name)} (${(file.size / 1024).toFixed(1)} KB)<span class="remove-file" onclick="removeBulkFile(${idx})">✕ Remove</span></div>`;
+            });
+            fileListDiv.innerHTML = html;
+            fileListDiv.style.display = 'block';
+        } else {
+            fileListDiv.style.display = 'none';
+        }
+    };
+    
+    document.getElementById('bulkUploadBtn').onclick = async function() {
+        if (selectedBulkFiles.length === 0) {
+            alert('Please select files first');
+            return;
+        }
+        
+        const div = document.getElementById('bulkUploadResult');
+        div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + selectedBulkFiles.length + ' files...</p>';
+        
+        let successCount = 0;
+        let failCount = 0;
+        let errors = [];
+        
+        for (let i = 0; i < selectedBulkFiles.length; i++) {
+            const file = selectedBulkFiles[i];
+            const fd = new FormData();
+            fd.append('resume', file);
+            
+            const percent = Math.round((i / selectedBulkFiles.length) * 100);
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${selectedBulkFiles.length}: ${escapeHtml(file.name)}...</p>`;
+            
+            try {
+                const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
+                const result = await res.json();
+                
+                if (result.error) {
+                    failCount++;
+                    errors.push(`${file.name}: ${result.error}`);
+                } else {
+                    const saveRes = await fetch('/api/candidates', { 
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify(result) 
+                    });
+                    if (saveRes.ok) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        errors.push(`${file.name}: Save failed`);
+                    }
+                }
+            } catch(e) {
+                failCount++;
+                errors.push(`${file.name}: ${e.message}`);
+            }
+        }
+        
+        let resultHtml = `<div class="alert-success"><h4>✅ Bulk Upload Complete!</h4>`;
+        resultHtml += `<p><strong>Total files:</strong> ${selectedBulkFiles.length}</p>`;
+        resultHtml += `<p><strong>Successfully saved:</strong> ${successCount}</p>`;
+        resultHtml += `<p><strong>Failed:</strong> ${failCount}</p>`;
+        
+        if (errors.length > 0 && errors.length <= 10) {
+            resultHtml += `<div style="margin-top: 10px;"><strong>⚠️ Errors:</strong><ul>`;
+            errors.forEach(err => { resultHtml += `<li>${escapeHtml(err)}</li>`; });
+            resultHtml += `</ul></div>`;
+        } else if (errors.length > 10) {
+            resultHtml += `<p><strong>⚠️ ${errors.length} errors occurred. Check console for details.</strong></p>`;
+        }
+        
+        resultHtml += `<button class="btn" onclick="document.getElementById('tabCandidates').click()" style="margin-top: 15px;">View All Candidates</button></div>`;
+        div.innerHTML = resultHtml;
+        
+        // Clear selection
+        selectedBulkFiles = [];
+        document.getElementById('multiResumeFiles').value = '';
+        document.getElementById('selectedFilesList').style.display = 'none';
+        
+        loadCandidates();
     };
     
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
@@ -963,17 +970,6 @@ def analyze_match():
         return jsonify(result)
     
     return jsonify({'error': 'Analysis failed'}), 500
-
-@app.route('/api/batch-analyze', methods=['POST'])
-def batch_analyze():
-    data = request.json
-    jd_text = data.get('jd_text', '')
-    
-    if not jd_text:
-        return jsonify({'error': 'Missing job description'}), 400
-    
-    results = batch_match_jd_against_all_candidates(jd_text)
-    return jsonify(results)
 
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
