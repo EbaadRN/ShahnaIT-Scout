@@ -677,11 +677,16 @@ HTML_TEMPLATE = '''
             fd.append('resume', file);
             
             const percent = Math.round((i / selectedBulkFiles.length) * 100);
-            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div><p>📄 Processing ${i+1} of ${selectedBulkFiles.length}: ${escapeHtml(file.name)}...</p>`;
+            div.innerHTML = `<div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div>
+    <div style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+    <div><strong>📄 ${i+1} of ${selectedBulkFiles.length}:</strong> ${escapeHtml(file.name)}</div>
+    <div id="liveStatus${i}" style="font-size: 13px; margin-left: 20px; margin-bottom: 10px;">⏳ Parsing...</div>
+    </div>`;
             
             try {
                 const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
                 const result = await res.json();
+document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse failed: ' + escapeHtml(result.error) : '✅ Parsed successfully, saving...';
                 
                 if (result.error) {
                     failCount++;
