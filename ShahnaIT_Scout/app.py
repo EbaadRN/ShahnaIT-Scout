@@ -358,7 +358,27 @@ HTML_TEMPLATE = '''
     </div>
     
     <div id="createJobPanel" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><input type="text" id="jobTitle" placeholder="Job Title *"><input type="text" id="jobCompany" placeholder="Company"><textarea id="jobDesc" rows="4" placeholder="Job Description"></textarea><button id="createJobBtn">Create Job</button></div></div>
-    <div id="analyzePanel" style="display:none;"><div class="card no-click"><h3>🔍 AI Match Analysis</h3><div class="flex"><div class="flex-1"><select id="jobSelect"></select></div><div class="flex-1"><select id="candidateSelect"></select></div></div><button id="analyzeBtn">🤖 Run Analysis</button><div id="analysisResult"></div></div></div>
+    <div id="analyzePanel" style="display:none;">
+    <div class="card no-click">
+        <h3>🔍 AI Match Analysis - Single Candidate</h3>
+        <div class="flex">
+            <div class="flex-1"><select id="jobSelect"></select></div>
+            <div class="flex-1"><select id="candidateSelect"></select></div>
+        </div>
+        <button id="analyzeBtn">🤖 Run Analysis</button>
+        <div id="analysisResult"></div>
+    </div>
+    
+    <div class="card no-click" style="margin-top: 20px;">
+        <h3>📊 Match JD Against ALL Candidates</h3>
+        <p>Select a Job to see how ALL candidates match (even 1% matches)</p>
+        <div class="flex">
+            <div class="flex-1"><select id="batchJobSelect"></select></div>
+        </div>
+        <button id="batchAnalyzeBtn">🎯 Match Against All Candidates</button>
+        <div id="batchAnalysisResult"></div>
+    </div>
+</div>
 </div>
 
 <!-- Modals -->
