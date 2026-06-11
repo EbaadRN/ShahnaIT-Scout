@@ -33,6 +33,13 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
         company TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS candidate_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER NOT NULL,
+        note_text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+    )''')
     
     conn.commit()
     conn.close()
@@ -137,3 +144,26 @@ def get_document_by_id(doc_id):
     doc = c.fetchone()
     conn.close()
     return doc
+def add_candidate_note(candidate_id, note_text):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('INSERT INTO candidate_notes (candidate_id, note_text) VALUES (?, ?)',
+              (candidate_id, note_text))
+    conn.commit()
+    conn.close()
+
+def get_candidate_notes(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT id, note_text, created_at FROM candidate_notes WHERE candidate_id = ? ORDER BY created_at DESC', (candidate_id,))
+    notes = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return notes
+
+def delete_candidate_note(note_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM candidate_notes WHERE id = ?', (note_id,))
+    conn.commit()
+    conn.close()
