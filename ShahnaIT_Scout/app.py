@@ -697,6 +697,7 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                         headers: {'Content-Type': 'application/json'}, 
                         body: JSON.stringify(result) 
                     });
+                    document.getElementById(`liveStatus${i}`).innerHTML = saveRes.ok ? '✅ Saved! Resume auto-attached.' : '❌ Save failed';
                     if (saveRes.ok) {
                         successCount++;
                     } else {
