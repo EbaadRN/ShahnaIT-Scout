@@ -705,9 +705,10 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                         errors.push(`${file.name}: Save failed`);
                     }
                 }
-            } catch(e) {
+                        } catch(e) {
                 failCount++;
                 errors.push(`${file.name}: ${e.message}`);
+                document.getElementById(`liveStatus${i}`).innerHTML = `❌ Error: ${escapeHtml(e.message)}`;
             }
         }
         
