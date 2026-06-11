@@ -728,7 +728,54 @@ HTML_TEMPLATE = '''
         
         loadCandidates();
     };
-    
+
+        // ========== BATCH ANALYZE - Match JD Against ALL Candidates ==========
+    document.getElementById('batchAnalyzeBtn').onclick = async function() {
+        const jobId = document.getElementById('batchJobSelect').value;
+        if (!jobId) { alert('Please select a Job'); return; }
+        
+        const job = allJobs.find(j => j.id == jobId);
+        if (!job) { alert('Job not found'); return; }
+        
+        const div = document.getElementById('batchAnalysisResult');
+        div.innerHTML = '<div class="spinner"></div><p>📊 Analyzing ' + allCandidates.length + ' candidates...</p>';
+        
+        try {
+            const res = await fetch('/api/batch-analyze', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ jd_text: job.description || '' })
+            });
+            const results = await res.json();
+            
+            if (results.error) {
+                div.innerHTML = `<div class="alert-error">${results.error}</div>`;
+                return;
+            }
+            
+            let html = `<div class="alert-success"><h4>📊 Analysis Complete</h4>`;
+            html += `<p><strong>Job:</strong> ${escapeHtml(job.title)}</p>`;
+            html += `<p><strong>Total Candidates:</strong> ${results.length}</p>`;
+            html += `<p><strong>Candidates with any match (>0%):</strong> ${results.filter(r => r.match_score > 0).length}</p>`;
+            html += `<hr><div style="max-height: 500px; overflow-y: auto;">`;
+            
+            results.forEach((r, index) => {
+                const matchClass = r.match_score >= 70 ? 'match-high' : (r.match_score >= 40 ? 'match-medium' : 'match-low');
+                html += `<div class="card" style="cursor: pointer; margin: 8px 0;" onclick="viewCandidate(${r.candidate_id})">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div><strong>#${index + 1}</strong> 👤 ${escapeHtml(r.name)}${r.email ? `<br><small>📧 ${escapeHtml(r.email)}</small>` : ''}</div>
+                        <div><span class="${matchClass}">${r.match_score}%</span><br><small>${r.recommendation || 'Review'}</small></div>
+                    </div>
+                </div>`;
+            });
+            
+            html += `</div><button class="btn" onclick="document.getElementById('tabCandidates').click()" style="margin-top:15px;">View All Candidates</button></div>`;
+            div.innerHTML = html;
+            
+        } catch(e) {
+            div.innerHTML = '<div class="alert-error">Analysis failed</div>';
+        }
+    };
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
     showPanel('jobs');
