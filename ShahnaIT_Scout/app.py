@@ -1057,6 +1057,61 @@ def export_candidates():
                          row['match_score'] or 0, row['created_at']])
     output.seek(0)
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
+@app.route('/api/batch-analyze', methods=['POST'])
+def batch_analyze():
+    data = request.json
+    jd_text = data.get('jd_text', '')
+    
+    if not jd_text:
+        return jsonify({'error': 'Missing job description'}), 400
+    
+    # Get all candidates
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT id, first_name, last_name, email, resume_text FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    # Extract keywords from JD
+    jd_lower = jd_text.lower()
+    jd_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', jd_lower))
+    
+    results = []
+    for cand in candidates:
+        name = (cand.get('first_name', '') + ' ' + cand.get('last_name', '')).strip() or 'Unknown'
+        resume_text = cand.get('resume_text', '') or ''
+        
+        if not resume_text:
+            results.append({
+                'candidate_id': cand['id'],
+                'name': name,
+                'email': cand.get('email', ''),
+                'match_score': 0,
+                'recommendation': 'No resume text'
+            })
+            continue
+        
+        # Keyword matching
+        resume_lower = resume_text.lower()
+        resume_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', resume_lower))
+        
+        common = resume_words & jd_words
+        match_score = min(100, int(len(common) / max(len(jd_words), 1) * 100))
+        
+        recommendation = 'hire' if match_score >= 70 else ('interview' if match_score >= 40 else 'reject')
+        
+        results.append({
+            'candidate_id': cand['id'],
+            'name': name,
+            'email': cand.get('email', ''),
+            'match_score': match_score,
+            'recommendation': recommendation
+        })
+    
+    # Sort by match score (highest first)
+    results.sort(key=lambda x: x['match_score'], reverse=True)
+    return jsonify(results)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
