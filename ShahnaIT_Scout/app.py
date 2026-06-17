@@ -1207,6 +1207,39 @@ def batch_analyze():
     # Sort by match score (highest first)
     results.sort(key=lambda x: x['match_score'], reverse=True)
     return jsonify(results)
+# ========== NOTES API ROUTES ==========
+@app.route('/api/candidates/<int:candidate_id>/notes', methods=['GET'])
+def get_candidate_notes(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT id, note_text, created_at FROM candidate_notes WHERE candidate_id = ? ORDER BY created_at DESC', (candidate_id,))
+    notes = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(notes)
+
+@app.route('/api/candidates/<int:candidate_id>/notes', methods=['POST'])
+def add_candidate_note(candidate_id):
+    data = request.json
+    note_text = data.get('note_text', '')
+    if not note_text:
+        return jsonify({'error': 'Note text required'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('INSERT INTO candidate_notes (candidate_id, note_text) VALUES (?, ?)', (candidate_id, note_text))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Note added'})
+
+@app.route('/api/candidates/notes/<int:note_id>', methods=['DELETE'])
+def delete_candidate_note(note_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM candidate_notes WHERE id = ?', (note_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Note deleted'})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
