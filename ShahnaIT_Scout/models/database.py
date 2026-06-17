@@ -16,6 +16,7 @@ def init_db():
         current_ctc TEXT, expected_ctc TEXT,
         employment_status TEXT, notice_period_days INTEGER DEFAULT 0,
         work_experience TEXT, certifications TEXT, core_skills TEXT, education TEXT,
+notes TEXT,
         resume_text TEXT, resume_filename TEXT, match_score INTEGER DEFAULT 0,
         recommendation TEXT DEFAULT '', detailed_analysis TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
