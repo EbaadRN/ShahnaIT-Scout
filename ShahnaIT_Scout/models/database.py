@@ -33,13 +33,7 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
         company TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS candidate_notes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        candidate_id INTEGER NOT NULL,
-        note_text TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
-    )''')
+    
     c.execute('''CREATE TABLE IF NOT EXISTS candidate_notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         candidate_id INTEGER NOT NULL,
