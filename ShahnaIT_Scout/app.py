@@ -505,7 +505,7 @@ HTML_TEMPLATE = '''
         const resumeDoc = documents.find(d => d.is_resume === 1);
         const otherDocs = documents.filter(d => !d.is_resume);
         
-        document.getElementById('modalBody').innerHTML = <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:15px;"><button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit</button><button class="btn btn-secondary" onclick="openDocModal(${c.id})">📎 Add Document</button><button class="btn btn-secondary" onclick="copyAllDetails()">📋 Copy</button><button class="btn" style="background: #C9A96E; color: white;" onclick="exportPDF(${c.id})">📄 Export PDF</button></div>
+       document.getElementById('modalBody').innerHTML = `<div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:15px;"><button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit</button><button class="btn btn-secondary" onclick="openDocModal(${c.id})">📎 Add Document</button><button class="btn btn-secondary" onclick="copyAllDetails()">📋 Copy</button><button class="btn" style="background: #C9A96E; color: white;" onclick="exportPDF(${c.id})">📄 Export PDF</button></div>
             <div class="detail-row"><div class="detail-label">Name:</div><div class="detail-value">${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}</div></div>
             <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
