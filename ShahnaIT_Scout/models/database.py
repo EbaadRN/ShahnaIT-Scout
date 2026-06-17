@@ -145,6 +145,8 @@ def get_document_by_id(doc_id):
     doc = c.fetchone()
     conn.close()
     return doc
+
+# ========== NOTES FUNCTIONS ==========
 def add_candidate_note(candidate_id, note_text):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
