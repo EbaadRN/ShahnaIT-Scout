@@ -528,6 +528,7 @@ HTML_TEMPLATE = '''
             </div>
             
             <button class="btn" onclick="closeModal()">Close</button>`;
+            loadNotes(c.id);
         document.getElementById('candidateModal').style.display = 'block';
     };
     
