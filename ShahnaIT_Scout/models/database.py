@@ -16,8 +16,7 @@ def init_db():
         current_ctc TEXT, expected_ctc TEXT,
         employment_status TEXT, notice_period_days INTEGER DEFAULT 0,
         work_experience TEXT, certifications TEXT, core_skills TEXT, education TEXT,
-notes TEXT,,
-notes TEXT,
+        notes TEXT,
         resume_text TEXT, resume_filename TEXT, match_score INTEGER DEFAULT 0,
         recommendation TEXT DEFAULT '', detailed_analysis TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -68,13 +67,13 @@ def create_candidate(data):
         (first_name, last_name, middle_name, phone, email, address, linkedin,
          current_role, current_ctc, expected_ctc,
          employment_status, notice_period_days, work_experience, certifications,
-         core_skills, education, resume_text, resume_filename)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+         core_skills, education, notes, resume_text, resume_filename)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (data.get('first_name'), data.get('last_name'), data.get('middle_name'),
          data.get('phone'), data.get('email'), data.get('address'), data.get('linkedin'),
          data.get('current_role'), data.get('current_ctc'), data.get('expected_ctc'),
          data.get('employment_status'), data.get('notice_period_days', 0),
-         work_exp, certs, skills, data.get('education'), data.get('resume_text'), data.get('resume_filename')))
+         work_exp, certs, skills, data.get('education'), data.get('notes'), data.get('resume_text'), data.get('resume_filename')))
     
     candidate_id = c.lastrowid
     conn.commit()
