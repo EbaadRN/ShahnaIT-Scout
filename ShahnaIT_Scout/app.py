@@ -1,4 +1,7 @@
 # app.py - COMPLETE WITH BULK RESUME UPLOAD
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
 import os
 import sqlite3
 import json
@@ -1273,130 +1276,111 @@ def delete_candidate_note(note_id):
     conn.close()
     return jsonify({'message': 'Note deleted'})
 # ========== PDF EXPORT ==========
+from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
 from reportlab.lib.units import inch
 import io
 
 @app.route('/api/candidates/<int:candidate_id>/export-pdf', methods=['GET'])
 def export_candidate_pdf(candidate_id):
-    # Get candidate data
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,))
-    candidate = c.fetchone()
-    conn.close()
-    
-    if not candidate:
-        return jsonify({'error': 'Candidate not found'}), 404
-    
-    # Create PDF buffer
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    story = []
-    
-    # Title
-    title_style = ParagraphStyle(
-        'TitleStyle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#1A4D4A'),
-        alignment=1,  # Center
-        spaceAfter=20
-    )
-    
-    name = (candidate['first_name'] or '') + ' ' + (candidate['last_name'] or '')
-    story.append(Paragraph(f"<b>Candidate Profile</b>", title_style))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Personal Info
-    story.append(Paragraph(f"<b>Name:</b> {name.strip() or 'Unknown'}", styles['Normal']))
-    story.append(Paragraph(f"<b>Email:</b> {candidate['email'] or 'N/A'}", styles['Normal']))
-    story.append(Paragraph(f"<b>Phone:</b> {candidate['phone'] or 'N/A'}", styles['Normal']))
-    story.append(Paragraph(f"<b>Role:</b> {candidate['current_role'] or 'N/A'}", styles['Normal']))
-    story.append(Paragraph(f"<b>CTC:</b> Current: {candidate['current_ctc'] or 'N/A'} | Expected: {candidate['expected_ctc'] or 'N/A'}", styles['Normal']))
-    story.append(Paragraph(f"<b>Status:</b> {candidate['employment_status'] or 'N/A'}", styles['Normal']))
-    story.append(Spacer(1, 0.2*inch))
-    
-    # Skills
-    story.append(Paragraph("<b>Skills</b>", styles['Heading2']))
-    skills = json.loads(candidate['core_skills'] or '[]')
-    if skills:
-        skill_text = ', '.join([f"{s['skill']} ({s.get('years_of_experience', 0)} yrs)" for s in skills])
-        story.append(Paragraph(skill_text, styles['Normal']))
-    else:
-        story.append(Paragraph("None", styles['Normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Work Experience
-    story.append(Paragraph("<b>Work Experience</b>", styles['Heading2']))
-    work_exp = json.loads(candidate['work_experience'] or '[]')
-    if work_exp:
-        for w in work_exp:
-            story.append(Paragraph(f"<b>{w.get('company', 'N/A')}</b> — {w.get('role', 'N/A')}", styles['Normal']))
-            story.append(Paragraph(f"<small>{w.get('start_date', '')} - {w.get('end_date', 'Present')}</small>", styles['Normal']))
-            story.append(Spacer(1, 0.05*inch))
-    else:
-        story.append(Paragraph("None", styles['Normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Certifications
-    story.append(Paragraph("<b>Certifications</b>", styles['Heading2']))
-    certs = json.loads(candidate['certifications'] or '[]')
-    if certs:
-        story.append(Paragraph(', '.join(certs), styles['Normal']))
-    else:
-        story.append(Paragraph("None", styles['Normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Education
-    story.append(Paragraph("<b>Education</b>", styles['Heading2']))
-    story.append(Paragraph(candidate['education'] or 'N/A', styles['Normal']))
-    story.append(Spacer(1, 0.1*inch))
-    
-    # Notes
-    if candidate.get('notes'):
-        story.append(Paragraph("<b>Notes</b>", styles['Heading2']))
-        story.append(Paragraph(candidate['notes'], styles['Normal']))
-        story.append(Spacer(1, 0.1*inch))
-    
-    # Match Score
-    if candidate.get('match_score', 0) > 0:
-        story.append(Paragraph("<b>Match Score</b>", styles['Heading2']))
-        story.append(Paragraph(f"{candidate['match_score']}% - {candidate.get('recommendation', 'Review')}", styles['Normal']))
-        story.append(Spacer(1, 0.1*inch))
-    
-    # Build PDF
-    doc.build(story)
-    buffer.seek(0)
-    
-    return send_file(
-        buffer,
-        as_attachment=True,
-        download_name=f"{name.strip() or 'candidate'}_profile.pdf",
-        mimetype='application/pdf'
-    )
-@app.route('/api/debug/pdf-test', methods=['GET'])
-def debug_pdf_test():
     try:
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.pagesizes import letter
-        import io
+        # Get candidate data
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,))
+        candidate = c.fetchone()
+        conn.close()
         
+        if not candidate:
+            return jsonify({'error': 'Candidate not found'}), 404
+        
+        # Create PDF
         buffer = io.BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-        c.drawString(100, 750, "PDF Generation Works!")
-        c.save()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        # Starting position
+        y = height - 50
+        
+        # Title
+        p.setFont("Helvetica-Bold", 18)
+        p.drawString(50, y, "Candidate Profile")
+        y -= 30
+        
+        # Name
+        name = (candidate['first_name'] or '') + ' ' + (candidate['last_name'] or '')
+        p.setFont("Helvetica", 12)
+        p.drawString(50, y, f"Name: {name.strip() or 'Unknown'}")
+        y -= 20
+        p.drawString(50, y, f"Email: {candidate['email'] or 'N/A'}")
+        y -= 20
+        p.drawString(50, y, f"Phone: {candidate['phone'] or 'N/A'}")
+        y -= 20
+        p.drawString(50, y, f"Role: {candidate['current_role'] or 'N/A'}")
+        y -= 20
+        p.drawString(50, y, f"CTC: Current: {candidate['current_ctc'] or 'N/A'} | Expected: {candidate['expected_ctc'] or 'N/A'}")
+        y -= 20
+        p.drawString(50, y, f"Status: {candidate['employment_status'] or 'N/A'}")
+        y -= 30
+        
+        # Skills
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(50, y, "Skills")
+        y -= 20
+        p.setFont("Helvetica", 12)
+        skills = json.loads(candidate['core_skills'] or '[]')
+        if skills:
+            skill_text = ', '.join([f"{s['skill']} ({s.get('years_of_experience', 0)} yrs)" for s in skills])
+            # Wrap text if too long
+            if len(skill_text) > 80:
+                p.drawString(50, y, skill_text[:80])
+                y -= 20
+                p.drawString(50, y, skill_text[80:])
+            else:
+                p.drawString(50, y, skill_text)
+        else:
+            p.drawString(50, y, "None")
+        y -= 30
+        
+        # Education
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(50, y, "Education")
+        y -= 20
+        p.setFont("Helvetica", 12)
+        p.drawString(50, y, candidate['education'] or 'N/A')
+        y -= 30
+        
+        # Notes (if exists)
+        if candidate.get('notes'):
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(50, y, "Notes")
+            y -= 20
+            p.setFont("Helvetica", 12)
+            notes = candidate['notes']
+            if len(notes) > 80:
+                p.drawString(50, y, notes[:80])
+                y -= 20
+                p.drawString(50, y, notes[80:160])
+            else:
+                p.drawString(50, y, notes)
+            y -= 30
+        
+        # Match Score
+        if candidate.get('match_score', 0) > 0:
+            p.setFont("Helvetica-Bold", 14)
+            p.drawString(50, y, "Match Score")
+            y -= 20
+            p.setFont("Helvetica", 12)
+            p.drawString(50, y, f"{candidate['match_score']}% - {candidate.get('recommendation', 'Review')}")
+        
+        p.save()
         buffer.seek(0)
         
         return send_file(
             buffer,
             as_attachment=True,
-            download_name="test.pdf",
+            download_name=f"{name.strip() or 'candidate'}_profile.pdf",
             mimetype='application/pdf'
         )
     except Exception as e:
