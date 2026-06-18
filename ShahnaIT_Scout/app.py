@@ -1380,6 +1380,27 @@ def export_candidate_pdf(candidate_id):
         download_name=f"{name.strip() or 'candidate'}_profile.pdf",
         mimetype='application/pdf'
     )
+@app.route('/api/debug/pdf-test', methods=['GET'])
+def debug_pdf_test():
+    try:
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.pagesizes import letter
+        import io
+        
+        buffer = io.BytesIO()
+        c = canvas.Canvas(buffer, pagesize=letter)
+        c.drawString(100, 750, "PDF Generation Works!")
+        c.save()
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name="test.pdf",
+            mimetype='application/pdf'
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
