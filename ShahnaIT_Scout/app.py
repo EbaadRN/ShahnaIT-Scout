@@ -465,8 +465,6 @@ HTML_TEMPLATE = '''
     if(panel === 'analyze') document.getElementById('tabAnalyze').classList.add('active');
     if(panel === 'dashboard') document.getElementById('tabDashboard').classList.add('active');
 }
-
-async function loadJobs() {
     
     async function loadJobs() {
         const res = await fetch('/api/jobs');
