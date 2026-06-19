@@ -1192,6 +1192,241 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             }
         });
     }
+        // ========== EXPORT PDF ==========
+    window.exportPDF = async function(candidateId, event) {
+        const btn = event.target;
+        btn.textContent = '⏳ Generating...';
+        btn.disabled = true;
+        
+        try {
+            const res = await fetch(`/api/candidates/${candidateId}/export-pdf`);
+            if (res.ok) {
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const c = allCandidates.find(c => c.id == candidateId);
+                const name = ((c.first_name || '') + '_' + (c.last_name || '')).trim() || 'candidate';
+                a.download = `${name}_profile.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } else {
+                alert('Failed to generate PDF');
+            }
+        } catch(e) {
+            alert('Error generating PDF');
+        } finally {
+            btn.textContent = '📄 Export PDF';
+            btn.disabled = false;
+        }
+    };
+
+    // ========== NOTES FUNCTIONS ==========
+    async function loadNotes(candidateId) {
+        const container = document.getElementById(`notesList-${candidateId}`);
+        if (!container) return;
+        
+        try {
+            const res = await fetch(`/api/candidates/${candidateId}/notes`);
+            const notes = await res.json();
+            
+            if (notes.length === 0) {
+                container.innerHTML = '<p style="color: #666; font-style: italic; margin: 5px 0;">No notes yet. Add one above.</p>';
+                return;
+            }
+            
+            let html = '';
+            notes.forEach(note => {
+                const date = new Date(note.created_at).toLocaleString();
+                html += `
+                    <div style="background: #F9F6F0; padding: 8px; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid #1A4D4A;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1; font-size: 13px;">${escapeHtml(note.note_text)}</div>
+                            <button class="btn" style="background: #B22222; padding: 2px 8px; font-size: 10px; margin-left: 8px;" onclick="deleteNote(${note.id}, ${candidateId})">✕</button>
+                        </div>
+                        <small style="color: #666; font-size: 10px;">📅 ${date}</small>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } catch(e) {
+            container.innerHTML = '<p style="color: #B22222;">Failed to load notes</p>';
+        }
+    }
+    
+    window.addNote = async function(candidateId) {
+        const input = document.getElementById(`newNote-${candidateId}`);
+        const noteText = input.value.trim();
+        
+        if (!noteText) {
+            alert('Please enter a note');
+            return;
+        }
+        
+        try {
+            const res = await fetch(`/api/candidates/${candidateId}/notes`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ note_text: noteText })
+            });
+            
+            if (res.ok) {
+                input.value = '';
+                loadNotes(candidateId);
+            } else {
+                alert('Failed to add note');
+            }
+        } catch(e) {
+            alert('Error adding note');
+        }
+    };
+    
+    window.deleteNote = async function(noteId, candidateId) {
+        if (!confirm('Delete this note?')) return;
+        
+        try {
+            const res = await fetch(`/api/candidates/notes/${noteId}`, {
+                method: 'DELETE'
+            });
+            
+            if (res.ok) {
+                loadNotes(candidateId);
+            } else {
+                alert('Failed to delete note');
+            }
+        } catch(e) {
+            alert('Error deleting note');
+        }
+    };
+
+    // ========== STATUS MANAGEMENT ==========
+    function getStatusColor(status) {
+        const colors = {
+            'new': '#2196F3',
+            'screening': '#FF9800',
+            'interview': '#FF5722',
+            'offer': '#9C27B0',
+            'hired': '#4CAF50',
+            'rejected': '#F44336'
+        };
+        return colors[status] || '#666';
+    }
+    
+    window.updateStatus = async function(candidateId, newStatus) {
+        try {
+            const res = await fetch(`/api/candidates/${candidateId}/status`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ employment_status: newStatus })
+            });
+            
+            if (res.ok) {
+                const dropdown = document.getElementById(`candidateStatus-${candidateId}`);
+                if (dropdown) {
+                    dropdown.style.background = getStatusColor(newStatus);
+                }
+                loadCandidates();
+            } else {
+                alert('Failed to update status');
+                loadCandidates();
+            }
+        } catch(e) {
+            alert('Error updating status');
+            loadCandidates();
+        }
+    };
+
+    // ========== DASHBOARD ==========
+    let matchChartInstance = null;
+    let pipelineChartInstance = null;
+    let trendChartInstance = null;
+    
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/dashboard-data');
+            const data = await res.json();
+            
+            document.getElementById('totalCandidates').textContent = data.total || 0;
+            document.getElementById('matchedCandidates').textContent = data.matched || 0;
+            document.getElementById('hiredCandidates').textContent = data.hired || 0;
+            document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
+            
+            renderMatchChart(data.matchDistribution || {});
+            renderPipelineChart(data.pipeline || {});
+            renderSkillsCloud(data.skills || []);
+            renderTrendChart(data.trend || {});
+        } catch(e) {
+            console.error('Dashboard error:', e);
+        }
+    }
+    
+    function renderMatchChart(distribution) {
+        const canvas = document.getElementById('matchChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+        const values = [
+            distribution['0-20'] || 0,
+            distribution['21-40'] || 0,
+            distribution['41-60'] || 0,
+            distribution['61-80'] || 0,
+            distribution['81-100'] || 0
+        ];
+        const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
+        
+        if (matchChartInstance) matchChartInstance.destroy();
+        matchChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Candidates', data: values, backgroundColor: colors, borderColor: colors, borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+    }
+    
+    function renderPipelineChart(pipeline) {
+        const canvas = document.getElementById('pipelineChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'];
+        const values = [pipeline.new||0, pipeline.screening||0, pipeline.interview||0, pipeline.offer||0, pipeline.hired||0, pipeline.rejected||0];
+        const colors = ['#2196F3', '#FF9800', '#FF5722', '#9C27B0', '#4CAF50', '#F44336'];
+        if (values.every(v => v === 0)) return;
+        if (pipelineChartInstance) pipelineChartInstance.destroy();
+        pipelineChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+        });
+    }
+    
+    function renderSkillsCloud(skills) {
+        const container = document.getElementById('skillsCloud');
+        if (!container) return;
+        if (!skills || skills.length === 0) { container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>'; return; }
+        const topSkills = skills.slice(0, 15);
+        const maxCount = topSkills[0]?.count || 1;
+        container.innerHTML = topSkills.map(s => {
+            const size = 12 + (s.count / maxCount) * 20;
+            return `<span style="font-size:${size}px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:${0.6+(s.count/maxCount)*0.4};">${escapeHtml(s.skill)}</span>`;
+        }).join('');
+    }
+    
+    function renderTrendChart(trend) {
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = trend.labels || [];
+        const values = trend.values || [];
+        if (trendChartInstance) trendChartInstance.destroy();
+        if (labels.length === 0) return;
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Candidates Added', data: values, borderColor: '#1A4D4A', backgroundColor: 'rgba(26,77,74,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#1A4D4A' }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+    }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
     showPanel('jobs');
