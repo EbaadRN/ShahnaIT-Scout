@@ -1690,6 +1690,108 @@ def export_candidate_pdf(candidate_id):
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+# ========== DASHBOARD API ==========
+@app.route('/api/dashboard-data', methods=['GET'])
+def get_dashboard_data():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Get all candidates
+    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    
+    # Total candidates
+    total = len(candidates)
+    
+    # Match distribution
+    match_distribution = {
+        '0-20': 0,
+        '21-40': 0,
+        '41-60': 0,
+        '61-80': 0,
+        '81-100': 0
+    }
+    
+    # Pipeline counts
+    pipeline = {
+        'new': 0,
+        'screening': 0,
+        'interview': 0,
+        'offer': 0,
+        'hired': 0,
+        'rejected': 0
+    }
+    
+    matched = 0
+    hired = 0
+    rejected = 0
+    skills_count = {}
+    trend_data = {}
+    
+    for candidate in candidates:
+        # Match distribution
+        score = candidate.get('match_score', 0)
+        if score >= 80:
+            match_distribution['81-100'] += 1
+        elif score >= 60:
+            match_distribution['61-80'] += 1
+        elif score >= 40:
+            match_distribution['41-60'] += 1
+        elif score >= 20:
+            match_distribution['21-40'] += 1
+        else:
+            match_distribution['0-20'] += 1
+        
+        # Pipeline
+        status = candidate.get('employment_status', 'new')
+        if status in pipeline:
+            pipeline[status] += 1
+        
+        # Count matched (70%+)
+        if score >= 70:
+            matched += 1
+        
+        # Count hired/rejected
+        if status == 'hired':
+            hired += 1
+        elif status == 'rejected':
+            rejected += 1
+        
+        # Skills
+        skills = json.loads(candidate.get('core_skills', '[]'))
+        for skill in skills:
+            skill_name = skill.get('skill', '').strip()
+            if skill_name:
+                skills_count[skill_name] = skills_count.get(skill_name, 0) + 1
+        
+        # Trend (by date)
+        date = candidate.get('created_at', '')[:10]  # YYYY-MM-DD
+        if date:
+            trend_data[date] = trend_data.get(date, 0) + 1
+    
+    # Sort skills by count
+    sorted_skills = sorted([{'skill': k, 'count': v} for k, v in skills_count.items()], key=lambda x: x['count'], reverse=True)
+    
+    # Sort trend dates
+    sorted_dates = sorted(trend_data.keys())
+    trend_labels = sorted_dates
+    trend_values = [trend_data[d] for d in sorted_dates]
+    
+    conn.close()
+    
+    return jsonify({
+        'total': total,
+        'matched': matched,
+        'hired': hired,
+        'rejected': rejected,
+        'matchDistribution': match_distribution,
+        'pipeline': pipeline,
+        'skills': sorted_skills,
+        'trend': {
+            'labels': trend_labels,
+            'values': trend_values
+        }
+    })
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
