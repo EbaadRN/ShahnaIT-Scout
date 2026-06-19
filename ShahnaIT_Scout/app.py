@@ -280,6 +280,7 @@ HTML_TEMPLATE = '''
 <html>
 <head>
     <title>ShahnaIT Scout</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
         .header { background: #1A4D4A; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
