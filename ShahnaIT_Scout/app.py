@@ -935,8 +935,8 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             alert('Error deleting note');
         }
     };
-        // ========== EXPORT PDF ==========
-    window.exportPDF = async function(candidateId) {
+           // ========== EXPORT PDF ==========
+    window.exportPDF = async function(candidateId, event) {
         const btn = event.target;
         btn.textContent = '⏳ Generating...';
         btn.disabled = true;
