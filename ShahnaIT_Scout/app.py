@@ -337,6 +337,7 @@ HTML_TEMPLATE = '''
         <button class="tab-btn" id="tabUpload">📄 Upload Resume</button>
         <button class="tab-btn" id="tabCreateJob">➕ Create Job</button>
         <button class="tab-btn" id="tabAnalyze">🔍 Analyze Match</button>
+        <button class="tab-btn" id="tabDashboard">📊 Dashboard</button>
     </div>
     
     <div id="jobsPanel"><div id="jobsList"></div></div>
@@ -383,6 +384,50 @@ HTML_TEMPLATE = '''
     </div>
 </div>
 </div>
+    <!-- Dashboard Panel -->
+    <div id="dashboardPanel" style="display:none;">
+        <div class="card no-click">
+            <h3>📊 Recruitment Dashboard</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: #1A4D4A; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="totalCandidates">0</div>
+                    <div style="font-size: 12px;">Total Candidates</div>
+                </div>
+                <div style="background: #1B6B2E; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="matchedCandidates">0</div>
+                    <div style="font-size: 12px;">Matched (70%+)</div>
+                </div>
+                <div style="background: #2196F3; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="hiredCandidates">0</div>
+                    <div style="font-size: 12px;">Hired</div>
+                </div>
+                <div style="background: #F44336; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="rejectedCandidates">0</div>
+                    <div style="font-size: 12px;">Rejected</div>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Match Score Distribution</h4>
+                    <canvas id="matchChart" height="200"></canvas>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Pipeline Funnel</h4>
+                    <canvas id="pipelineChart" height="200"></canvas>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Top Skills</h4>
+                    <div id="skillsCloud" style="min-height: 100px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;"></div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Candidates Over Time</h4>
+                    <canvas id="trendChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <!-- Modals -->
 <div id="candidateModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Candidate Profile</h2><span class="close" onclick="closeModal()">&times;</span></div><div class="modal-body" id="modalBody"></div></div></div>
