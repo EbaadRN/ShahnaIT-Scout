@@ -514,7 +514,17 @@ HTML_TEMPLATE = '''
             <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">CTC:</div><div class="detail-value">Current: ${escapeHtml(c.current_ctc || 'N/A')} | Expected: ${escapeHtml(c.expected_ctc || 'N/A')}</div></div>
-            <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">${escapeHtml(c.employment_status || 'N/A')}${c.notice_period_days ? ` (${c.notice_period_days} days)` : ''}</div></div>
+            <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">
+    <select id="candidateStatus-${c.id}" onchange="updateStatus(${c.id}, this.value)" style="padding: 4px 8px; border-radius: 5px; border: 1px solid #ccc; background: ${getStatusColor(c.employment_status || 'new')}; color: white;">
+        <option value="new" ${c.employment_status === 'new' ? 'selected' : ''}>🟢 New</option>
+        <option value="screening" ${c.employment_status === 'screening' ? 'selected' : ''}>🔵 Screening</option>
+        <option value="interview" ${c.employment_status === 'interview' ? 'selected' : ''}>🟠 Interview</option>
+        <option value="offer" ${c.employment_status === 'offer' ? 'selected' : ''}>🟣 Offer</option>
+        <option value="hired" ${c.employment_status === 'hired' ? 'selected' : ''}>✅ Hired</option>
+        <option value="rejected" ${c.employment_status === 'rejected' ? 'selected' : ''}>❌ Rejected</option>
+    </select>
+    ${c.notice_period_days ? ` (${c.notice_period_days} days notice)` : ''}
+</div></div>
             <h4>Work Experience</h4>${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date||'')} - ${escapeHtml(w.end_date||'Present')}</small></div>`).join('') || '<p>None</p>'}
             <h4>Skills</h4>${skills.map(s => `<span class="skill-with-years">${escapeHtml(s.skill)} (${s.years_of_experience||0}y)</span>`).join('') || '<p>None</p>'}
             <h4>Certifications</h4>${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
