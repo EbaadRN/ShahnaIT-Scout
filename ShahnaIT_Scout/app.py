@@ -450,7 +450,6 @@ HTML_TEMPLATE = '''
     document.getElementById('tabDashboard').onclick = function() { showPanel('dashboard'); loadDashboard(); };
     
     function showPanel(panel) {
-        function showPanel(panel) {
     document.getElementById('jobsPanel').style.display = 'none';
     document.getElementById('candidatesPanel').style.display = 'none';
     document.getElementById('uploadPanel').style.display = 'none';
@@ -465,8 +464,9 @@ HTML_TEMPLATE = '''
     if(panel === 'createJob') document.getElementById('tabCreateJob').classList.add('active');
     if(panel === 'analyze') document.getElementById('tabAnalyze').classList.add('active');
     if(panel === 'dashboard') document.getElementById('tabDashboard').classList.add('active');
-    
-    }
+}
+
+async function loadJobs() {
     
     async function loadJobs() {
         const res = await fetch('/api/jobs');
