@@ -448,18 +448,22 @@ HTML_TEMPLATE = '''
     document.getElementById('tabAnalyze').onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     
     function showPanel(panel) {
-        document.getElementById('jobsPanel').style.display = 'none';
-        document.getElementById('candidatesPanel').style.display = 'none';
-        document.getElementById('uploadPanel').style.display = 'none';
-        document.getElementById('createJobPanel').style.display = 'none';
-        document.getElementById('analyzePanel').style.display = 'none';
-        document.getElementById(panel + 'Panel').style.display = 'block';
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        if(panel === 'jobs') document.getElementById('tabJobs').classList.add('active');
-        if(panel === 'candidates') document.getElementById('tabCandidates').classList.add('active');
-        if(panel === 'upload') document.getElementById('tabUpload').classList.add('active');
-        if(panel === 'createJob') document.getElementById('tabCreateJob').classList.add('active');
-        if(panel === 'analyze') document.getElementById('tabAnalyze').classList.add('active');
+        function showPanel(panel) {
+    document.getElementById('jobsPanel').style.display = 'none';
+    document.getElementById('candidatesPanel').style.display = 'none';
+    document.getElementById('uploadPanel').style.display = 'none';
+    document.getElementById('createJobPanel').style.display = 'none';
+    document.getElementById('analyzePanel').style.display = 'none';
+    document.getElementById('dashboardPanel').style.display = 'none';
+    document.getElementById(panel + 'Panel').style.display = 'block';
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    if(panel === 'jobs') document.getElementById('tabJobs').classList.add('active');
+    if(panel === 'candidates') document.getElementById('tabCandidates').classList.add('active');
+    if(panel === 'upload') document.getElementById('tabUpload').classList.add('active');
+    if(panel === 'createJob') document.getElementById('tabCreateJob').classList.add('active');
+    if(panel === 'analyze') document.getElementById('tabAnalyze').classList.add('active');
+    if(panel === 'dashboard') document.getElementById('tabDashboard').classList.add('active');
+    
     }
     
     async function loadJobs() {
