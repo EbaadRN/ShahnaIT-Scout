@@ -916,6 +916,45 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             btn.disabled = false;
         }
     };
+        // ========== STATUS MANAGEMENT ==========
+    function getStatusColor(status) {
+        const colors = {
+            'new': '#2196F3',
+            'screening': '#FF9800',
+            'interview': '#FF5722',
+            'offer': '#9C27B0',
+            'hired': '#4CAF50',
+            'rejected': '#F44336'
+        };
+        return colors[status] || '#666';
+    }
+    
+    window.updateStatus = async function(candidateId, newStatus) {
+        try {
+            const res = await fetch(`/api/candidates/${candidateId}/status`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ employment_status: newStatus })
+            });
+            
+            if (res.ok) {
+                // Update the dropdown background color
+                const dropdown = document.getElementById(`candidateStatus-${candidateId}`);
+                if (dropdown) {
+                    dropdown.style.background = getStatusColor(newStatus);
+                }
+                // Reload candidates list to reflect changes
+                loadCandidates();
+            } else {
+                alert('Failed to update status');
+                // Reload to revert dropdown
+                loadCandidates();
+            }
+        } catch(e) {
+            alert('Error updating status');
+            loadCandidates();
+        }
+    };
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
     showPanel('jobs');
