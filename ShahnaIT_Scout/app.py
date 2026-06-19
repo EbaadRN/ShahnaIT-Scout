@@ -1324,6 +1324,23 @@ def delete_candidate_note(note_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Note deleted'})
+
+# ========== STATUS API ==========
+@app.route('/api/candidates/<int:candidate_id>/status', methods=['PUT'])
+def update_candidate_status(candidate_id):
+    data = request.json
+    new_status = data.get('employment_status', '')
+    
+    if not new_status:
+        return jsonify({'error': 'Status required'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('UPDATE candidates SET employment_status = ? WHERE id = ?', (new_status, candidate_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Status updated', 'status': new_status})
 # ========== PDF EXPORT ==========
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
