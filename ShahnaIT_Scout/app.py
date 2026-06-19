@@ -1340,9 +1340,6 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
     };
 
     // ========== DASHBOARD ==========
-    let matchChartInstance = null;
-    let pipelineChartInstance = null;
-    let trendChartInstance = null;
     
     async function loadDashboard() {
         try {
