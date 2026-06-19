@@ -1006,6 +1006,194 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             loadCandidates();
         }
     };
+        // ========== DASHBOARD ==========
+    let matchChartInstance = null;
+    let pipelineChartInstance = null;
+    let trendChartInstance = null;
+    
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/dashboard-data');
+            const data = await res.json();
+            
+            // Update stats cards
+            document.getElementById('totalCandidates').textContent = data.total || 0;
+            document.getElementById('matchedCandidates').textContent = data.matched || 0;
+            document.getElementById('hiredCandidates').textContent = data.hired || 0;
+            document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
+            
+            // Render match score chart
+            renderMatchChart(data.matchDistribution || {});
+            
+            // Render pipeline chart
+            renderPipelineChart(data.pipeline || {});
+            
+            // Render skills cloud
+            renderSkillsCloud(data.skills || []);
+            
+            // Render trend chart
+            renderTrendChart(data.trend || {});
+            
+        } catch(e) {
+            console.error('Dashboard error:', e);
+        }
+    }
+    
+    function renderMatchChart(distribution) {
+        const ctx = document.getElementById('matchChart').getContext('2d');
+        const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+        const values = [
+            distribution['0-20'] || 0,
+            distribution['21-40'] || 0,
+            distribution['41-60'] || 0,
+            distribution['61-80'] || 0,
+            distribution['81-100'] || 0
+        ];
+        const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
+        
+        if (matchChartInstance) {
+            matchChartInstance.destroy();
+        }
+        
+        matchChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Candidates',
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: colors.map(c => c),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    }
+    
+    function renderPipelineChart(pipeline) {
+        const ctx = document.getElementById('pipelineChart').getContext('2d');
+        const labels = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'];
+        const values = [
+            pipeline.new || 0,
+            pipeline.screening || 0,
+            pipeline.interview || 0,
+            pipeline.offer || 0,
+            pipeline.hired || 0,
+            pipeline.rejected || 0
+        ];
+        const colors = ['#2196F3', '#FF9800', '#FF5722', '#9C27B0', '#4CAF50', '#F44336'];
+        
+        if (pipelineChartInstance) {
+            pipelineChartInstance.destroy();
+        }
+        
+        pipelineChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { boxWidth: 12, font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+    
+    function renderSkillsCloud(skills) {
+        const container = document.getElementById('skillsCloud');
+        if (!skills || skills.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>';
+            return;
+        }
+        
+        // Take top 15 skills
+        const topSkills = skills.slice(0, 15);
+        const maxCount = topSkills[0]?.count || 1;
+        
+        container.innerHTML = topSkills.map(s => {
+            const size = 12 + (s.count / maxCount) * 20; // 12-32px
+            const opacity = 0.6 + (s.count / maxCount) * 0.4;
+            return `<span style="
+                font-size: ${size}px;
+                color: #1A4D4A;
+                background: #F5F0E8;
+                padding: 4px 12px;
+                border-radius: 20px;
+                border: 1px solid #ddd;
+                opacity: ${opacity};
+                font-weight: ${s.count > maxCount/2 ? 'bold' : 'normal'};
+            ">${escapeHtml(s.skill)} (${s.count})</span>`;
+        }).join('');
+    }
+    
+    function renderTrendChart(trend) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const labels = trend.labels || [];
+        const values = trend.values || [];
+        
+        if (trendChartInstance) {
+            trendChartInstance.destroy();
+        }
+        
+        if (labels.length === 0) {
+            trendChartInstance = null;
+            return;
+        }
+        
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Candidates Added',
+                    data: values,
+                    borderColor: '#1A4D4A',
+                    backgroundColor: 'rgba(26, 77, 74, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#1A4D4A'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
     showPanel('jobs');
