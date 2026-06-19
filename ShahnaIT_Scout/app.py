@@ -446,6 +446,7 @@ HTML_TEMPLATE = '''
     document.getElementById('tabUpload').onclick = function() { showPanel('upload'); };
     document.getElementById('tabCreateJob').onclick = function() { showPanel('createJob'); };
     document.getElementById('tabAnalyze').onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
+    document.getElementById('tabDashboard').onclick = function() { showPanel('dashboard'); loadDashboard(); };
     
     function showPanel(panel) {
         function showPanel(panel) {
