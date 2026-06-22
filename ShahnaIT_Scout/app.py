@@ -151,13 +151,43 @@ Return: {{
 def analyze_match_with_groq(resume_text, jd_text):
     if not GROQ_ENABLED:
         return None
-    prompt = f"""Analyze this resume against the job description. Return ONLY valid JSON.
+    prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description with extreme precision. Return ONLY valid JSON.
 
-JOB: {jd_text[:2500]}
-RESUME: {resume_text[:3000]}
+JOB DESCRIPTION:
+{jd_text[:3000]}
 
-Return: {{"match_score": 0, "recommendation": "hire/interview/reject", "executive_summary": {{"final_verdict": "text"}}, "pre_screening_questions": []}}"""
-    response = call_groq_api(prompt, max_tokens=1500)
+RESUME:
+{resume_text[:3500]}
+
+Provide a detailed analysis with the following structure. Be extremely critical and precise.
+
+Return EXACTLY this JSON format:
+{{
+    "match_score": 0-100 integer,
+    "recommendation": "hire" or "interview" or "reject",
+    "category_scores": {{
+        "skills_match": 0-100,
+        "experience_match": 0-100,
+        "education_match": 0-100,
+        "certifications_match": 0-100
+    }},
+    "matching_skills": ["skill1", "skill2"],
+    "missing_skills": ["skill1", "skill2"],
+    "strengths": ["strength1", "strength2"],
+    "weaknesses": ["weakness1", "weakness2"],
+    "executive_summary": "2-3 sentence summary",
+    "pre_screening_questions": ["Q1", "Q2", "Q3"]
+}}
+
+Scoring Guidelines:
+- 90-100: Perfect fit, hire immediately
+- 70-89: Strong match, schedule interview
+- 50-69: Partial match, consider for interview
+- 30-49: Weak match, reject
+- 0-29: No match, reject
+
+Be harsh and realistic. Do not inflate scores."""
+    response = call_groq_api(prompt, max_tokens=2000)
     if response:
         try:
             return json.loads(response)
