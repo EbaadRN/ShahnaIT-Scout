@@ -910,7 +910,7 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
     };
 
         // ========== BATCH ANALYZE - Match JD Against ALL Candidates ==========
-    document.getElementById('batchAnalyzeBtn').onclick = async function() {
+       document.getElementById('batchAnalyzeBtn').onclick = async function() {
         const jobId = document.getElementById('batchJobSelect').value;
         if (!jobId) { alert('Please select a Job'); return; }
         
@@ -918,7 +918,7 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         if (!job) { alert('Job not found'); return; }
         
         const div = document.getElementById('batchAnalysisResult');
-        div.innerHTML = '<div class="spinner"></div><p>📊 Analyzing ' + allCandidates.length + ' candidates...</p>';
+        div.innerHTML = '<div class="spinner"></div><p>📊 Analyzing ' + allCandidates.length + ' candidates with enhanced matching...</p>';
         
         try {
             const res = await fetch('/api/batch-analyze', {
@@ -933,27 +933,56 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                 return;
             }
             
-            let html = `<div class="alert-success"><h4>📊 Analysis Complete</h4>`;
-            html += `<p><strong>Job:</strong> ${escapeHtml(job.title)}</p>`;
-            html += `<p><strong>Total Candidates:</strong> ${results.length}</p>`;
-            html += `<p><strong>Candidates with any match (>0%):</strong> ${results.filter(r => r.match_score > 0).length}</p>`;
-            html += `<hr><div style="max-height: 500px; overflow-y: auto;">`;
+            // Count candidates with meaningful match (>0%)
+            const meaningfulMatches = results.filter(r => r.match_score > 0).length;
             
-            results.forEach((r, index) => {
-                const matchClass = r.match_score >= 70 ? 'match-high' : (r.match_score >= 40 ? 'match-medium' : 'match-low');
-                html += `<div class="card" style="cursor: pointer; margin: 8px 0;" onclick="viewCandidate(${r.candidate_id})">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div><strong>#${index + 1}</strong> 👤 ${escapeHtml(r.name)}${r.email ? `<br><small>📧 ${escapeHtml(r.email)}</small>` : ''}</div>
-                        <div><span class="${matchClass}">${r.match_score}%</span><br><small>${r.recommendation || 'Review'}</small></div>
-                    </div>
-                </div>`;
-            });
+            let html = `<div class="alert-success" style="padding: 15px;"><h4>📊 Batch Analysis Complete</h4>`;
+            html += `<div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 10px 0;">`;
+            html += `<div><strong>Job:</strong> ${escapeHtml(job.title)}</div>`;
+            html += `<div><strong>Total Candidates:</strong> ${results.length}</div>`;
+            html += `<div><strong>Candidates with any match (>0%):</strong> ${meaningfulMatches}</div>`;
+            html += `</div><hr><div style="max-height: 500px; overflow-y: auto;">`;
             
-            html += `</div><button class="btn" onclick="document.getElementById('tabCandidates').click()" style="margin-top:15px;">View All Candidates</button></div>`;
+            if (results.length === 0) {
+                html += `<p style="color: #666; font-style: italic;">No candidates found in database.</p>`;
+            } else {
+                results.forEach((r, index) => {
+                    const matchClass = r.match_score >= 70 ? 'match-high' : (r.match_score >= 40 ? 'match-medium' : 'match-low');
+                    const nameDisplay = r.name && r.name !== 'Unknown' ? r.name : 'Unknown Candidate';
+                    
+                    html += `<div class="card" style="cursor: pointer; margin: 8px 0; padding: 12px; border-left: 4px solid ${r.match_score >= 70 ? '#1B6B2E' : (r.match_score >= 40 ? '#CC5500' : '#B22222')};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div onclick="viewCandidate(${r.candidate_id})" style="flex: 1; cursor: pointer;">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-weight: bold; color: #666;">#${index + 1}</span>
+                                    <span style="font-size: 16px; font-weight: bold;">👤 ${escapeHtml(nameDisplay)}</span>
+                                </div>
+                                ${r.email ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">📧 ${escapeHtml(r.email)}</div>` : ''}
+                                ${r.tech_found && r.tech_found.length > 0 ? `<div style="font-size: 11px; color: #555; margin-top: 4px;">🔧 ${r.tech_found.map(t => `<span style="background: #E8F5E9; padding: 1px 8px; border-radius: 10px; margin: 2px; display: inline-block;">${escapeHtml(t)}</span>`).join(' ')}</div>` : ''}
+                            </div>
+                            <div style="text-align: right; min-width: 80px;">
+                                <div><span class="${matchClass}" style="font-size: 18px; padding: 4px 14px;">${r.match_score}%</span></div>
+                                <div style="font-size: 11px; margin-top: 2px; color: ${r.recommendation === 'hire' ? '#1B6B2E' : (r.recommendation === 'interview' ? '#CC5500' : '#B22222')};">
+                                    ${r.recommendation || 'Review'}
+                                </div>
+                                <button class="btn" style="background: #C9A96E; color: white; padding: 2px 10px; font-size: 10px; margin-top: 4px; border: none; border-radius: 4px; cursor: pointer;" onclick="event.stopPropagation(); runDeepAnalysis(${r.candidate_id}, '${escapeHtml(job.title)}')">🔍 AI Deep Dive</button>
+                            </div>
+                        </div>
+                    </div>`;
+                });
+            }
+            
+            html += `</div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn" onclick="document.getElementById('tabCandidates').click()" style="margin-top:0;">👥 View All Candidates</button>
+                    <button class="btn" onclick="document.getElementById('tabAnalyze').click(); loadJobs(); loadCandidates();" style="background: #C9A96E; margin-top:0;">🔍 Go to Single Analysis</button>
+                </div>
+            </div>`;
             div.innerHTML = html;
             
         } catch(e) {
-            div.innerHTML = '<div class="alert-error">Analysis failed</div>';
+            console.error('Batch analysis error:', e);
+            div.innerHTML = '<div class="alert-error">❌ Analysis failed. Please try again.</div>';
         }
     };
         // ========== NOTES FUNCTIONS ==========
