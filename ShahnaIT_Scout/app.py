@@ -324,9 +324,9 @@ HTML_TEMPLATE = '''
         input, select, textarea { width: 100%; padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
         .skill-tag { background: #F5F0E8; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; }
         .skill-with-years { background: #E8F5E9; padding: 3px 8px; border-radius: 15px; display: inline-block; margin: 2px; color: #1B5E20; }
-        .match-high { background: #1B6B2E; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
-        .match-medium { background: #CC5500; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
-        .match-low { background: #B22222; color: white; padding: 2px 8px; border-radius: 15px; display: inline-block; }
+        .match-high { background: #1B6B2E; color: #FFFFFF; padding: 4px 12px; border-radius: 20px; display: inline-block; font-weight: bold; }
+        .match-medium { background: #E65100; color: #FFFFFF; padding: 4px 12px; border-radius: 20px; display: inline-block; font-weight: bold; }
+        .match-low { background: #B71C1C; color: #FFFFFF; padding: 4px 12px; border-radius: 20px; display: inline-block; font-weight: bold; }
         .alert-success { background: #1B6B2E; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
         .alert-error { background: #B22222; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
         .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
