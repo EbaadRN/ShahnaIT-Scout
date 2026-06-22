@@ -1817,7 +1817,7 @@ def batch_analyze():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT id, first_name, last_name, email, resume_text FROM candidates ORDER BY created_at DESC')
+    c.execute('SELECT id, first_name, last_name, email, resume_text, match_score FROM candidates ORDER BY created_at DESC')
     candidates = [dict(row) for row in c.fetchall()]
     conn.close()
     
@@ -1825,27 +1825,49 @@ def batch_analyze():
     jd_lower = jd_text.lower()
     jd_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', jd_lower))
     
+    # High-value tech terms (weighted higher)
+    tech_terms = [
+        'aws', 'python', 'sql', 'spark', 'hadoop', 'kafka', 'scala', 'java',
+        'react', 'angular', 'node', 'docker', 'kubernetes', 'git', 'jenkins',
+        'salesforce', 'apex', 'lightning', 'azure', 'gcp', 'terraform',
+        'databricks', 'snowflake', 'redshift', 'glue', 'lambda', 'emr',
+        'pyspark', 'airflow', 'dbt', 'looker', 'tableau', 'powerbi'
+    ]
+    
     results = []
     for cand in candidates:
         name = (cand.get('first_name', '') + ' ' + cand.get('last_name', '')).strip() or 'Unknown'
         resume_text = cand.get('resume_text', '') or ''
         
+        # If no resume text, use existing match_score if available
         if not resume_text:
             results.append({
                 'candidate_id': cand['id'],
                 'name': name,
                 'email': cand.get('email', ''),
-                'match_score': 0,
+                'match_score': cand.get('match_score', 0) or 0,
                 'recommendation': 'No resume text'
             })
             continue
         
-        # Keyword matching
+        # Keyword matching (base score)
         resume_lower = resume_text.lower()
         resume_words = set(re.findall(r'\b[a-zA-Z]{3,}\b', resume_lower))
         
+        # Base score: percentage of JD words found in resume
         common = resume_words & jd_words
-        match_score = min(100, int(len(common) / max(len(jd_words), 1) * 100))
+        base_score = int(len(common) / max(len(jd_words), 1) * 100)
+        
+        # Bonus points for key tech terms (weighted higher)
+        tech_bonus = 0
+        tech_found = []
+        for term in tech_terms:
+            if term in jd_lower and term in resume_lower:
+                tech_bonus += 8  # +8% per matching tech term
+                tech_found.append(term)
+        
+        # Cap at 100
+        match_score = min(100, base_score + tech_bonus)
         
         recommendation = 'hire' if match_score >= 70 else ('interview' if match_score >= 40 else 'reject')
         
@@ -1854,7 +1876,8 @@ def batch_analyze():
             'name': name,
             'email': cand.get('email', ''),
             'match_score': match_score,
-            'recommendation': recommendation
+            'recommendation': recommendation,
+            'tech_found': tech_found[:5]  # Top 5 matching tech terms for display
         })
     
     # Sort by match score (highest first)
