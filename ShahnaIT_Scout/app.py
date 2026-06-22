@@ -1553,6 +1553,42 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
         });
     }
+    // ========== AI DEEP DIVE FROM BATCH RESULTS ==========
+    window.runDeepAnalysis = async function(candidateId, jobTitle) {
+        // Find the job by title
+        const job = allJobs.find(j => j.title === jobTitle);
+        if (!job) { 
+            alert('Job not found. Please select from Analyze tab.');
+            return; 
+        }
+        
+        const cand = allCandidates.find(c => c.id == candidateId);
+        if (!cand) { 
+            alert('Candidate not found.');
+            return; 
+        }
+        
+        // Switch to analyze tab
+        showPanel('analyze');
+        
+        // Wait for panel to show
+        setTimeout(() => {
+            // Set the job and candidate in the dropdowns
+            document.getElementById('jobSelect').value = job.id;
+            document.getElementById('candidateSelect').value = candidateId;
+            
+            // Trigger the analysis
+            document.getElementById('analyzeBtn').click();
+            
+            // Scroll to analysis result after a delay
+            setTimeout(() => {
+                const resultDiv = document.getElementById('analysisResult');
+                if (resultDiv) {
+                    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 500);
+        }, 300);
+    };
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
     showPanel('jobs');
