@@ -711,20 +711,92 @@ HTML_TEMPLATE = '''
     };
     
     document.getElementById('analyzeBtn').onclick = async function() {
-        const jobId = document.getElementById('jobSelect').value;
-        const candidateId = document.getElementById('candidateSelect').value;
-        if(!jobId || !candidateId) return;
-        const job = allJobs.find(j => j.id == jobId);
-        const cand = allCandidates.find(c => c.id == candidateId);
-        const div = document.getElementById('analysisResult');
-        div.innerHTML = '<div class="spinner"></div><p>Analyzing...</p>';
-        const res = await fetch('/api/analyze-match', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ job_id: jobId, candidate_id: candidateId, jd_text: job.description || '', resume_text: cand.resume_text || '' }) });
-        const result = await res.json();
-        if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-        const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
-        div.innerHTML = `<div class="alert-success"><h4>Analysis</h4><p>Score: <span class="${matchClass}">${result.match_score || 0}%</span></p><p>${result.recommendation || 'Review'}</p><small>✅ Saved</small></div>`;
-        loadCandidates();
-    };
+    const jobId = document.getElementById('jobSelect').value;
+    const candidateId = document.getElementById('candidateSelect').value;
+    if(!jobId || !candidateId) return;
+    const job = allJobs.find(j => j.id == jobId);
+    const cand = allCandidates.find(c => c.id == candidateId);
+    const div = document.getElementById('analysisResult');
+    div.innerHTML = '<div class="spinner"></div><p>🤖 Analyzing with AI...</p>';
+    const res = await fetch('/api/analyze-match', { 
+        method: 'POST', 
+        headers: {'Content-Type':'application/json'}, 
+        body: JSON.stringify({ 
+            job_id: jobId, 
+            candidate_id: candidateId, 
+            jd_text: job.description || '', 
+            resume_text: cand.resume_text || '' 
+        }) 
+    });
+    const result = await res.json();
+    if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
+    
+    const matchClass = result.match_score >= 70 ? 'match-high' : (result.match_score >= 40 ? 'match-medium' : 'match-low');
+    
+    // Build category scores display
+    let categoryHtml = '';
+    if (result.category_scores) {
+        const cats = result.category_scores;
+        categoryHtml = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;">
+                <div style="background: #f0f0f0; padding: 6px 10px; border-radius: 5px;"><strong>Skills:</strong> ${cats.skills_match || 0}%</div>
+                <div style="background: #f0f0f0; padding: 6px 10px; border-radius: 5px;"><strong>Experience:</strong> ${cats.experience_match || 0}%</div>
+                <div style="background: #f0f0f0; padding: 6px 10px; border-radius: 5px;"><strong>Education:</strong> ${cats.education_match || 0}%</div>
+                <div style="background: #f0f0f0; padding: 6px 10px; border-radius: 5px;"><strong>Certifications:</strong> ${cats.certifications_match || 0}%</div>
+            </div>
+        `;
+    }
+    
+    // Build skills display
+    let skillsHtml = '';
+    if (result.matching_skills && result.matching_skills.length > 0) {
+        skillsHtml += `<div><strong>✅ Matching Skills:</strong> ${result.matching_skills.map(s => `<span class="skill-tag" style="background:#E8F5E9;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+    }
+    if (result.missing_skills && result.missing_skills.length > 0) {
+        skillsHtml += `<div><strong>❌ Missing Skills:</strong> ${result.missing_skills.map(s => `<span class="skill-tag" style="background:#FFEBEE;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+    }
+    
+    // Build strengths/weaknesses
+    let swotHtml = '';
+    if (result.strengths && result.strengths.length > 0) {
+        swotHtml += `<div><strong>💪 Strengths:</strong> ${result.strengths.map(s => `<span style="background:#E8F5E9; padding:2px 8px; border-radius:12px; margin:2px; display:inline-block;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+    }
+    if (result.weaknesses && result.weaknesses.length > 0) {
+        swotHtml += `<div><strong>⚠️ Weaknesses:</strong> ${result.weaknesses.map(s => `<span style="background:#FFEBEE; padding:2px 8px; border-radius:12px; margin:2px; display:inline-block;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+    }
+    
+    // Build questions
+    let questionsHtml = '';
+    if (result.pre_screening_questions && result.pre_screening_questions.length > 0) {
+        questionsHtml = `<div style="margin-top: 10px;"><strong>📋 Pre-screening Questions:</strong><ul style="margin: 5px 0; padding-left: 20px;">`;
+        result.pre_screening_questions.forEach(q => {
+            questionsHtml += `<li>${escapeHtml(q)}</li>`;
+        });
+        questionsHtml += `</ul></div>`;
+    }
+    
+    div.innerHTML = `
+        <div class="alert-success" style="padding: 15px;">
+            <h4>📊 Analysis Complete</h4>
+            <div style="display: flex; align-items: center; gap: 20px; margin: 10px 0;">
+                <div style="text-align: center;">
+                    <div style="font-size: 36px; font-weight: bold;" class="${matchClass}">${result.match_score || 0}%</div>
+                    <div style="font-size: 12px; color: #666;">Match Score</div>
+                </div>
+                <div>
+                    <div><strong>Recommendation:</strong> <span style="text-transform: uppercase; font-weight: bold;">${result.recommendation || 'Review'}</span></div>
+                    <div style="font-size: 13px; color: #555; margin-top: 5px;">${result.executive_summary ? escapeHtml(result.executive_summary) : ''}</div>
+                </div>
+            </div>
+            ${categoryHtml}
+            ${skillsHtml}
+            ${swotHtml}
+            ${questionsHtml}
+            <small style="display: block; margin-top: 10px;">✅ Analysis saved to candidate record</small>
+        </div>
+    `;
+    loadCandidates();
+};
     
     // ========== BULK RESUME UPLOAD ==========
     document.getElementById('multiResumeFiles').addEventListener('change', function(e) {
