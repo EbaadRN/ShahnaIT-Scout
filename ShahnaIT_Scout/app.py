@@ -749,12 +749,12 @@ HTML_TEMPLATE = '''
     
     // Build skills display
     let skillsHtml = '';
-    if (result.matching_skills && result.matching_skills.length > 0) {
-        skillsHtml += `<div><strong>✅ Matching Skills:</strong> ${result.matching_skills.map(s => `<span class="skill-tag" style="background:#E8F5E9;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
-    }
-    if (result.missing_skills && result.missing_skills.length > 0) {
-        skillsHtml += `<div><strong>❌ Missing Skills:</strong> ${result.missing_skills.map(s => `<span class="skill-tag" style="background:#FFEBEE;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
-    }
+   if (result.matching_skills && result.matching_skills.length > 0) {
+    skillsHtml += `<div style="margin: 5px 0;"><strong>✅ Matching Skills:</strong> ${result.matching_skills.map(s => `<span style="background: #1B6B2E; color: white; padding: 2px 10px; border-radius: 12px; margin: 2px; display: inline-block; font-size: 12px;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+}
+if (result.missing_skills && result.missing_skills.length > 0) {
+    skillsHtml += `<div style="margin: 5px 0;"><strong>❌ Missing Skills:</strong> ${result.missing_skills.map(s => `<span style="background: #B71C1C; color: white; padding: 2px 10px; border-radius: 12px; margin: 2px; display: inline-block; font-size: 12px;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+}
     
     // Build strengths/weaknesses
     let swotHtml = '';
