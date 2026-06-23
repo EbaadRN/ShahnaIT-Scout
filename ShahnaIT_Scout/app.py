@@ -1116,11 +1116,21 @@ HTML_TEMPLATE = '''
     
     // Build skills display
     let skillsHtml = '';
-  if (result.matching_skills && result.matching_skills.length > 0) {
-    skillsHtml += `<div style="margin: 8px 0;"><strong style="color: #1B5E20;">✅ Matching Skills:</strong><br> ${result.matching_skills.map(s => `<span style="background: #1B6B2E; color: #FFFFFF; padding: 4px 12px; border-radius: 15px; margin: 3px; display: inline-block; font-size: 13px; font-weight: 500;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+ if (result.matching_skills && result.matching_skills.length > 0) {
+    skillsHtml += `<div style="margin: 10px 0; padding: 12px; background: #F5F5F5; border-radius: 8px; border-left: 4px solid #1A237E;">
+        <strong style="color: #1A237E; font-size: 14px;">✅ Matching Skills:</strong>
+        <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;">
+            ${result.matching_skills.map(s => `<span style="background: #1A237E; color: #FFFFFF; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-block;">${escapeHtml(s)}</span>`).join('')}
+        </div>
+    </div>`;
 }
 if (result.missing_skills && result.missing_skills.length > 0) {
-    skillsHtml += `<div style="margin: 8px 0;"><strong style="color: #B71C1C;">❌ Missing Skills:</strong><br> ${result.missing_skills.map(s => `<span style="background: #B71C1C; color: #FFFFFF; padding: 4px 12px; border-radius: 15px; margin: 3px; display: inline-block; font-size: 13px; font-weight: 500;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+    skillsHtml += `<div style="margin: 10px 0; padding: 12px; background: #F5F5F5; border-radius: 8px; border-left: 4px solid #B71C1C;">
+        <strong style="color: #B71C1C; font-size: 14px;">❌ Missing Skills:</strong>
+        <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;">
+            ${result.missing_skills.map(s => `<span style="background: #B71C1C; color: #FFFFFF; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-block;">${escapeHtml(s)}</span>`).join('')}
+        </div>
+    </div>`;
 }
     
     // Build strengths/weaknesses
