@@ -17,6 +17,271 @@ from werkzeug.utils import secure_filename
 import PyPDF2
 import docx
 import requests
+# ============ OPEN-SOURCE ANALYSIS ENGINE ============
+import spacy
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer
+from textblob import TextBlob
+import nltk
+import re
+
+# Download required NLTK data
+try:
+    nltk.download('punkt', quiet=True)
+    nltk.download('averaged_perceptron_tagger', quiet=True)
+except:
+    pass
+
+# Load NLP models (will download on first run)
+try:
+    # For semantic similarity (understanding meaning)
+    semantic_model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("✅ Sentence Transformer loaded")
+except Exception as e:
+    print(f"⚠️ Sentence Transformer load failed: {e}")
+    semantic_model = None
+
+try:
+    # For entity extraction (skills, etc.)
+    nlp = spacy.load('en_core_web_sm')
+    print("✅ spaCy loaded")
+except Exception as e:
+    print(f"⚠️ spaCy load failed: {e}")
+    print("   Run: python -m spacy download en_core_web_sm")
+    nlp = None
+
+def extract_skills_with_spacy(text):
+    """Extract skills using spaCy NER and pattern matching"""
+    if not nlp:
+        return []
+    
+    # Common tech skills keywords
+    tech_skills = [
+        'python', 'java', 'javascript', 'react', 'angular', 'node', 'sql', 'mongodb',
+        'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'linux',
+        'salesforce', 'apex', 'lightning', 'spark', 'hadoop', 'kafka', 'scala',
+        'tableau', 'powerbi', 'excel', 'r', 'tensorflow', 'pytorch', 'nlp',
+        'machine learning', 'deep learning', 'data science', 'analytics'
+    ]
+    
+    doc = nlp(text.lower())
+    found_skills = []
+    
+    for skill in tech_skills:
+        if skill in text.lower():
+            found_skills.append(skill)
+    
+    # Also extract entities that might be skills
+    for ent in doc.ents:
+        if ent.label_ in ['PRODUCT', 'ORG', 'WORK_OF_ART']:
+            if len(ent.text) > 2:
+                found_skills.append(ent.text.lower())
+    
+    return list(set(found_skills))
+
+def calculate_semantic_similarity(text1, text2):
+    """Calculate semantic similarity using Sentence Transformers"""
+    if not semantic_model:
+        return 0
+    
+    try:
+        # Truncate if too long
+        text1 = text1[:2000]
+        text2 = text2[:2000]
+        
+        embeddings = semantic_model.encode([text1, text2])
+        similarity = cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+        return similarity * 100  # Convert to percentage
+    except Exception as e:
+        print(f"Semantic similarity error: {e}")
+        return 0
+
+def calculate_keyword_similarity(text1, text2):
+    """Calculate keyword overlap using TF-IDF"""
+    try:
+        vectorizer = TfidfVectorizer(stop_words='english', max_features=500)
+        tfidf_matrix = vectorizer.fit_transform([text1, text2])
+        similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+        return similarity * 100
+    except:
+        return 0
+
+def analyze_genuineness(text):
+    """Check if resume seems genuine or AI-generated"""
+    red_flags = []
+    genuineness_score = 100
+    
+    # Check for suspicious patterns
+    text_lower = text.lower()
+    
+    # 1. Check for excessive buzzwords (AI signal)
+    buzzwords = [
+        'proactive', 'synergy', 'leverage', 'paradigm', 'innovative',
+        'results-oriented', 'thought leader', 'game-changer', 'disruptive',
+        'cutting-edge', 'world-class', 'best-in-class'
+    ]
+    buzzword_count = sum(1 for word in buzzwords if word in text_lower)
+    if buzzword_count > 5:
+        genuineness_score -= 10
+        red_flags.append(f"Excessive buzzwords ({buzzword_count} found)")
+    
+    # 2. Check for generic language patterns
+    generic_phrases = [
+        'worked in a fast-paced environment',
+        'strong communication skills',
+        'team player with leadership qualities',
+        'proven track record of success',
+        'highly motivated and self-driven'
+    ]
+    generic_count = sum(1 for phrase in generic_phrases if phrase in text_lower)
+    if generic_count > 3:
+        genuineness_score -= 10
+        red_flags.append(f"Generic language patterns ({generic_count} found)")
+    
+    # 3. Check for keyword stuffing
+    words = re.findall(r'\b[a-zA-Z]{3,}\b', text_lower)
+    word_freq = {}
+    for word in words:
+        word_freq[word] = word_freq.get(word, 0) + 1
+    
+    repeated_words = [w for w, c in word_freq.items() if c > 5 and len(w) > 3]
+    if repeated_words:
+        genuineness_score -= 10
+        red_flags.append(f"Keyword stuffing: {', '.join(repeated_words[:3])}")
+    
+    # 4. Check for sentiment polarity (overly positive = suspicious)
+    try:
+        blob = TextBlob(text)
+        sentiment = blob.sentiment.polarity
+        if sentiment > 0.8:
+            genuineness_score -= 15
+            red_flags.append("Overly positive sentiment (suspicious)")
+    except:
+        pass
+    
+    # 5. Check length (very short = suspicious)
+    if len(text) < 500:
+        genuineness_score -= 20
+        red_flags.append("Resume too short (likely AI-generated)")
+    
+    # 6. Check for bullet point patterns (AI signal)
+    bullet_count = text.count('•') + text.count('-') + text.count('*')
+    if bullet_count > 30:
+        genuineness_score -= 10
+        red_flags.append("Excessive bullet points (suspicious)")
+    
+    # Clamp score
+    genuineness_score = max(0, min(100, genuineness_score))
+    
+    # AI probability (inverse of genuineness with some adjustment)
+    ai_probability = max(0, min(100, 100 - genuineness_score + 10))
+    
+    return {
+        'genuineness_score': genuineness_score,
+        'ai_generated_probability': ai_probability,
+        'red_flags': red_flags
+    }
+
+def analyze_resume_locally(resume_text, jd_text):
+    """Complete local analysis without any API calls"""
+    
+    # 1. Semantic similarity (understanding meaning)
+    semantic_score = calculate_semantic_similarity(resume_text, jd_text)
+    
+    # 2. Keyword similarity (TF-IDF)
+    keyword_score = calculate_keyword_similarity(resume_text, jd_text)
+    
+    # 3. Weighted match score (60% semantic, 40% keyword)
+    match_score = int((semantic_score * 0.6) + (keyword_score * 0.4))
+    match_score = max(0, min(100, match_score))
+    
+    # 4. Extract skills
+    resume_skills = extract_skills_with_spacy(resume_text)
+    jd_skills = extract_skills_with_spacy(jd_text)
+    
+    matching_skills = [s for s in resume_skills if s in jd_skills]
+    missing_skills = [s for s in jd_skills if s not in resume_skills]
+    
+    # 5. Genuineness analysis
+    genuineness_result = analyze_genuineness(resume_text)
+    
+    # 6. Category scores
+    skill_match = int((len(matching_skills) / max(len(jd_skills), 1)) * 100)
+    
+    # Experience estimation (basic)
+    years_pattern = r'(\d+)\+?\s*(?:years?|yrs?)'
+    years_match = re.findall(years_pattern, resume_text.lower())
+    experience_years = max([int(y) for y in years_match]) if years_match else 0
+    experience_score = min(100, experience_years * 10)  # Rough estimate
+    
+    # Education check
+    education_keywords = ['bachelor', 'master', 'phd', 'b.tech', 'm.tech', 'b.e.', 'm.e.', 'bca', 'mca', 'degree']
+    education_score = 50 if any(edu in resume_text.lower() for edu in education_keywords) else 0
+    
+    # 7. Determine recommendation
+    if match_score >= 70 and genuineness_result['genuineness_score'] >= 70:
+        recommendation = 'hire'
+    elif match_score >= 40 and genuineness_result['genuineness_score'] >= 50:
+        recommendation = 'interview'
+    else:
+        recommendation = 'reject'
+    
+    # 8. Build strengths and weaknesses
+    strengths = []
+    weaknesses = []
+    
+    if match_score > 70:
+        strengths.append("Strong alignment with job requirements")
+    if len(matching_skills) > 5:
+        strengths.append(f"Strong skill match ({len(matching_skills)} matching skills)")
+    if experience_years > 5:
+        strengths.append(f"Relevant experience ({experience_years}+ years)")
+    if genuineness_result['genuineness_score'] > 80:
+        strengths.append("Resume appears genuine and well-written")
+    
+    if match_score < 50:
+        weaknesses.append("Weak alignment with job requirements")
+    if len(missing_skills) > 5:
+        weaknesses.append(f"Missing key skills ({len(missing_skills)} skills)")
+    if experience_years < 2:
+        weaknesses.append("Limited experience")
+    if genuineness_result['genuineness_score'] < 60:
+        weaknesses.append("Resume raises authenticity concerns")
+    
+    # 9. Executive summary
+    summary = f"Candidate shows {match_score}% match with the JD. "
+    if recommendation == 'hire':
+        summary += "Strong candidate with good skill alignment and genuine resume. Recommend moving to interview/hire."
+    elif recommendation == 'interview':
+        summary += "Moderate match. Consider for interview with focus on missing skills."
+    else:
+        summary += "Weak match. Recommend reviewing other candidates."
+    
+    return {
+        'match_score': match_score,
+        'genuineness_score': genuineness_result['genuineness_score'],
+        'ai_generated_probability': genuineness_result['ai_generated_probability'],
+        'recommendation': recommendation,
+        'reasoning': f"Match: {match_score}% (Semantic: {int(semantic_score)}%, Keyword: {int(keyword_score)}%). Genuineness: {genuineness_result['genuineness_score']}%.",
+        'category_scores': {
+            'skills_match': skill_match,
+            'experience_match': experience_score,
+            'education_match': education_score,
+            'certifications_match': 0  # No certification extraction yet
+        },
+        'matching_skills': matching_skills[:10],
+        'missing_skills': missing_skills[:10],
+        'strengths': strengths[:5],
+        'weaknesses': weaknesses[:5],
+        'red_flags': genuineness_result['red_flags'],
+        'executive_summary': summary,
+        'pre_screening_questions': [
+            f"Can you describe your experience with {missing_skills[0] if missing_skills else 'the key skills required'}?",
+            "How do you handle challenging technical problems?",
+            "What projects are you most proud of and why?"
+        ]
+    }
 
 app = Flask(__name__)
 CORS(app)
