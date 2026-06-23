@@ -1105,11 +1105,24 @@ HTML_TEMPLATE = '''
     if (result.category_scores) {
         const cats = result.category_scores;
        categoryHtml = `
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;">
-        <div style="background: ${cats.skills_match >= 70 ? '#E8F5E9' : (cats.skills_match >= 40 ? '#FFF3E0' : '#FFEBEE')}; padding: 8px 12px; border-radius: 5px; border-left: 3px solid ${cats.skills_match >= 70 ? '#4CAF50' : (cats.skills_match >= 40 ? '#FF9800' : '#F44336')};"><strong>Skills:</strong> ${cats.skills_match || 0}%</div>
-        <div style="background: ${cats.experience_match >= 70 ? '#E8F5E9' : (cats.experience_match >= 40 ? '#FFF3E0' : '#FFEBEE')}; padding: 8px 12px; border-radius: 5px; border-left: 3px solid ${cats.experience_match >= 70 ? '#4CAF50' : (cats.experience_match >= 40 ? '#FF9800' : '#F44336')};"><strong>Experience:</strong> ${cats.experience_match || 0}%</div>
-        <div style="background: ${cats.education_match >= 70 ? '#E8F5E9' : (cats.education_match >= 40 ? '#FFF3E0' : '#FFEBEE')}; padding: 8px 12px; border-radius: 5px; border-left: 3px solid ${cats.education_match >= 70 ? '#4CAF50' : (cats.education_match >= 40 ? '#FF9800' : '#F44336')};"><strong>Education:</strong> ${cats.education_match || 0}%</div>
-        <div style="background: ${cats.certifications_match >= 70 ? '#E8F5E9' : (cats.certifications_match >= 40 ? '#FFF3E0' : '#FFEBEE')}; padding: 8px 12px; border-radius: 5px; border-left: 3px solid ${cats.certifications_match >= 70 ? '#4CAF50' : (cats.certifications_match >= 40 ? '#FF9800' : '#F44336')};"><strong>Certifications:</strong> ${cats.certifications_match || 0}%</div>
+   categoryHtml = `
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
+        <div style="background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #E0E0E0; border-left: 4px solid ${cats.skills_match >= 70 ? '#1A237E' : (cats.skills_match >= 40 ? '#283593' : '#B71C1C')};">
+            <div style="font-size: 11px; color: #666;">Skills</div>
+            <div style="font-size: 20px; font-weight: bold; color: #1A237E;">${cats.skills_match || 0}%</div>
+        </div>
+        <div style="background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #E0E0E0; border-left: 4px solid ${cats.experience_match >= 70 ? '#1A237E' : (cats.experience_match >= 40 ? '#283593' : '#B71C1C')};">
+            <div style="font-size: 11px; color: #666;">Experience</div>
+            <div style="font-size: 20px; font-weight: bold; color: #1A237E;">${cats.experience_match || 0}%</div>
+        </div>
+        <div style="background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #E0E0E0; border-left: 4px solid ${cats.education_match >= 70 ? '#1A237E' : (cats.education_match >= 40 ? '#283593' : '#B71C1C')};">
+            <div style="font-size: 11px; color: #666;">Education</div>
+            <div style="font-size: 20px; font-weight: bold; color: #1A237E;">${cats.education_match || 0}%</div>
+        </div>
+        <div style="background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #E0E0E0; border-left: 4px solid ${cats.certifications_match >= 70 ? '#1A237E' : (cats.certifications_match >= 40 ? '#283593' : '#B71C1C')};">
+            <div style="font-size: 11px; color: #666;">Certifications</div>
+            <div style="font-size: 20px; font-weight: bold; color: #1A237E;">${cats.certifications_match || 0}%</div>
+        </div>
     </div>
 `;
     }
