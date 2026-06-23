@@ -2098,10 +2098,8 @@ def analyze_match():
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
-    if not GROQ_ENABLED:
-        return jsonify({'error': 'Groq API not configured'}), 503
-    
-    result = analyze_match_with_groq(resume_text, jd_text)
+    # Use LOCAL open-source analysis (no API key needed!)
+    result = analyze_resume_locally(resume_text, jd_text)
     
     if result and candidate_id:
         detailed_json = json.dumps(result, indent=2)
@@ -2116,7 +2114,6 @@ def analyze_match():
         return jsonify(result)
     
     return jsonify({'error': 'Analysis failed'}), 500
-
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
     conn = sqlite3.connect(DB_PATH)
