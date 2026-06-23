@@ -1218,6 +1218,7 @@ if (result.weaknesses && result.weaknesses.length > 0) {
                 </div>
             </div>
             ${categoryHtml}
+            ${genuinenessHtml}
             ${skillsHtml}
             ${swotHtml}
             ${questionsHtml}
