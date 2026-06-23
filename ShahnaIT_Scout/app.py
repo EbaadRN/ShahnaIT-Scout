@@ -1129,6 +1129,33 @@ HTML_TEMPLATE = '''
     
     // Build skills display
     let skillsHtml = '';
+        // Build genuineness display
+    let genuinenessHtml = '';
+    if (result.genuineness_score !== undefined) {
+        const genClass = result.genuineness_score >= 70 ? 'match-high' : (result.genuineness_score >= 40 ? 'match-medium' : 'match-low');
+        const aiClass = result.ai_generated_probability <= 30 ? 'match-high' : (result.ai_generated_probability <= 60 ? 'match-medium' : 'match-low');
+        genuinenessHtml = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
+                <div style="background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #E0E0E0; text-align: center;">
+                    <div style="font-size: 11px; color: #666;">🔍 Authenticity</div>
+                    <div style="font-size: 22px; font-weight: bold; margin-top: 4px;" class="${genClass}">${result.genuineness_score}%</div>
+                </div>
+                <div style="background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #E0E0E0; text-align: center;">
+                    <div style="font-size: 11px; color: #666;">🤖 AI Probability</div>
+                    <div style="font-size: 22px; font-weight: bold; margin-top: 4px;" class="${aiClass}">${result.ai_generated_probability}%</div>
+                </div>
+            </div>
+        `;
+        
+        if (result.red_flags && result.red_flags.length > 0) {
+            genuinenessHtml += `<div style="margin: 10px 0; padding: 12px; background: #F5F5F5; border-radius: 8px; border-left: 4px solid #B71C1C;">
+                <strong style="color: #B71C1C; font-size: 14px;">🚨 Red Flags:</strong>
+                <ul style="margin: 6px 0 0 0; padding-left: 20px; color: #B71C1C; font-size: 13px;">
+                    ${result.red_flags.map(flag => `<li style="margin-bottom: 4px;">${escapeHtml(flag)}</li>`).join('')}
+                </ul>
+            </div>`;
+        }
+    }
  if (result.matching_skills && result.matching_skills.length > 0) {
     skillsHtml += `<div style="margin: 10px 0; padding: 12px; background: #F5F5F5; border-radius: 8px; border-left: 4px solid #1A237E;">
         <strong style="color: #1A237E; font-size: 14px;">✅ Matching Skills:</strong>
