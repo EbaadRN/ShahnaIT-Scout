@@ -1136,11 +1136,21 @@ if (result.missing_skills && result.missing_skills.length > 0) {
     // Build strengths/weaknesses
     let swotHtml = '';
     if (result.strengths && result.strengths.length > 0) {
-       if (result.strengths && result.strengths.length > 0) {
-    swotHtml += `<div style="margin: 8px 0;"><strong style="color: #1B5E20;">💪 Strengths:</strong><br> ${result.strengths.map(s => `<span style="background: #E8F5E9; color: #1B5E20; padding: 4px 12px; border-radius: 15px; margin: 3px; display: inline-block; font-size: 13px; border: 1px solid #4CAF50;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+ if (result.strengths && result.strengths.length > 0) {
+    swotHtml += `<div style="margin: 10px 0; padding: 12px; background: #F5F5F5; border-radius: 8px; border-left: 4px solid #1A237E;">
+        <strong style="color: #1A237E; font-size: 14px;">💪 Strengths:</strong>
+        <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;">
+            ${result.strengths.map(s => `<span style="background: #1A237E; color: #FFFFFF; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-block;">${escapeHtml(s)}</span>`).join('')}
+        </div>
+    </div>`;
 }
 if (result.weaknesses && result.weaknesses.length > 0) {
-    swotHtml += `<div style="margin: 8px 0;"><strong style="color: #B71C1C;">⚠️ Weaknesses:</strong><br> ${result.weaknesses.map(s => `<span style="background: #FFEBEE; color: #B71C1C; padding: 4px 12px; border-radius: 15px; margin: 3px; display: inline-block; font-size: 13px; border: 1px solid #F44336;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+    swotHtml += `<div style="margin: 10px 0; padding: 12px; background: #F5F5F5; border-radius: 8px; border-left: 4px solid #B71C1C;">
+        <strong style="color: #B71C1C; font-size: 14px;">⚠️ Weaknesses:</strong>
+        <div style="margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px;">
+            ${result.weaknesses.map(s => `<span style="background: #B71C1C; color: #FFFFFF; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-block;">${escapeHtml(s)}</span>`).join('')}
+        </div>
+    </div>`;
 }
             }
     
