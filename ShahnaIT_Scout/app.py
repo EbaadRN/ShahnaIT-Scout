@@ -630,6 +630,15 @@ HTML_TEMPLATE = '''
         .remove-file { color: #B22222; cursor: pointer; margin-left: 10px; }
         .progress-bar { background: #ddd; border-radius: 10px; height: 15px; margin: 10px 0; overflow: hidden; }
         .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
+        /* Sidebar navigation styles */
+.tab-btn.active {
+    background: rgba(255,255,255,0.12) !important;
+    border-left: 3px solid #C9A96E !important;
+    color: #C9A96E !important;
+}
+.tab-btn:hover {
+    background: rgba(255,255,255,0.08) !important;
+}
     </style>
 </head>
 <body>
