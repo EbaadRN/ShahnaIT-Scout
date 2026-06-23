@@ -17,6 +17,18 @@ from werkzeug.utils import secure_filename
 import PyPDF2
 import docx
 import requests
+# ============ SPACY AUTO-DOWNLOAD ============
+import subprocess
+try:
+    import spacy
+    nlp = spacy.load('en_core_web_sm')
+    print("✅ spaCy loaded")
+except:
+    print("📥 Downloading spaCy model...")
+    subprocess.run(['python', '-m', 'spacy', 'download', 'en_core_web_sm'])
+    import spacy
+    nlp = spacy.load('en_core_web_sm')
+    print("✅ spaCy loaded")
 # ============ OPEN-SOURCE ANALYSIS ENGINE ============
 import spacy
 from sklearn.feature_extraction.text import TfidfVectorizer
