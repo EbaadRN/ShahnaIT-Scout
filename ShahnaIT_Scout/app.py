@@ -2156,6 +2156,44 @@ def batch_analyze():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
+    c.execute('SELECT id, first_name, last_name, email, resume_text FROM candidates ORDER BY created_at DESC')
+    candidates = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    results = []
+    for cand in candidates:
+        name = (cand.get('first_name', '') + ' ' + cand.get('last_name', '')).strip() or 'Unknown'
+        resume_text = cand.get('resume_text', '') or ''
+        
+        if not resume_text:
+            results.append({
+                'candidate_id': cand['id'],
+                'name': name,
+                'email': cand.get('email', ''),
+                'match_score': 0,
+                'recommendation': 'No resume text'
+            })
+            continue
+        
+        # Use the SAME analysis as single match
+        result = analyze_resume_locally(resume_text, jd_text)
+        
+        results.append({
+            'candidate_id': cand['id'],
+            'name': name,
+            'email': cand.get('email', ''),
+            'match_score': result.get('match_score', 0),
+            'recommendation': result.get('recommendation', 'review')
+        })
+    
+    # Sort by match score (highest first)
+    results.sort(key=lambda x: x['match_score'], reverse=True)
+    return jsonify(results)
+    
+    # Get all candidates
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
     c.execute('SELECT id, first_name, last_name, email, resume_text, match_score FROM candidates ORDER BY created_at DESC')
     candidates = [dict(row) for row in c.fetchall()]
     conn.close()
