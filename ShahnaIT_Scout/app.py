@@ -672,41 +672,46 @@ HTML_TEMPLATE = '''
     min-width: 0;
 }
 
-/* Sidebar container */
-.sidebar-container {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    margin-bottom: 20px;
-}
-
-/* ===== MOBILE STYLES ===== */
-@media screen and (max-width: 768px) {
+<style>
+    body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
+    /* ... all your existing CSS ... */
+    .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
+    
+    /* Sidebar container */
     .sidebar-container {
-        flex-direction: column;
-        gap: 10px;
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+        margin-bottom: 20px;
     }
-    
-    .mobile-menu-btn {
-        display: block;
+
+    /* ===== MOBILE STYLES ===== */
+    @media screen and (max-width: 768px) {
+        .sidebar-container {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .mobile-menu-btn {
+            display: block;
+        }
+        
+        .sidebar {
+            width: 100%;
+            display: none;
+            border-radius: 8px;
+        }
+        
+        .sidebar.open {
+            display: block;
+        }
+        
+        .tab-btn {
+            padding: 14px 20px !important;
+            font-size: 15px !important;
+        }
     }
-    
-    .sidebar {
-        width: 100%;
-        display: none; /* Hidden by default on mobile */
-        border-radius: 8px;
-    }
-    
-    .sidebar.open {
-        display: block; /* Shown when hamburger clicked */
-    }
-    
-    .tab-btn {
-        padding: 14px 20px !important;
-        font-size: 15px !important;
-    }
-}
-    </style>
+</style>
 </head>
 <body>
 <div style="max-width: 1200px; margin: 0 auto;">
