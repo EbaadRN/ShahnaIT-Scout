@@ -6,3 +6,8 @@ python-dotenv
 gunicorn
 requests
 reportlab
+spacy
+scikit-learn
+sentence-transformers
+textblob
+nltk
