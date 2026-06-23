@@ -1036,8 +1036,12 @@ if (result.missing_skills && result.missing_skills.length > 0) {
     // Build strengths/weaknesses
     let swotHtml = '';
     if (result.strengths && result.strengths.length > 0) {
-        swotHtml += `<div style="margin: 5px 0;"><strong>💪 Strengths:</strong> ${result.strengths.map(s => `<span style="background: #1B6B2E; color: white; padding: 3px 10px; border-radius: 12px; margin: 2px; display: inline-block; font-size: 12px;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
-swotHtml += `<div style="margin: 5px 0;"><strong>⚠️ Weaknesses:</strong> ${result.weaknesses.map(s => `<span style="background: #B71C1C; color: white; padding: 3px 10px; border-radius: 12px; margin: 2px; display: inline-block; font-size: 12px;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+       if (result.strengths && result.strengths.length > 0) {
+    swotHtml += `<div style="margin: 8px 0;"><strong style="color: #1B5E20;">💪 Strengths:</strong><br> ${result.strengths.map(s => `<span style="background: #E8F5E9; color: #1B5E20; padding: 4px 12px; border-radius: 15px; margin: 3px; display: inline-block; font-size: 13px; border: 1px solid #4CAF50;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+}
+if (result.weaknesses && result.weaknesses.length > 0) {
+    swotHtml += `<div style="margin: 8px 0;"><strong style="color: #B71C1C;">⚠️ Weaknesses:</strong><br> ${result.weaknesses.map(s => `<span style="background: #FFEBEE; color: #B71C1C; padding: 4px 12px; border-radius: 15px; margin: 3px; display: inline-block; font-size: 13px; border: 1px solid #F44336;">${escapeHtml(s)}</span>`).join(' ')}</div>`;
+}
             }
     
     // Build questions
