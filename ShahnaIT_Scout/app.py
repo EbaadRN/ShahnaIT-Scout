@@ -639,6 +639,73 @@ HTML_TEMPLATE = '''
 .tab-btn:hover {
     background: rgba(255,255,255,0.08) !important;
 }
+/* ========== MOBILE RESPONSIVE ========== */
+/* Hamburger menu button - hidden on desktop */
+.mobile-menu-btn {
+    display: none;
+    background: #1A4D4A;
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    font-size: 24px;
+    cursor: pointer;
+    border-radius: 8px;
+    width: 100%;
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+/* Sidebar - visible on desktop */
+.sidebar {
+    width: 220px;
+    background: #1A4D4A;
+    border-radius: 12px;
+    padding: 20px 0;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+/* Content area - fills remaining space */
+.content-area {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Sidebar container */
+.sidebar-container {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+/* ===== MOBILE STYLES ===== */
+@media screen and (max-width: 768px) {
+    .sidebar-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .mobile-menu-btn {
+        display: block;
+    }
+    
+    .sidebar {
+        width: 100%;
+        display: none; /* Hidden by default on mobile */
+        border-radius: 8px;
+    }
+    
+    .sidebar.open {
+        display: block; /* Shown when hamburger clicked */
+    }
+    
+    .tab-btn {
+        padding: 14px 20px !important;
+        font-size: 15px !important;
+    }
+}
     </style>
 </head>
 <body>
