@@ -1960,6 +1960,22 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             }, 500);
         }, 300);
     };
+    // ========== MOBILE SIDEBAR TOGGLE ==========
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('open');
+}
+
+// Close sidebar when a tab is clicked (on mobile)
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        // Close sidebar on mobile after clicking
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.remove('open');
+        }
+    });
+});
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
     showPanel('jobs');
