@@ -639,14 +639,23 @@ HTML_TEMPLATE = '''
         <p>AI-Powered Recruitment Platform</p>
     </div>
     
-    <div>
-        <button class="tab-btn active" id="tabJobs">📋 Jobs</button>
-        <button class="tab-btn" id="tabCandidates">👥 Candidates</button>
-        <button class="tab-btn" id="tabUpload">📄 Upload Resume</button>
-        <button class="tab-btn" id="tabCreateJob">➕ Create Job</button>
-        <button class="tab-btn" id="tabAnalyze">🔍 Analyze Match</button>
-        <button class="tab-btn" id="tabDashboard">📊 Dashboard</button>
+    <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
+    <!-- Sidebar -->
+    <div style="width: 220px; background: #1A4D4A; border-radius: 12px; padding: 20px 0; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="padding: 0 20px 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
+            <div style="color: #C9A96E; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Menu</div>
+        </div>
+        <button class="tab-btn active" id="tabJobs" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Jobs</button>
+        <button class="tab-btn" id="tabCandidates" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Candidates</button>
+        <button class="tab-btn" id="tabUpload" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📄 Upload Resume</button>
+        <button class="tab-btn" id="tabCreateJob" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">➕ Create Job</button>
+        <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
+        <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
     </div>
+    
+    <!-- Content Area -->
+    <div style="flex: 1; min-width: 0;">
+        <!-- Panel content goes here -->
     
     <div id="jobsPanel"><div id="jobsList"></div></div>
     <div id="candidatesPanel" style="display:none;"><button id="exportBtn">📥 Export CSV</button><div class="filter-bar"><input type="text" id="searchBox" placeholder="Search..."><select id="scoreSelect"><option value="all">All Scores</option><option value="high">High (70%+)</option><option value="medium">Medium (40-69%)</option><option value="low">Low (<40%)</option></select><button id="clearBtn">Clear</button></div><div id="candidatesList"></div></div>
