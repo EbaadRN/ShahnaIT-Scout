@@ -1064,9 +1064,23 @@ HTML_TEMPLATE = '''
         const result = await res.json();
         if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
         div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name||'')} ${escapeHtml(result.last_name||'')}</p><p><strong>Email:</strong> ${escapeHtml(result.email||'')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone||'')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button id="saveBtn">💾 Save</button></div>`;
-        document.getElementById('saveBtn').onclick = async function() {
-            const saveRes = await fetch('/api/candidates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(result) });
-            if(saveRes.ok) { alert('Saved! Resume auto-attached!'); div.innerHTML = ''; document.getElementById('resumeFile').value = ''; loadCandidates(); showPanel('candidates'); }
+               document.getElementById('saveBtn').onclick = async function() {
+            // Ask for uploader name
+            const uploaded_by = prompt('Enter your name (for tracking):', 'HR Team');
+            result.uploaded_by = uploaded_by || 'Unknown';
+            
+            const saveRes = await fetch('/api/candidates', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify(result) 
+            });
+            if(saveRes.ok) { 
+                alert('Saved! Resume auto-attached!'); 
+                div.innerHTML = ''; 
+                document.getElementById('resumeFile').value = ''; 
+                loadCandidates(); 
+                showPanel('candidates'); 
+            }
             else alert('Error');
         };
     };
