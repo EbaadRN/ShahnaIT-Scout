@@ -1067,7 +1067,7 @@ HTML_TEMPLATE = '''
                document.getElementById('saveBtn').onclick = async function() {
             // Ask for uploader name
             const uploaded_by = prompt('Enter your name (for tracking):', 'HR Team');
-            result.uploaded_by = uploaded_by || 'Unknown';
+            result.uploaded_by = uploaded_by || 'ShahnaIT';
             
             const saveRes = await fetch('/api/candidates', { 
                 method: 'POST', 
