@@ -967,12 +967,14 @@ HTML_TEMPLATE = '''
         document.getElementById('batchJobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
     }
     
-    async function loadCandidates() {
-        const res = await fetch('/api/candidates');
-        allCandidates = await res.json();
-        filterCandidates();
-        document.getElementById('candidateSelect').innerHTML = '<option value="">-- Select Candidate --</option>' + allCandidates.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
-    }
+   async function loadCandidates() {
+    const res = await fetch('/api/candidates');
+    allCandidates = await res.json();
+    filterCandidates();
+    updatePipelineStats();
+    renderUploaderStats();
+    document.getElementById('candidateSelect').innerHTML = '<option value="">-- Select Candidate --</option>' + allCandidates.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
+}
     
     function filterCandidates() {
         const search = document.getElementById('searchBox').value.toLowerCase();
