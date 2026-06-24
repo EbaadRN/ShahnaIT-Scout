@@ -2145,6 +2145,232 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         }
     });
 });
+    // ========== CANDIDATE MANAGEMENT FUNCTIONS ==========
+    let currentPage = 1;
+    const itemsPerPage = 20;
+    let filteredCandidates = [];
+    let viewMode = 'grid'; // 'grid' or 'list'
+
+    function filterCandidates() {
+        const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        const scoreFilter = document.getElementById('scoreFilter').value;
+        const uploaderFilter = document.getElementById('uploadedByFilter').value.toLowerCase();
+        const sortBy = document.getElementById('sortBy').value;
+        
+        let filtered = allCandidates;
+        
+        // Search filter - name, email, skills
+        if (searchTerm) {
+            filtered = filtered.filter(c => {
+                const name = (c.first_name + ' ' + c.last_name).toLowerCase();
+                const email = (c.email || '').toLowerCase();
+                const skills = c.core_skills ? JSON.parse(c.core_skills).map(s => s.skill.toLowerCase()).join(' ') : '';
+                return name.includes(searchTerm) || email.includes(searchTerm) || skills.includes(searchTerm);
+            });
+        }
+        
+        // Status filter
+        if (statusFilter !== 'all') {
+            filtered = filtered.filter(c => (c.employment_status || 'new') === statusFilter);
+        }
+        
+        // Score filter
+        if (scoreFilter === 'high') {
+            filtered = filtered.filter(c => (c.match_score || 0) >= 70);
+        } else if (scoreFilter === 'medium') {
+            filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
+        } else if (scoreFilter === 'low') {
+            filtered = filtered.filter(c => (c.match_score || 0) < 40);
+        }
+        
+        // Uploader filter
+        if (uploaderFilter) {
+            filtered = filtered.filter(c => (c.uploaded_by || 'ShahnaIT').toLowerCase().includes(uploaderFilter));
+        }
+        
+        // Sorting
+        if (sortBy === 'score') {
+            filtered.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
+        } else if (sortBy === 'name') {
+            filtered.sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
+        } else if (sortBy === 'date') {
+            filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        } else if (sortBy === 'status') {
+            filtered.sort((a, b) => (a.employment_status || '').localeCompare(b.employment_status || ''));
+        } else if (sortBy === 'uploader') {
+            filtered.sort((a, b) => (a.uploaded_by || 'ShahnaIT').localeCompare(b.uploaded_by || 'ShahnaIT'));
+        }
+        
+        filteredCandidates = filtered;
+        currentPage = 1;
+        renderCandidatesWithPagination();
+        updateStats();
+    }
+
+    function renderCandidatesWithPagination() {
+        const container = document.getElementById('candidatesList');
+        const totalItems = filteredCandidates.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = Math.min(start + itemsPerPage, totalItems);
+        const pageItems = filteredCandidates.slice(start, end);
+        
+        if (totalItems === 0) {
+            container.innerHTML = '<div class="card no-click" style="text-align: center; padding: 40px; color: #666;">🔍 No candidates found matching your filters</div>';
+            document.getElementById('paginationControls').innerHTML = '';
+            document.getElementById('paginationInfo').textContent = '';
+            return;
+        }
+        
+        // Render candidates in grid view
+        container.innerHTML = pageItems.map(c => {
+            const name = (c.first_name + ' ' + c.last_name).trim() || 'Unknown';
+            const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
+            const matchScore = c.match_score || 0;
+            const matchClass = matchScore >= 70 ? 'match-high' : (matchScore >= 40 ? 'match-medium' : 'match-low');
+            const status = c.employment_status || 'new';
+            const statusColors = {
+                'new': '#2196F3',
+                'screening': '#FF9800',
+                'interview': '#FF5722',
+                'offer': '#9C27B0',
+                'hired': '#4CAF50',
+                'rejected': '#F44336'
+            };
+            const statusLabels = {
+                'new': '🟢 New',
+                'screening': '🔵 Screening',
+                'interview': '🟠 Interview',
+                'offer': '🟣 Offer',
+                'hired': '✅ Hired',
+                'rejected': '❌ Rejected'
+            };
+            const uploadedBy = c.uploaded_by || 'ShahnaIT';
+            
+            return `<div class="card" onclick="viewCandidate(${c.id})" style="padding: 14px 18px; margin: 8px 0; border-left: 4px solid ${matchScore >= 70 ? '#1A237E' : (matchScore >= 40 ? '#283593' : '#B71C1C')}; cursor: pointer; transition: all 0.2s;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 16px; font-weight: bold;">👤 ${escapeHtml(name)}</span>
+                            <span style="font-size: 11px; color: ${statusColors[status]}; background: ${statusColors[status]}22; padding: 2px 10px; border-radius: 12px;">${statusLabels[status]}</span>
+                        </div>
+                        ${c.email ? `<div style="font-size: 12px; color: #666;">📧 ${escapeHtml(c.email)}</div>` : ''}
+                        <div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px;">
+                            ${skills.slice(0,5).map(s => `<span class="skill-tag" style="background: #F5F0E8; padding: 2px 10px; border-radius: 12px; font-size: 11px;">${escapeHtml(s.skill)}</span>`).join('')}
+                            ${skills.length > 5 ? `<span style="font-size: 11px; color: #999;">+${skills.length - 5} more</span>` : ''}
+                        </div>
+                        <div style="font-size: 11px; color: #999; margin-top: 4px;">
+                            👤 ${escapeHtml(uploadedBy)} · 📅 ${new Date(c.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div style="text-align: right; min-width: 80px;">
+                        <div><span class="${matchClass}" style="font-size: 18px; padding: 4px 14px;">${matchScore}%</span></div>
+                        <div style="font-size: 11px; margin-top: 2px; color: ${matchScore >= 70 ? '#1A237E' : (matchScore >= 40 ? '#283593' : '#B71C1C')};">
+                            ${matchScore >= 70 ? '🏆 Strong Match' : (matchScore >= 40 ? '📊 Good Match' : '📉 Weak Match')}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+        
+        // Pagination
+        const startDisplay = totalItems === 0 ? 0 : start + 1;
+        const endDisplay = Math.min(end, totalItems);
+        document.getElementById('paginationInfo').textContent = `Showing ${startDisplay}-${endDisplay} of ${totalItems} candidates`;
+        
+        let controlsHtml = '';
+        controlsHtml += `<button class="btn" style="padding: 4px 12px; ${currentPage === 1 ? 'opacity: 0.4; cursor: not-allowed;' : ''}" ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">◀</button>`;
+        
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage + 1 < maxVisible) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+        if (startPage > 1) {
+            controlsHtml += `<button class="btn" style="padding: 4px 12px;" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) controlsHtml += `<span style="padding: 4px;">...</span>`;
+        }
+        for (let i = startPage; i <= endPage; i++) {
+            controlsHtml += `<button class="btn" style="padding: 4px 12px; ${i === currentPage ? 'background: #1A4D4A;' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) controlsHtml += `<span style="padding: 4px;">...</span>`;
+            controlsHtml += `<button class="btn" style="padding: 4px 12px;" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+        controlsHtml += `<button class="btn" style="padding: 4px 12px; ${currentPage === totalPages ? 'opacity: 0.4; cursor: not-allowed;' : ''}" ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">▶</button>`;
+        
+        document.getElementById('paginationControls').innerHTML = controlsHtml;
+    }
+
+    function goToPage(page) {
+        const totalItems = filteredCandidates.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        renderCandidatesWithPagination();
+    }
+
+    function updateStats() {
+        const total = allCandidates.length;
+        const matched = allCandidates.filter(c => (c.match_score || 0) >= 70).length;
+        const hired = allCandidates.filter(c => c.employment_status === 'hired').length;
+        const rejected = allCandidates.filter(c => c.employment_status === 'rejected').length;
+        const screening = allCandidates.filter(c => c.employment_status === 'screening').length;
+        const interview = allCandidates.filter(c => c.employment_status === 'interview').length;
+        const offer = allCandidates.filter(c => c.employment_status === 'offer').length;
+        const newCount = allCandidates.filter(c => c.employment_status === 'new' || !c.employment_status).length;
+        
+        document.getElementById('candidateStats').textContent = `📊 ${total} total  |  🎯 ${matched} matched  |  ✅ ${hired} hired  |  ❌ ${rejected} rejected`;
+        
+        // Update pipeline stats
+        document.getElementById('stat-new-count').textContent = newCount;
+        document.getElementById('stat-screening-count').textContent = screening;
+        document.getElementById('stat-interview-count').textContent = interview;
+        document.getElementById('stat-offer-count').textContent = offer;
+        document.getElementById('stat-hired-count').textContent = hired;
+        document.getElementById('stat-rejected-count').textContent = rejected;
+        
+        // Uploader stats
+        renderUploaderStats();
+    }
+
+    function renderUploaderStats() {
+        const uploaderMap = {};
+        allCandidates.forEach(c => {
+            const uploader = c.uploaded_by || 'ShahnaIT';
+            uploaderMap[uploader] = (uploaderMap[uploader] || 0) + 1;
+        });
+        
+        const sorted = Object.entries(uploaderMap).sort((a, b) => b[1] - a[1]);
+        const maxCount = sorted.length > 0 ? sorted[0][1] : 1;
+        const total = allCandidates.length;
+        
+        const container = document.getElementById('uploaderChart');
+        if (sorted.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-style: italic;">No candidates uploaded yet</p>';
+            return;
+        }
+        
+        container.innerHTML = sorted.map(([name, count]) => {
+            const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+            const barWidth = Math.max(5, Math.round((count / maxCount) * 100));
+            return `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="min-width: 120px; font-size: 13px; font-weight: 500;">👤 ${escapeHtml(name)}</span>
+                    <div style="flex: 1; background: #F0F0F0; border-radius: 10px; height: 22px; overflow: hidden;">
+                        <div style="background: linear-gradient(90deg, #1A4D4A, #2A6B67); height: 100%; width: ${barWidth}%; border-radius: 10px; transition: width 0.5s; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: white; font-size: 11px; font-weight: bold;">${count}</div>
+                    </div>
+                    <span style="min-width: 60px; font-size: 13px; color: #666; text-align: right;">${percentage}%</span>
+                </div>
+            `;
+        }).join('');
+    }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
     
     showPanel('jobs');
