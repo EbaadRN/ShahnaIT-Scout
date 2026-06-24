@@ -1038,7 +1038,7 @@ HTML_TEMPLATE = '''
     window.closeEditJobModal = closeEditJobModal;
     
     // View Candidate
-    window.viewCandidate = async function(id) {
+       window.viewCandidate = async function(id) {
         currentCandidateId = id;
         const c = allCandidates.find(c => c.id == id);
         const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
@@ -1049,28 +1049,28 @@ HTML_TEMPLATE = '''
         const resumeDoc = documents.find(d => d.is_resume === 1);
         const otherDocs = documents.filter(d => !d.is_resume);
         
-       document.getElementById('modalBody').innerHTML = `<div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:15px;"><button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit</button><button class="btn btn-secondary" onclick="openDocModal(${c.id})">📎 Add Document</button><button class="btn btn-secondary" onclick="copyAllDetails()">📋 Copy</button><button class="btn" style="background: #C9A96E; color: white;" onclick="exportPDF(${c.id}, event)">📄 Export PDF</button></div>
+        document.getElementById('modalBody').innerHTML = `<div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:15px;"><button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit</button><button class="btn btn-secondary" onclick="openDocModal(${c.id})">📎 Add Document</button><button class="btn btn-secondary" onclick="copyAllDetails()">📋 Copy</button><button class="btn" style="background: #C9A96E; color: white;" onclick="exportPDF(${c.id}, event)">📄 Export PDF</button></div>
             <div class="detail-row"><div class="detail-label">Name:</div><div class="detail-value">${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}</div></div>
             <div class="detail-row"><div class="detail-label">Phone:</div><div class="detail-value">${escapeHtml(c.phone || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Email:</div><div class="detail-value">${escapeHtml(c.email || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Role:</div><div class="detail-value">${escapeHtml(c.current_role || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">CTC:</div><div class="detail-value">Current: ${escapeHtml(c.current_ctc || 'N/A')} | Expected: ${escapeHtml(c.expected_ctc || 'N/A')}</div></div>
             <div class="detail-row"><div class="detail-label">Status:</div><div class="detail-value">
-    <select id="candidateStatus-${c.id}" onchange="updateStatus(${c.id}, this.value)" style="padding: 4px 8px; border-radius: 5px; border: 1px solid #ccc; background: ${getStatusColor(c.employment_status || 'new')}; color: white;">
-        <option value="new" ${c.employment_status === 'new' ? 'selected' : ''}>🟢 New</option>
-        <option value="screening" ${c.employment_status === 'screening' ? 'selected' : ''}>🔵 Screening</option>
-        <option value="interview" ${c.employment_status === 'interview' ? 'selected' : ''}>🟠 Interview</option>
-        <option value="offer" ${c.employment_status === 'offer' ? 'selected' : ''}>🟣 Offer</option>
-        <option value="hired" ${c.employment_status === 'hired' ? 'selected' : ''}>✅ Hired</option>
-        <option value="rejected" ${c.employment_status === 'rejected' ? 'selected' : ''}>❌ Rejected</option>
-    </select>
-    ${c.notice_period_days ? ` (${c.notice_period_days} days notice)` : ''}
-</div></div>
+                <select id="candidateStatus-${c.id}" onchange="updateStatus(${c.id}, this.value)" style="padding: 4px 8px; border-radius: 5px; border: 1px solid #ccc; background: ${getStatusColor(c.employment_status || 'new')}; color: white;">
+                    <option value="new" ${c.employment_status === 'new' ? 'selected' : ''}>🟢 New</option>
+                    <option value="screening" ${c.employment_status === 'screening' ? 'selected' : ''}>🔵 Screening</option>
+                    <option value="interview" ${c.employment_status === 'interview' ? 'selected' : ''}>🟠 Interview</option>
+                    <option value="offer" ${c.employment_status === 'offer' ? 'selected' : ''}>🟣 Offer</option>
+                    <option value="hired" ${c.employment_status === 'hired' ? 'selected' : ''}>✅ Hired</option>
+                    <option value="rejected" ${c.employment_status === 'rejected' ? 'selected' : ''}>❌ Rejected</option>
+                </select>
+                ${c.notice_period_days ? ` (${c.notice_period_days} days notice)` : ''}
+            </div></div>
             <h4>Work Experience</h4>${workExp.map(w => `<div class="company-item"><strong>${escapeHtml(w.company)}</strong> — ${escapeHtml(w.role)}<br><small>${escapeHtml(w.start_date||'')} - ${escapeHtml(w.end_date||'Present')}</small></div>`).join('') || '<p>None</p>'}
             <h4>Skills</h4>${skills.map(s => `<span class="skill-with-years">${escapeHtml(s.skill)} (${s.years_of_experience||0}y)</span>`).join('') || '<p>None</p>'}
             <h4>Certifications</h4>${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
             <h4>Resume</h4>${resumeDoc ? `<div><span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span> <span style="background:#1B6B2E;color:white;padding:2px 8px;border-radius:12px;font-size:10px;">Original</span></div>` : '<p>None</p>'}
-                        <h4>Other Documents</h4>${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>None</p>'}
+            <h4>Other Documents</h4>${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>None</p>'}
             
             <h4>📝 Notes</h4>
             <div id="notesList-${c.id}" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
@@ -1082,7 +1082,7 @@ HTML_TEMPLATE = '''
             </div>
             
             <button class="btn" onclick="closeModal()">Close</button>`;
-            loadNotes(c.id);
+        loadNotes(c.id);
         document.getElementById('candidateModal').style.display = 'block';
     };
     
