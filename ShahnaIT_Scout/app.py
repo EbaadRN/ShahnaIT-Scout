@@ -741,8 +741,100 @@ HTML_TEMPLATE = '''
         <!-- Panel content goes here -->
     
     <div id="jobsPanel"><div id="jobsList"></div></div>
-    <div id="candidatesPanel" style="display:none;"><button id="exportBtn">📥 Export CSV</button><div class="filter-bar"><input type="text" id="searchBox" placeholder="Search..."><select id="scoreSelect"><option value="all">All Scores</option><option value="high">High (70%+)</option><option value="medium">Medium (40-69%)</option><option value="low">Low (<40%)</option></select><button id="clearBtn">Clear</button></div><div id="candidatesList"></div></div>
+    <div id="candidatesPanel" style="display:none;">
+    <!-- Static Dashboard Header - Stays at top while scrolling -->
+    <div style="position: sticky; top: 0; background: #F5F0E8; z-index: 10; padding-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <span style="font-size: 20px; font-weight: bold;">👥 Candidate Inventory</span>
+                <span id="candidateStats" style="font-size: 13px; color: #666; margin-left: 15px;"></span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="exportBtn" class="btn" style="background: #1A4D4A;">📥 Export CSV</button>
+                <button id="toggleViewBtn" class="btn" style="background: #6B7B7B;">📊 Grid/List</button>
+            </div>
+        </div>
+        
+        <!-- Pipeline Stats -->
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 12px 0;">
+            <div id="stat-new" style="background: #2196F3; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-new-count">0</div>
+                <div style="font-size: 11px;">📥 New</div>
+            </div>
+            <div id="stat-screening" style="background: #FF9800; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-screening-count">0</div>
+                <div style="font-size: 11px;">🔍 Screening</div>
+            </div>
+            <div id="stat-interview" style="background: #FF5722; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-interview-count">0</div>
+                <div style="font-size: 11px;">🎤 Interview</div>
+            </div>
+            <div id="stat-offer" style="background: #9C27B0; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-offer-count">0</div>
+                <div style="font-size: 11px;">💼 Offer</div>
+            </div>
+            <div id="stat-hired" style="background: #4CAF50; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-hired-count">0</div>
+                <div style="font-size: 11px;">✅ Hired</div>
+            </div>
+            <div id="stat-rejected" style="background: #F44336; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-rejected-count">0</div>
+                <div style="font-size: 11px;">❌ Rejected</div>
+            </div>
+        </div>
+        
+        <!-- Advanced Filters -->
+        <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="searchBox" placeholder="🔍 Search name, email, skills..." style="flex: 2; min-width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                
+                <select id="statusFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                    <option value="all">All Status</option>
+                    <option value="new">🟢 New</option>
+                    <option value="screening">🔵 Screening</option>
+                    <option value="interview">🟠 Interview</option>
+                    <option value="offer">🟣 Offer</option>
+                    <option value="hired">✅ Hired</option>
+                    <option value="rejected">❌ Rejected</option>
+                </select>
+                
+                <select id="scoreFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                    <option value="all">All Scores</option>
+                    <option value="high">High (70%+)</option>
+                    <option value="medium">Medium (40-69%)</option>
+                    <option value="low">Low (<40%)</option>
+                </select>
+                
+                <input type="text" id="uploadedByFilter" placeholder="👤 Uploaded by..." style="min-width: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                
+                <select id="sortBy" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+                    <option value="score">Sort by Match Score</option>
+                    <option value="name">Sort by Name</option>
+                    <option value="date">Sort by Date Added</option>
+                    <option value="status">Sort by Status</option>
+                    <option value="uploader">Sort by Uploader</option>
+                </select>
+                
+                <button id="clearFiltersBtn" class="btn" style="background: #6B7B7B; padding: 8px 16px;">Clear Filters</button>
+            </div>
+        </div>
+    </div>
     
+    <!-- Candidates List -->
+    <div id="candidatesList" style="min-height: 400px;"></div>
+    
+    <!-- Pagination -->
+    <div id="pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; flex-wrap: wrap; gap: 10px;">
+        <span id="paginationInfo" style="font-size: 13px; color: #666;"></span>
+        <div style="display: flex; gap: 5px; flex-wrap: wrap;" id="paginationControls"></div>
+    </div>
+    
+    <!-- Uploader Stats (Bar Chart) -->
+    <div id="uploaderStats" style="background: white; padding: 15px; border-radius: 8px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h4 style="margin: 0 0 10px 0;">👤 Uploader Stats</h4>
+        <div id="uploaderChart" style="display: flex; flex-direction: column; gap: 6px;"></div>
+    </div>
+</div>    
     <div id="uploadPanel" style="display:none;">
         <div class="card no-click">
             <h3>📄 Single Resume Upload</h3>
