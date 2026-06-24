@@ -564,25 +564,24 @@ def save_candidate_to_db(candidate_data):
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-   c.execute('''INSERT INTO candidates 
-    (first_name, last_name, middle_name, phone, email, address, linkedin,
-     current_role, current_ctc, expected_ctc,
-     employment_status, notice_period_days, work_experience, certifications,
-     core_skills, education, notes, resume_text, resume_filename, uploaded_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-    (candidate_data.get('first_name'), candidate_data.get('last_name'), candidate_data.get('middle_name'),
-     candidate_data.get('phone'), candidate_data.get('email'), candidate_data.get('address'), candidate_data.get('linkedin'),
-     candidate_data.get('current_role'), candidate_data.get('current_ctc'), candidate_data.get('expected_ctc'),
-     candidate_data.get('employment_status'), candidate_data.get('notice_period_days', 0),
-     work_exp, certs, skills, candidate_data.get('education'), candidate_data.get('notes'), 
-     candidate_data.get('resume_text'), candidate_data.get('resume_filename'),
-     candidate_data.get('uploaded_by', 'Unknown')))
+    c.execute('''INSERT INTO candidates 
+        (first_name, last_name, middle_name, phone, email, address, linkedin,
+         current_role, current_ctc, expected_ctc,
+         employment_status, notice_period_days, work_experience, certifications,
+         core_skills, education, notes, resume_text, resume_filename, uploaded_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (candidate_data.get('first_name'), candidate_data.get('last_name'), candidate_data.get('middle_name'),
+         candidate_data.get('phone'), candidate_data.get('email'), candidate_data.get('address'), candidate_data.get('linkedin'),
+         candidate_data.get('current_role'), candidate_data.get('current_ctc'), candidate_data.get('expected_ctc'),
+         candidate_data.get('employment_status'), candidate_data.get('notice_period_days', 0),
+         work_exp, certs, skills, candidate_data.get('education'), candidate_data.get('notes'), 
+         candidate_data.get('resume_text'), candidate_data.get('resume_filename'),
+         candidate_data.get('uploaded_by', 'ShahnaIT')))
     
     candidate_id = c.lastrowid
     conn.commit()
     conn.close()
     return candidate_id
-
 # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
