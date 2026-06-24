@@ -2372,6 +2372,38 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         }).join('');
     }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
+        // ========== EVENT LISTENERS FOR CANDIDATE FILTERS ==========
+    // Search input
+    document.getElementById('searchBox').addEventListener('input', filterCandidates);
+    
+    // Status filter
+    document.getElementById('statusFilter').addEventListener('change', filterCandidates);
+    
+    // Score filter
+    document.getElementById('scoreFilter').addEventListener('change', filterCandidates);
+    
+    // Uploader filter
+    document.getElementById('uploadedByFilter').addEventListener('input', filterCandidates);
+    
+    // Sort by
+    document.getElementById('sortBy').addEventListener('change', filterCandidates);
+    
+    // Clear filters button
+    document.getElementById('clearFiltersBtn').addEventListener('click', function() {
+        document.getElementById('searchBox').value = '';
+        document.getElementById('statusFilter').value = 'all';
+        document.getElementById('scoreFilter').value = 'all';
+        document.getElementById('uploadedByFilter').value = '';
+        document.getElementById('sortBy').value = 'score';
+        filterCandidates();
+    });
+    
+    // Toggle view (Grid/List) - placeholder for now
+    document.getElementById('toggleViewBtn').addEventListener('click', function() {
+        viewMode = viewMode === 'grid' ? 'list' : 'grid';
+        this.textContent = viewMode === 'grid' ? '📊 Grid/List' : '📋 List/Grid';
+        renderCandidatesWithPagination();
+    });
     
     showPanel('jobs');
     loadJobs();
