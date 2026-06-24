@@ -19,7 +19,8 @@ def init_db():
         notes TEXT,
         resume_text TEXT, resume_filename TEXT, match_score INTEGER DEFAULT 0,
         recommendation TEXT DEFAULT '', detailed_analysis TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+uploaded_by TEXT DEFAULT 'Unknown'
     )''')
     
     c.execute('DROP TABLE IF EXISTS candidate_documents')
