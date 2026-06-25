@@ -1224,7 +1224,6 @@ HTML_TEMPLATE = '''
     if (result.category_scores) {
         const cats = result.category_scores;
        categoryHtml = `
-   categoryHtml = `
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
         <div style="background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #E0E0E0; border-left: 4px solid ${cats.skills_match >= 70 ? '#1A237E' : (cats.skills_match >= 40 ? '#283593' : '#B71C1C')};">
             <div style="font-size: 11px; color: #666;">Skills</div>
