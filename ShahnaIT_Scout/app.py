@@ -2243,9 +2243,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     // Status filter
     document.getElementById('statusFilter').addEventListener('change', filterCandidates);
     
-    // Score filter
-    document.getElementById('scoreFilter').addEventListener('change', filterCandidates);
-    
     // Uploader filter
     document.getElementById('uploadedByFilter').addEventListener('input', filterCandidates);
     
