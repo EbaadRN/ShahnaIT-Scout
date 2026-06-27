@@ -1872,32 +1872,6 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         });
     }
 
-    // ========== STATUS MANAGEMENT ==========
-    
-    window.updateStatus = async function(candidateId, newStatus) {
-        try {
-            const res = await fetch(`/api/candidates/${candidateId}/status`, {
-                method: 'PUT',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ employment_status: newStatus })
-            });
-            
-            if (res.ok) {
-                const dropdown = document.getElementById(`candidateStatus-${candidateId}`);
-                if (dropdown) {
-                    dropdown.style.background = getStatusColor(newStatus);
-                }
-                loadCandidates();
-            } else {
-                alert('Failed to update status');
-                loadCandidates();
-            }
-        } catch(e) {
-            alert('Error updating status');
-            loadCandidates();
-        }
-    };
-
     // ========== DASHBOARD ==========
     
     async function loadDashboard() {
