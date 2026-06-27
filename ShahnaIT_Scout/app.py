@@ -1871,39 +1871,6 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             }
         });
     }
-        // ========== EXPORT PDF ==========
-    window.exportPDF = async function(candidateId, event) {
-        const btn = event.target;
-        btn.textContent = '⏳ Generating...';
-        btn.disabled = true;
-        
-        try {
-            const res = await fetch(`/api/candidates/${candidateId}/export-pdf`);
-            if (res.ok) {
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                
-                const c = allCandidates.find(c => c.id == candidateId);
-                const name = ((c.first_name || '') + '_' + (c.last_name || '')).trim() || 'candidate';
-                a.download = `${name}_profile.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-            } else {
-                alert('Failed to generate PDF');
-            }
-        } catch(e) {
-            alert('Error generating PDF');
-        } finally {
-            btn.textContent = '📄 Export PDF';
-            btn.disabled = false;
-        }
-    };
-
-    // ========== NOTES FUNCTIONS ==========
 
     // ========== STATUS MANAGEMENT ==========
     function getStatusColor(status) {
