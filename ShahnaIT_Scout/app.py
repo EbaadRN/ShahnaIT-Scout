@@ -999,7 +999,7 @@ HTML_TEMPLATE = '''
     
     document.getElementById('searchBox').onkeyup = filterCandidates;
     document.getElementById('scoreFilter').addEventListener('change', filterCandidates);
-    document.getElementById('clearBtn').onclick = function() { document.getElementById('searchBox').value = ''; document.getElementById('scoreSelect').value = 'all'; filterCandidates(); };
+   document.getElementById('clearFiltersBtn').addEventListener('click', function() { document.getElementById('searchBox').value = ''; document.getElementById('scoreSelect').value = 'all'; filterCandidates(); };
     
     // Edit Job
     window.editJob = async function(id) {
