@@ -1873,17 +1873,6 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
     }
 
     // ========== STATUS MANAGEMENT ==========
-    function getStatusColor(status) {
-        const colors = {
-            'new': '#2196F3',
-            'screening': '#FF9800',
-            'interview': '#FF5722',
-            'offer': '#9C27B0',
-            'hired': '#4CAF50',
-            'rejected': '#F44336'
-        };
-        return colors[status] || '#666';
-    }
     
     window.updateStatus = async function(candidateId, newStatus) {
         try {
