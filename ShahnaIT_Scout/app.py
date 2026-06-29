@@ -2033,63 +2033,71 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     let filteredCandidates = [];
     let viewMode = 'grid'; // 'grid' or 'list'
 
-    function filterCandidates() {
-        const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-        const statusFilter = document.getElementById('statusFilter').value;
-        const scoreFilter = document.getElementById('scoreFilter').value;
-        const uploaderFilter = document.getElementById('uploadedByFilter').value.toLowerCase();
-        const sortBy = document.getElementById('sortBy').value;
-        
-        let filtered = allCandidates;
-        
-        // Search filter - name, email, skills
-       if (searchTerm) {
-    filtered = filtered.filter(c => {
-        const name = ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase();
-        const email = (c.email || '').toLowerCase();
-        const phone = (c.phone || '').toLowerCase();
-        const skills = c.core_skills ? JSON.parse(c.core_skills).map(s => (s.skill || '').toLowerCase()).join(' ') : '';
-        return name.includes(searchTerm) || email.includes(searchTerm) || phone.includes(searchTerm) || skills.includes(searchTerm);
-    });
-}
-        
-        // Status filter
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(c => (c.employment_status || 'new') === statusFilter);
-        }
-        
-        // Score filter
-        if (scoreFilter === 'high') {
-            filtered = filtered.filter(c => (c.match_score || 0) >= 70);
-        } else if (scoreFilter === 'medium') {
-            filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
-        } else if (scoreFilter === 'low') {
-            filtered = filtered.filter(c => (c.match_score || 0) < 40);
-        }
-        
-        // Uploader filter
-        if (uploaderFilter) {
-            filtered = filtered.filter(c => (c.uploaded_by || 'ShahnaIT').toLowerCase().includes(uploaderFilter));
-        }
-        
-        // Sorting
-        if (sortBy === 'score') {
-            filtered.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
-        } else if (sortBy === 'name') {
-            filtered.sort((a, b) => (a.first_name || '').localeCompare(b.first_name || ''));
-        } else if (sortBy === 'date') {
-            filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        } else if (sortBy === 'status') {
-            filtered.sort((a, b) => (a.employment_status || '').localeCompare(b.employment_status || ''));
-        } else if (sortBy === 'uploader') {
-            filtered.sort((a, b) => (a.uploaded_by || 'ShahnaIT').localeCompare(b.uploaded_by || 'ShahnaIT'));
-        }
-        
-        filteredCandidates = filtered;
-        currentPage = 1;
-        renderCandidatesWithPagination();
-        updateStats();
+   function filterCandidates() {
+    const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const scoreFilter = document.getElementById('scoreFilter').value;
+    const uploaderFilter = document.getElementById('uploadedByFilter').value.toLowerCase();
+    const sortBy = document.getElementById('sortBy').value;
+    
+    let filtered = allCandidates;
+    
+    // Search filter - name, email, phone, skills
+    if (searchTerm) {
+        filtered = filtered.filter(c => {
+            const name = ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase().trim();
+            const email = (c.email || '').toLowerCase();
+            const phone = (c.phone || '').toLowerCase();
+            let skills = '';
+            if (c.core_skills) {
+                try {
+                    const parsedSkills = JSON.parse(c.core_skills);
+                    skills = parsedSkills.map(s => (s.skill || '').toLowerCase()).join(' ');
+                } catch(e) {
+                    skills = '';
+                }
+            }
+            return name.includes(searchTerm) || email.includes(searchTerm) || phone.includes(searchTerm) || skills.includes(searchTerm);
+        });
     }
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+        filtered = filtered.filter(c => (c.employment_status || 'new') === statusFilter);
+    }
+    
+    // Score filter
+    if (scoreFilter === 'high') {
+        filtered = filtered.filter(c => (c.match_score || 0) >= 70);
+    } else if (scoreFilter === 'medium') {
+        filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
+    } else if (scoreFilter === 'low') {
+        filtered = filtered.filter(c => (c.match_score || 0) < 40);
+    }
+    
+    // Uploader filter
+    if (uploaderFilter) {
+        filtered = filtered.filter(c => (c.uploaded_by || 'ShahnaIT').toLowerCase().includes(uploaderFilter));
+    }
+    
+    // Sorting
+    if (sortBy === 'score') {
+        filtered.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
+    } else if (sortBy === 'name') {
+        filtered.sort((a, b) => ((a.first_name || '') + ' ' + (a.last_name || '')).localeCompare((b.first_name || '') + ' ' + (b.last_name || '')));
+    } else if (sortBy === 'date') {
+        filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (sortBy === 'status') {
+        filtered.sort((a, b) => (a.employment_status || '').localeCompare(b.employment_status || ''));
+    } else if (sortBy === 'uploader') {
+        filtered.sort((a, b) => (a.uploaded_by || 'ShahnaIT').localeCompare(b.uploaded_by || 'ShahnaIT'));
+    }
+    
+    filteredCandidates = filtered;
+    currentPage = 1;
+    renderCandidatesWithPagination();
+    updateStats();
+}
 
     function renderCandidatesWithPagination() {
         const container = document.getElementById('candidatesList');
