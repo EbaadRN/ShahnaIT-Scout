@@ -999,7 +999,14 @@ HTML_TEMPLATE = '''
     
     document.getElementById('searchBox').onkeyup = filterCandidates;
     document.getElementById('scoreFilter').addEventListener('change', filterCandidates);
-   document.getElementById('clearFiltersBtn').addEventListener('click', function() { document.getElementById('searchBox').value = ''; document.getElementById('scoreSelect').value = 'all'; filterCandidates(); };
+   document.getElementById('clearFiltersBtn').addEventListener('click', function() {
+    document.getElementById('searchBox').value = '';
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('scoreFilter').value = 'all';
+    document.getElementById('uploadedByFilter').value = '';
+    document.getElementById('sortBy').value = 'score';
+    filterCandidates();
+});
     
     // Edit Job
     window.editJob = async function(id) {
@@ -2251,17 +2258,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     
     // Sort by
     document.getElementById('sortBy').addEventListener('change', filterCandidates);
-    
-    // Clear filters button
-    document.getElementById('clearFiltersBtn').addEventListener('click', function() {
-        document.getElementById('searchBox').value = '';
-        document.getElementById('statusFilter').value = 'all';
-        document.getElementById('scoreFilter').value = 'all';
-        document.getElementById('uploadedByFilter').value = '';
-        document.getElementById('sortBy').value = 'score';
-        filterCandidates();
-    });
-    
+        
     // Toggle view (Grid/List) - placeholder for now
     document.getElementById('toggleViewBtn').addEventListener('click', function() {
         viewMode = viewMode === 'grid' ? 'list' : 'grid';
