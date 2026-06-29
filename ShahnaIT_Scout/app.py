@@ -982,7 +982,6 @@ HTML_TEMPLATE = '''
     const res = await fetch('/api/candidates');
     allCandidates = await res.json();
     filterCandidates();
-    updatePipelineStats();
     renderUploaderStats();
     document.getElementById('candidateSelect').innerHTML = '<option value="">-- Select Candidate --</option>' + allCandidates.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
 }
