@@ -322,9 +322,11 @@ def init_db():
         current_ctc TEXT, expected_ctc TEXT,
         employment_status TEXT, notice_period_days INTEGER DEFAULT 0,
         work_experience TEXT, certifications TEXT, core_skills TEXT, education TEXT,
+        notes TEXT,
         resume_text TEXT, resume_filename TEXT, match_score INTEGER DEFAULT 0,
         recommendation TEXT DEFAULT '', detailed_analysis TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        uploaded_by TEXT DEFAULT 'ShahnaIT'
     )''')
     
     c.execute('DROP TABLE IF EXISTS candidate_documents')
@@ -352,11 +354,21 @@ def init_db():
         FOREIGN KEY (job_id) REFERENCES jobs(id)
     )''')
     
+    c.execute('''CREATE TABLE IF NOT EXISTS candidate_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER NOT NULL,
+        note_text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+    )''')
+    
     conn.commit()
     conn.close()
     print("✅ Database initialized")
 
 init_db()
+
+# ============ GROQ API SETUP ============
 
 # ============ GROQ API SETUP ============
 GROQ_ENABLED = False
