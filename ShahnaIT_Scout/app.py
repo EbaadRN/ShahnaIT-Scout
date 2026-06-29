@@ -2043,14 +2043,15 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         let filtered = allCandidates;
         
         // Search filter - name, email, skills
-        if (searchTerm) {
-            filtered = filtered.filter(c => {
-                const name = (c.first_name + ' ' + c.last_name).toLowerCase();
-                const email = (c.email || '').toLowerCase();
-                const skills = c.core_skills ? JSON.parse(c.core_skills).map(s => s.skill.toLowerCase()).join(' ') : '';
-                return name.includes(searchTerm) || email.includes(searchTerm) || skills.includes(searchTerm);
-            });
-        }
+       if (searchTerm) {
+    filtered = filtered.filter(c => {
+        const name = ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase();
+        const email = (c.email || '').toLowerCase();
+        const phone = (c.phone || '').toLowerCase();
+        const skills = c.core_skills ? JSON.parse(c.core_skills).map(s => (s.skill || '').toLowerCase()).join(' ') : '';
+        return name.includes(searchTerm) || email.includes(searchTerm) || phone.includes(searchTerm) || skills.includes(searchTerm);
+    });
+}
         
         // Status filter
         if (statusFilter !== 'all') {
