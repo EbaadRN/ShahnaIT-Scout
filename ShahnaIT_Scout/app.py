@@ -1134,14 +1134,14 @@ HTML_TEMPLATE = '''
             const fd = new FormData(); fd.append('document', file); fd.append('job_id', id);
             document.getElementById('jobDocUploadStatus').innerHTML = '<div class="spinner"></div>';
             const res = await fetch('/api/jobs/upload-document', { method: 'POST', body: fd });
-            if (res.ok) { alert('Uploaded!'); editJob(id); }
+           if (res.ok) { toastSuccess('Uploaded!'); editJob(id); }
             document.getElementById('jobDocUploadStatus').innerHTML = '';
         };
         document.getElementById('editJobForm').onsubmit = async (e) => {
             e.preventDefault();
             const data = { title: document.getElementById('editJobTitle').value, company: document.getElementById('editJobCompany').value, description: document.getElementById('editJobDesc').value };
             const res = await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-            if (res.ok) { alert('Job updated!'); closeEditJobModal(); loadJobs(); }
+            if (res.ok) { toastSuccess('Job updated!'); closeEditJobModal(); loadJobs(); }
         };
     };
     
@@ -1223,7 +1223,7 @@ HTML_TEMPLATE = '''
         let text = '';
         document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-with-years').forEach(el => text += el.innerText + '\\n');
         navigator.clipboard.writeText(text);
-        alert('Copied!');
+toastSuccess('Copied!');
     };
     
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
@@ -1253,8 +1253,7 @@ HTML_TEMPLATE = '''
                 notes: document.getElementById('editNotes').value, core_skills: JSON.stringify(skillsArray), certifications: JSON.stringify(certsArray)
             };
             const res = await fetch(`/api/candidates/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-            if (res.ok) { alert('Updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
-            else alert('Error');
+           if (res.ok) { toastSuccess('Updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
         };
     };
     
@@ -1265,7 +1264,7 @@ HTML_TEMPLATE = '''
         const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
         document.getElementById('docUploadStatus').innerHTML = '<div class="spinner"></div>';
         const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
-        if (res.ok) { alert('Uploaded!'); closeDocModal(); viewCandidate(currentCandidateId); }
+       if (res.ok) { toastSuccess('Uploaded!'); closeDocModal(); viewCandidate(currentCandidateId); }
         document.getElementById('docUploadStatus').innerHTML = '';
     };
     
@@ -1292,7 +1291,7 @@ HTML_TEMPLATE = '''
                 body: JSON.stringify(result) 
             });
             if(saveRes.ok) { 
-                alert('Saved! Resume auto-attached!'); 
+                toastSuccess('Saved! Resume auto-attached!'); 
                 div.innerHTML = ''; 
                 document.getElementById('resumeFile').value = ''; 
                 loadCandidates(); 
@@ -1306,7 +1305,7 @@ HTML_TEMPLATE = '''
         const data = { title: document.getElementById('jobTitle').value, company: document.getElementById('jobCompany').value, description: document.getElementById('jobDesc').value };
         if(!data.title) return;
         const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-        if(res.ok) { alert('Job created!'); document.getElementById('jobTitle').value = ''; document.getElementById('jobCompany').value = ''; document.getElementById('jobDesc').value = ''; showPanel('jobs'); loadJobs(); }
+        if(res.ok) { toastSuccess('Job created!'); document.getElementById('jobTitle').value = ''; document.getElementById('jobCompany').value = ''; document.getElementById('jobDesc').value = ''; showPanel('jobs'); loadJobs(); }
         else alert('Error');
     };
     
