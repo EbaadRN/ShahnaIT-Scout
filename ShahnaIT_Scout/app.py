@@ -1495,10 +1495,7 @@ if (result.weaknesses && result.weaknesses.length > 0) {
     };
     
     document.getElementById('bulkUploadBtn').onclick = async function() {
-        if (selectedBulkFiles.length === 0) {
-            alert('Please select files first');
-            return;
-        }
+        if (selectedBulkFiles.length === 0) { toastWarning('Please select files first'); return; }
         
         const div = document.getElementById('bulkUploadResult');
         div.innerHTML = '<div class="spinner"></div><p>📚 Processing ' + selectedBulkFiles.length + ' files...</p>';
