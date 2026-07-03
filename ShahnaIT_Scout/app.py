@@ -1572,10 +1572,10 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         // ========== BATCH ANALYZE - Match JD Against ALL Candidates ==========
        document.getElementById('batchAnalyzeBtn').onclick = async function() {
         const jobId = document.getElementById('batchJobSelect').value;
-        if (!jobId) { alert('Please select a Job'); return; }
+       if (!jobId) { toastWarning('Please select a Job'); return; }
         
         const job = allJobs.find(j => j.id == jobId);
-        if (!job) { alert('Job not found'); return; }
+        if (!job) { toastWarning('Job not found'); return; }
         
         const div = document.getElementById('batchAnalysisResult');
         div.innerHTML = '<div class="spinner"></div><p>📊 Analyzing ' + allCandidates.length + ' candidates with enhanced matching...</p>';
