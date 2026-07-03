@@ -1695,10 +1695,10 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                 input.value = '';
                 loadNotes(candidateId);
             } else {
-                alert('Failed to add note');
+                toastError('Failed to add note');
             }
         } catch(e) {
-            alert('Error adding note');
+            toastError('Error adding note');
         }
     };
     
@@ -1713,10 +1713,10 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             if (res.ok) {
                 loadNotes(candidateId);
             } else {
-                alert('Failed to delete note');
+                toastError('Failed to delete note');
             }
         } catch(e) {
-            alert('Error deleting note');
+            toastError('Error deleting note');
         }
     };
            // ========== EXPORT PDF ==========
@@ -1742,10 +1742,10 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                 a.remove();
                 window.URL.revokeObjectURL(url);
             } else {
-                alert('Failed to generate PDF');
+                toastError('Failed to generate PDF');
             }
         } catch(e) {
-            alert('Error generating PDF');
+            toastError('Error generating PDF');
         } finally {
             btn.textContent = '📄 Export PDF';
             btn.disabled = false;
@@ -1781,12 +1781,12 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                 // Reload candidates list to reflect changes
                 loadCandidates();
             } else {
-                alert('Failed to update status');
+                toastError('Failed to update status');
                 // Reload to revert dropdown
                 loadCandidates();
             }
         } catch(e) {
-            alert('Error updating status');
+            toastError('Error updating status');
             loadCandidates();
         }
     };
