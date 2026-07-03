@@ -2872,5 +2872,20 @@ def get_dashboard_data():
             'values': trend_values
         }
     })
+@app.route('/api/test-pdf', methods=['GET'])
+def test_pdf():
+    try:
+        import reportlab
+        from reportlab.pdfgen import canvas
+        import io
+        return jsonify({
+            'status': 'ok',
+            'reportlab_version': reportlab.__version__,
+            'canvas_available': 'yes'
+        })
+    except ImportError as e:
+        return jsonify({'status': 'error', 'message': f'Import error: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
