@@ -1682,10 +1682,7 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         const input = document.getElementById(`newNote-${candidateId}`);
         const noteText = input.value.trim();
         
-        if (!noteText) {
-            alert('Please enter a note');
-            return;
-        }
+    if (!noteText) { toastWarning('Please enter a note'); return; }
         
         try {
             const res = await fetch(`/api/candidates/${candidateId}/notes`, {
