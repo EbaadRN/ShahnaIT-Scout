@@ -724,9 +724,104 @@ HTML_TEMPLATE = '''
             font-size: 15px !important;
         }
     }
+/* ========== TOAST NOTIFICATIONS ========== */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 350px;
+    width: 100%;
+}
+
+.toast {
+    padding: 15px 20px;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transform: translateX(400px);
+    animation: slideIn 0.5s forwards;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toast-success {
+    background: #1B6B2E;
+    border-left: 4px solid #4CAF50;
+}
+
+.toast-error {
+    background: #B22222;
+    border-left: 4px solid #F44336;
+}
+
+.toast-warning {
+    background: #CC5500;
+    border-left: 4px solid #FF9800;
+}
+
+.toast-info {
+    background: #1A4D4A;
+    border-left: 4px solid #2196F3;
+}
+
+.toast-icon {
+    font-size: 20px;
+}
+
+.toast-message {
+    flex: 1;
+}
+
+.toast-close {
+    cursor: pointer;
+    font-size: 18px;
+    opacity: 0.7;
+    transition: opacity 0.3s;
+    background: none;
+    border: none;
+    color: white;
+}
+
+.toast-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+.toast-hidden {
+    animation: slideOut 0.5s forwards;
+}
+
+@media (max-width: 480px) {
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        max-width: calc(100% - 20px);
+    }
+}
 </style>
 </head>
 <body>
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
 <div style="max-width: 1200px; margin: 0 auto;">
     <div class="header">
         <h1>🎯 ShahnaIT Scout</h1>
