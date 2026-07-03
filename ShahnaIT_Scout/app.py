@@ -2385,6 +2385,49 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     showPanel('jobs');
     loadJobs();
     loadCandidates();
+    // ========== TOAST NOTIFICATIONS ==========
+function showToast(message, type = 'info', duration = 4000) {
+    const container = document.getElementById('toastContainer');
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+        <span class="toast-message">${message}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto remove after duration
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.classList.add('toast-hidden');
+            setTimeout(() => toast.remove(), 500);
+        }
+    }, duration);
+    
+    // Click to dismiss
+    toast.addEventListener('click', function(e) {
+        if (e.target.tagName !== 'BUTTON') {
+            this.classList.add('toast-hidden');
+            setTimeout(() => this.remove(), 500);
+        }
+    });
+}
+
+// Shortcut functions
+function toastSuccess(msg) { showToast(msg, 'success'); }
+function toastError(msg) { showToast(msg, 'error'); }
+function toastWarning(msg) { showToast(msg, 'warning'); }
+function toastInfo(msg) { showToast(msg, 'info'); }
 </script>
 </body>
 </html>
