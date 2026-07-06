@@ -817,6 +817,149 @@ HTML_TEMPLATE = '''
         max-width: calc(100% - 20px);
     }
 }
+/* ========== DARK MODE ========== */
+body.dark-mode {
+    background: #1a1a2e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .header {
+    background: #16213e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .card {
+    background: #2d2d44;
+    border-left: 4px solid #C9A96E;
+    color: #e0e0e0;
+}
+
+body.dark-mode .card.no-click {
+    background: #2d2d44;
+}
+
+body.dark-mode .tab-btn {
+    background: #2d2d44;
+    color: #e0e0e0;
+    border: 1px solid #444466;
+}
+
+body.dark-mode .tab-btn.active {
+    background: #1A4D4A;
+    color: white;
+}
+
+body.dark-mode input, 
+body.dark-mode select, 
+body.dark-mode textarea {
+    background: #2d2d44;
+    color: #e0e0e0;
+    border: 1px solid #444466;
+}
+
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+    color: #888899;
+}
+
+body.dark-mode .modal-content {
+    background: #1a1a2e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .modal-header {
+    background: #16213e;
+}
+
+body.dark-mode .detail-row {
+    border-bottom: 1px solid #444466;
+}
+
+body.dark-mode .company-item {
+    background: #2d2d44;
+    border-left: 3px solid #C9A96E;
+}
+
+body.dark-mode .file-list {
+    background: #2d2d44;
+}
+
+body.dark-mode .file-list-item {
+    border-bottom: 1px solid #444466;
+}
+
+body.dark-mode .filter-bar {
+    background: #2d2d44;
+}
+
+body.dark-mode .skill-tag {
+    background: #3d3d55;
+    color: #e0e0e0;
+}
+
+body.dark-mode .skill-with-years {
+    background: #1a3d2e;
+    color: #8bc34a;
+}
+
+body.dark-mode .alert-success {
+    background: #1a3d2e;
+    color: #e0e0e0;
+}
+
+body.dark-mode .alert-error {
+    background: #3d1a1a;
+    color: #e0e0e0;
+}
+
+body.dark-mode #uploaderStats {
+    background: #2d2d44;
+    color: #e0e0e0;
+}
+
+body.dark-mode .toast {
+    background: #2d2d44 !important;
+    color: #e0e0e0 !important;
+}
+
+body.dark-mode .toast-success {
+    background: #1a4d2e !important;
+    border-left: 4px solid #4CAF50 !important;
+}
+
+body.dark-mode .toast-error {
+    background: #4d1a1a !important;
+    border-left: 4px solid #F44336 !important;
+}
+
+body.dark-mode .toast-warning {
+    background: #4d3a1a !important;
+    border-left: 4px solid #FF9800 !important;
+}
+
+body.dark-mode .toast-info {
+    background: #1a3d4d !important;
+    border-left: 4px solid #2196F3 !important;
+}
+
+/* Dark mode toggle button */
+.dark-mode-toggle {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.dark-mode-toggle:hover {
+    transform: scale(1.1);
+}
+
+body.dark-mode .dark-mode-toggle {
+    color: #FFD700;
+}
 </style>
 </head>
 <body>
@@ -826,7 +969,17 @@ HTML_TEMPLATE = '''
     <div class="header">
         <h1>🎯 ShahnaIT Scout</h1>
         <p>AI-Powered Recruitment Platform</p>
+        <div class="header">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div>
+            <h1>🎯 ShahnaIT Scout</h1>
+            <p>AI-Powered Recruitment Platform</p>
+        </div>
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
+            🌙
+        </button>
     </div>
+</div>
     
     <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
     <!-- Sidebar -->
@@ -2421,6 +2574,36 @@ function toastSuccess(msg) { showToast(msg, 'success'); }
 function toastError(msg) { showToast(msg, 'error'); }
 function toastWarning(msg) { showToast(msg, 'warning'); }
 function toastInfo(msg) { showToast(msg, 'info'); }
+// ========== DARK MODE ==========
+function toggleDarkMode() {
+    const body = document.body;
+    const toggle = document.querySelector('.dark-mode-toggle');
+    
+    body.classList.toggle('dark-mode');
+    
+    // Save preference
+    if (body.classList.contains('dark-mode')) {
+        localStorage.setItem('darkMode', 'enabled');
+        toggle.textContent = '☀️';
+    } else {
+        localStorage.setItem('darkMode', 'disabled');
+        toggle.textContent = '🌙';
+    }
+}
+
+// Load saved preference on page load
+function loadDarkModePreference() {
+    const darkMode = localStorage.getItem('darkMode');
+    const toggle = document.querySelector('.dark-mode-toggle');
+    
+    if (darkMode === 'enabled') {
+        document.body.classList.add('dark-mode');
+        if (toggle) toggle.textContent = '☀️';
+    }
+}
+
+// Call on page load
+loadDarkModePreference();
 </script>
 </body>
 </html>
