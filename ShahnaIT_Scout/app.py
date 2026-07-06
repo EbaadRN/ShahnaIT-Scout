@@ -960,6 +960,354 @@ body.dark-mode .toast-info {
 body.dark-mode .dark-mode-toggle {
     color: #FFD700;
 }
+/* ========== RESPONSIVE DESIGN ========== */
+
+/* ===== TABLET (600px - 1024px) ===== */
+@media screen and (min-width: 600px) and (max-width: 1024px) {
+    /* Sidebar: Show icons only */
+    .sidebar {
+        width: 80px !important;
+        padding: 15px 0 !important;
+    }
+    
+    .sidebar .menu-label {
+        display: none;
+    }
+    
+    .sidebar .tab-btn {
+        padding: 12px !important;
+        text-align: center !important;
+        font-size: 12px !important;
+    }
+    
+    .sidebar .tab-btn span {
+        display: none;
+    }
+    
+    .sidebar .tab-btn::before {
+        font-size: 20px;
+    }
+    
+    /* Cards: 2 columns */
+    #candidatesList {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+    
+    #candidatesList .card {
+        margin: 0 !important;
+    }
+    
+    /* Dashboard: 2 columns */
+    .dashboard-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    
+    /* Stats: 3 columns */
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+/* ===== MOBILE (360px - 599px) ===== */
+@media screen and (max-width: 599px) {
+    /* Body padding */
+    body {
+        padding: 10px !important;
+    }
+    
+    /* Header */
+    .header {
+        padding: 15px !important;
+    }
+    
+    .header h1 {
+        font-size: 18px !important;
+    }
+    
+    .header p {
+        font-size: 12px !important;
+    }
+    
+    .dark-mode-toggle {
+        font-size: 20px !important;
+        padding: 8px 12px !important;
+    }
+    
+    /* Sidebar - Full width hamburger */
+    .sidebar-container {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .mobile-menu-btn {
+        display: block !important;
+        width: 100%;
+        background: #1A4D4A;
+        color: white;
+        border: none;
+        padding: 12px 16px;
+        font-size: 20px;
+        text-align: left;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    
+    .sidebar {
+        width: 100% !important;
+        display: none;
+        border-radius: 8px !important;
+        padding: 10px 0 !important;
+    }
+    
+    .sidebar.open {
+        display: block !important;
+    }
+    
+    .sidebar .tab-btn {
+        padding: 14px 20px !important;
+        font-size: 15px !important;
+        width: 100% !important;
+        text-align: left !important;
+        border-left: 3px solid transparent !important;
+    }
+    
+    .sidebar .tab-btn.active {
+        border-left: 3px solid #C9A96E !important;
+    }
+    
+    /* Content area - full width */
+    .content-area {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    
+    /* Cards - full width, single column */
+    #candidatesList {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    #candidatesList .card {
+        margin: 0 !important;
+        padding: 12px 14px !important;
+    }
+    
+    .card h3 {
+        font-size: 15px !important;
+    }
+    
+    /* Filter bar - stack vertically */
+    .filter-bar {
+        flex-direction: column !important;
+        gap: 8px !important;
+        padding: 12px !important;
+    }
+    
+    .filter-bar input,
+    .filter-bar select,
+    .filter-bar button {
+        width: 100% !important;
+        min-width: 100% !important;
+        padding: 10px !important;
+        font-size: 14px !important;
+    }
+    
+    #searchBox {
+        min-width: 100% !important;
+    }
+    
+    /* Pipeline stats - 3 columns */
+    .pipeline-stats {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 6px !important;
+    }
+    
+    .pipeline-stats > div {
+        padding: 8px !important;
+    }
+    
+    .pipeline-stats > div div:first-child {
+        font-size: 16px !important;
+    }
+    .pipeline-stats > div div:last-child {
+        font-size: 9px !important;
+    }
+    
+    /* Stats in dashboard - 2 columns */
+    .dashboard-stats {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+    }
+    
+    .dashboard-stats > div {
+        padding: 12px !important;
+    }
+    
+    .dashboard-stats > div div:first-child {
+        font-size: 22px !important;
+    }
+    
+    /* Dashboard charts - single column */
+    .dashboard-charts {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    .dashboard-charts > div {
+        padding: 12px !important;
+    }
+    
+    /* Modals - full screen */
+    .modal-content {
+        margin: 10px auto !important;
+        max-width: 95% !important;
+        width: 95% !important;
+    }
+    
+    .modal-header h2 {
+        font-size: 18px !important;
+    }
+    
+    .modal-body {
+        padding: 15px !important;
+        max-height: 70vh !important;
+    }
+    
+    /* Detail rows - stack labels */
+    .detail-row {
+        flex-direction: column !important;
+        gap: 2px !important;
+    }
+    
+    .detail-label {
+        width: 100% !important;
+        font-weight: bold;
+        font-size: 12px !important;
+        color: #666;
+    }
+    
+    .detail-value {
+        font-size: 14px !important;
+    }
+    
+    /* Buttons - touch friendly */
+    button, .btn {
+        padding: 12px 18px !important;
+        font-size: 14px !important;
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+    
+    /* Tabs */
+    .tab-btn {
+        padding: 12px 16px !important;
+        font-size: 14px !important;
+    }
+    
+    /* Upload area */
+    .upload-area {
+        padding: 15px !important;
+    }
+    
+    .upload-area input[type="file"] {
+        padding: 10px !important;
+    }
+    
+    /* Pagination */
+    #pagination {
+        flex-direction: column !important;
+        gap: 8px !important;
+        align-items: center !important;
+    }
+    
+    #paginationControls {
+        justify-content: center !important;
+    }
+    
+    #paginationControls .btn {
+        padding: 8px 14px !important;
+        font-size: 13px !important;
+        min-height: 40px !important;
+        min-width: 40px !important;
+    }
+    
+    /* Uploader stats */
+    #uploaderStats {
+        padding: 12px !important;
+    }
+    
+    #uploaderStats h4 {
+        font-size: 14px !important;
+    }
+    
+    #uploaderChart > div {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px !important;
+    }
+    
+    #uploaderChart > div span:first-child {
+        min-width: 100% !important;
+        font-size: 12px !important;
+    }
+    
+    #uploaderChart > div > div {
+        width: 100% !important;
+        height: 18px !important;
+    }
+    
+    #uploaderChart > div span:last-child {
+        min-width: 100% !important;
+        text-align: left !important;
+        font-size: 11px !important;
+    }
+    
+    /* Skills cloud */
+    #skillsCloud span {
+        font-size: 12px !important;
+        padding: 3px 10px !important;
+    }
+    
+    /* Toast notifications - full width */
+    .toast-container {
+        top: 10px !important;
+        right: 10px !important;
+        max-width: calc(100% - 20px) !important;
+    }
+    
+    .toast {
+        font-size: 13px !important;
+        padding: 12px 16px !important;
+    }
+}
+
+/* ===== VERY SMALL PHONES (320px - 359px) ===== */
+@media screen and (max-width: 359px) {
+    .header h1 {
+        font-size: 16px !important;
+    }
+    
+    .pipeline-stats {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    .dashboard-stats {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .card h3 {
+        font-size: 13px !important;
+    }
+    
+    button, .btn {
+        font-size: 12px !important;
+        padding: 10px 14px !important;
+    }
+}
 </style>
 </head>
 <body>
@@ -976,9 +1324,12 @@ body.dark-mode .dark-mode-toggle {
     </div>
 </div>
     
-    <div style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
+   <div class="sidebar-container" style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+    
     <!-- Sidebar -->
-    <div style="width: 220px; background: #1A4D4A; border-radius: 12px; padding: 20px 0; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+    <div class="sidebar" id="sidebar" style="width: 220px; background: #1A4D4A; border-radius: 12px; padding: 20px 0; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         <div style="padding: 0 20px 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
             <div style="color: #C9A96E; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Menu</div>
         </div>
@@ -991,7 +1342,7 @@ body.dark-mode .dark-mode-toggle {
     </div>
     
     <!-- Content Area -->
-    <div style="flex: 1; min-width: 0;">
+    <div class="content-area" style="flex: 1; min-width: 0;">
         <!-- Panel content goes here -->
     
     <div id="jobsPanel"><div id="jobsList"></div></div>
@@ -2599,6 +2950,33 @@ function loadDarkModePreference() {
 
 // Call on page load
 loadDarkModePreference();
+// ========== SIDEBAR TOGGLE FOR MOBILE ==========
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.toggle('open');
+}
+
+// Close sidebar when clicking outside (on mobile)
+document.addEventListener('click', function(event) {
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.querySelector('.mobile-menu-btn');
+    
+    if (window.innerWidth <= 768) {
+        if (sidebar && !sidebar.contains(event.target) && !menuBtn.contains(event.target)) {
+            sidebar.classList.remove('open');
+        }
+    }
+});
+
+// Close sidebar when a tab is clicked (on mobile)
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.remove('open');
+        }
+    });
+});
 </script>
 </body>
 </html>
