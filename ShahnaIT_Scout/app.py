@@ -2265,30 +2265,46 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
             if (results.length === 0) {
                 html += `<p style="color: #666; font-style: italic;">No candidates found in database.</p>`;
             } else {
-                results.forEach((r, index) => {
-                    const matchClass = r.match_score >= 70 ? 'match-high' : (r.match_score >= 40 ? 'match-medium' : 'match-low');
-                    const nameDisplay = r.name && r.name !== 'Unknown' ? r.name : 'Unknown Candidate';
-                    
-                    html += `<div class="card" style="cursor: pointer; margin: 8px 0; padding: 12px; border-left: 4px solid ${r.match_score >= 70 ? '#1B6B2E' : (r.match_score >= 40 ? '#CC5500' : '#B22222')};">
-                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                            <div onclick="viewCandidate(${r.candidate_id})" style="flex: 1; cursor: pointer;">
-                                <div style="display: flex; align-items: center; gap: 10px;">
-                                    <span style="font-weight: bold; color: #666;">#${index + 1}</span>
-                                    <span style="font-size: 16px; font-weight: bold;">👤 ${escapeHtml(nameDisplay)}</span>
-                                </div>
-                                ${r.email ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">📧 ${escapeHtml(r.email)}</div>` : ''}
-                                ${r.tech_found && r.tech_found.length > 0 ? `<div style="font-size: 11px; color: #555; margin-top: 4px;">🔧 ${r.tech_found.map(t => `<span style="background: #E8F5E9; padding: 1px 8px; border-radius: 10px; margin: 2px; display: inline-block;">${escapeHtml(t)}</span>`).join(' ')}</div>` : ''}
-                            </div>
-                            <div style="text-align: right; min-width: 80px;">
-                                <div><span class="${matchClass}" style="font-size: 18px; padding: 4px 14px;">${r.match_score}%</span></div>
-                                <div style="font-size: 11px; margin-top: 2px; color: ${r.recommendation === 'hire' ? '#1B6B2E' : (r.recommendation === 'interview' ? '#CC5500' : '#B22222')};">
-                                    ${r.recommendation || 'Review'}
-                                </div>
-                                <button class="btn" style="background: #C9A96E; color: white; padding: 2px 10px; font-size: 10px; margin-top: 4px; border: none; border-radius: 4px; cursor: pointer;" onclick="event.stopPropagation(); runDeepAnalysis(${r.candidate_id}, '${escapeHtml(job.title)}')">🔍 AI Deep Dive</button>
-                            </div>
-                        </div>
-                    </div>`;
-                });
+               results.forEach((r, index) => {
+    const matchClass = r.match_score >= 70 ? 'match-high' : (r.match_score >= 40 ? 'match-medium' : 'match-low');
+    const nameDisplay = r.name && r.name !== 'Unknown' ? r.name : 'Unknown Candidate';
+    
+    // Medal emoji based on rank
+    let medal = '';
+    if (r.rank === 1) medal = '🥇';
+    else if (r.rank === 2) medal = '🥈';
+    else if (r.rank === 3) medal = '🥉';
+    
+    // Top 3 background highlight
+    let bgStyle = '';
+    if (r.rank === 1) bgStyle = 'background: linear-gradient(135deg, #FFF9C4 0%, #FFF176 100%); border-left: 4px solid #FFD700;';
+    else if (r.rank === 2) bgStyle = 'background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border-left: 4px solid #C0C0C0;';
+    else if (r.rank === 3) bgStyle = 'background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%); border-left: 4px solid #CD7F32;';
+    
+    html += `<div class="card" style="cursor: pointer; margin: 8px 0; padding: 12px; border-left: 4px solid ${r.match_score >= 70 ? '#1B6B2E' : (r.match_score >= 40 ? '#CC5500' : '#B22222')}; ${bgStyle}">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div onclick="viewCandidate(${r.candidate_id})" style="flex: 1; cursor: pointer;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-weight: bold; color: #666; font-size: 16px; min-width: 40px;">${medal} #${r.rank}</span>
+                    <span style="font-size: 16px; font-weight: bold;">👤 ${escapeHtml(nameDisplay)}</span>
+                    ${r.rank <= 3 ? `<span style="background: #FFD700; color: #000; padding: 2px 12px; border-radius: 12px; font-size: 10px; font-weight: bold;">TOP ${r.rank}</span>` : ''}
+                </div>
+                ${r.email ? `<div style="font-size: 12px; color: #666; margin-top: 2px;">📧 ${escapeHtml(r.email)}</div>` : ''}
+                ${r.tech_found && r.tech_found.length > 0 ? `<div style="font-size: 11px; color: #555; margin-top: 4px;">🔧 ${r.tech_found.map(t => `<span style="background: #E8F5E9; padding: 1px 8px; border-radius: 10px; margin: 2px; display: inline-block;">${escapeHtml(t)}</span>`).join(' ')}</div>` : ''}
+                <div style="font-size: 11px; color: #999; margin-top: 4px;">
+                    ${r.rank} of ${r.total_candidates} candidates
+                </div>
+            </div>
+            <div style="text-align: right; min-width: 80px;">
+                <div><span class="${matchClass}" style="font-size: 18px; padding: 4px 14px;">${r.match_score}%</span></div>
+                <div style="font-size: 11px; margin-top: 2px; color: ${r.recommendation === 'hire' ? '#1B6B2E' : (r.recommendation === 'interview' ? '#CC5500' : '#B22222')};">
+                    ${r.recommendation || 'Review'}
+                </div>
+                <button class="btn" style="background: #C9A96E; color: white; padding: 2px 10px; font-size: 10px; margin-top: 4px; border: none; border-radius: 4px; cursor: pointer;" onclick="event.stopPropagation(); runDeepAnalysis(${r.candidate_id}, '${escapeHtml(job.title)}')">🔍 AI Deep Dive</button>
+            </div>
+        </div>
+    </div>`;
+});
             }
             
             html += `</div>
@@ -3451,16 +3467,38 @@ def batch_analyze():
         # Use the SAME analysis as single match
         result = analyze_resume_locally(resume_text, jd_text)
         
+        # Calculate rank position
+        rank = 0
+        if len(results) > 0:
+            # Add current score for comparison
+            results.append({
+                'candidate_id': cand['id'],
+                'name': name,
+                'email': cand.get('email', ''),
+                'match_score': result.get('match_score', 0),
+                'recommendation': result.get('recommendation', 'review'),
+                'rank': 0  # Will be updated after sorting
+            })
+            continue
+        
+        # For the first candidate
         results.append({
             'candidate_id': cand['id'],
             'name': name,
             'email': cand.get('email', ''),
             'match_score': result.get('match_score', 0),
-            'recommendation': result.get('recommendation', 'review')
+            'recommendation': result.get('recommendation', 'review'),
+            'rank': 0  # Will be updated after sorting
         })
     
     # Sort by match score (highest first)
     results.sort(key=lambda x: x['match_score'], reverse=True)
+    
+    # Assign ranks
+    for idx, result in enumerate(results):
+        result['rank'] = idx + 1
+        result['total_candidates'] = len(results)
+    
     return jsonify(results)
     
 # ========== NOTES API ROUTES ==========
