@@ -294,7 +294,7 @@ def analyze_resume_locally(resume_text, jd_text):
             "What projects are you most proud of and why?"
         ]
     }
-    def analyze_skill_gap(resume_text, jd_text):
+   def analyze_skill_gap(resume_text, jd_text):
     """Analyze skill gaps between resume and JD"""
     
     # Extract skills from both
