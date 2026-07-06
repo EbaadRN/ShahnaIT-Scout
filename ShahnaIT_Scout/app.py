@@ -967,17 +967,12 @@ body.dark-mode .dark-mode-toggle {
 <div id="toastContainer" class="toast-container"></div>
 <div style="max-width: 1200px; margin: 0 auto;">
     <div class="header">
-        <h1>🎯 ShahnaIT Scout</h1>
-        <p>AI-Powered Recruitment Platform</p>
-        <div class="header">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
         <div>
             <h1>🎯 ShahnaIT Scout</h1>
             <p>AI-Powered Recruitment Platform</p>
         </div>
-        <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">
-            🌙
-        </button>
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
     </div>
 </div>
     
