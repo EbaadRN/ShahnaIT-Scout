@@ -2069,13 +2069,13 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         // Find the job by title
         const job = allJobs.find(j => j.title === jobTitle);
         if (!job) { 
-            alert('Job not found. Please select from Analyze tab.');
+            toastError('Job not found. Please select from Analyze tab.');
             return; 
         }
         
         const cand = allCandidates.find(c => c.id == candidateId);
         if (!cand) { 
-            alert('Candidate not found.');
+            toastError('Candidate not found.');
             return; 
         }
         
