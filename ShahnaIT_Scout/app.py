@@ -333,6 +333,45 @@ def analyze_resume_locally(resume_text, jd_text):
         "total_jd_skills": total_jd_skills,
         "total_resume_skills": len(resume_skills)
     }
+def generate_interview_questions(jd_text, resume_text, missing_skills):
+    """Generate interview questions based on JD and candidate skills"""
+    
+    questions = {
+        "technical": [],
+        "behavioral": [],
+        "skill_check": []
+    }
+    
+    # Generate technical questions from JD
+    tech_keywords = ['python', 'java', 'javascript', 'aws', 'docker', 'kubernetes', 
+                     'sql', 'mongodb', 'react', 'angular', 'node', 'spark', 'hadoop']
+    
+    for skill in tech_keywords:
+        if skill in jd_text.lower():
+            questions["technical"].append(f"Can you explain your experience with {skill.title()}?")
+            questions["technical"].append(f"How would you use {skill.title()} to solve a business problem?")
+    
+    # Generate skill check questions for missing skills
+    for skill in missing_skills[:3]:
+        questions["skill_check"].append(f"What's your understanding of {skill}?")
+        questions["skill_check"].append(f"How would you approach learning {skill}?")
+    
+    # Behavioral questions
+    behavioral = [
+        "Tell me about a time you faced a difficult challenge at work.",
+        "How do you handle disagreement with a team member?",
+        "Describe a project you're most proud of.",
+        "How do you stay updated with new technologies?",
+        "Tell me about a time you failed and what you learned."
+    ]
+    questions["behavioral"] = behavioral[:3]
+    
+    # Add role-specific questions based on JD
+    if 'senior' in jd_text.lower() or 'lead' in jd_text.lower():
+        questions["behavioral"].append("How do you mentor junior developers?")
+        questions["behavioral"].append("Describe your experience leading a team.")
+    
+    return questions
 
 app = Flask(__name__)
 CORS(app)
@@ -1991,6 +2030,36 @@ if (result.weaknesses && result.weaknesses.length > 0) {
             ${skillsHtml}
             ${swotHtml}
             ${questionsHtml}
+            
+            <!-- INTERVIEW QUESTIONS -->
+        ${result.interview_questions ? `
+        <div style="margin-top: 15px; padding: 15px; background: #E3F2FD; border-radius: 8px; border-left: 4px solid #1A4D4A;">
+            <h4 style="margin: 0 0 10px 0; color: #1A4D4A;">🎤 Interview Questions</h4>
+            
+            ${result.interview_questions.technical.length > 0 ? `
+            <div style="margin: 8px 0;">
+                <strong style="color: #1A4D4A;">💻 Technical Questions:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    ${result.interview_questions.technical.map(q => `<li style="margin-bottom: 4px; color: #333;">${escapeHtml(q)}</li>`).join('')}
+                </ul>
+            </div>` : ''}
+            
+            ${result.interview_questions.skill_check.length > 0 ? `
+            <div style="margin: 8px 0;">
+                <strong style="color: #1A4D4A;">🔍 Skill Check Questions:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    ${result.interview_questions.skill_check.map(q => `<li style="margin-bottom: 4px; color: #333;">${escapeHtml(q)}</li>`).join('')}
+                </ul>
+            </div>` : ''}
+            
+            ${result.interview_questions.behavioral.length > 0 ? `
+            <div style="margin: 8px 0;">
+                <strong style="color: #1A4D4A;">🧠 Behavioral Questions:</strong>
+                <ul style="margin: 5px 0; padding-left: 20px;">
+                    ${result.interview_questions.behavioral.map(q => `<li style="margin-bottom: 4px; color: #333;">${escapeHtml(q)}</li>`).join('')}
+                </ul>
+            </div>` : ''}
+        </div>` : ''}
                     // Add Skill Gap Analysis
         ${result.skill_gap ? `
         <div style="margin-top: 15px; padding: 15px; background: #F9F6F0; border-radius: 8px; border-left: 4px solid #C9A96E;">
@@ -3312,6 +3381,10 @@ def analyze_match():
     # ADD SKILL GAP ANALYSIS
     skill_gap = analyze_skill_gap(resume_text, jd_text)
     result['skill_gap'] = skill_gap
+   # ADD INTERVIEW QUESTIONS
+    missing_skills = skill_gap.get('missing_skills', [])
+    interview_questions = generate_interview_questions(jd_text, resume_text, missing_skills)
+    result['interview_questions'] = interview_questions
     
     if result and candidate_id:
         detailed_json = json.dumps(result, indent=2)
