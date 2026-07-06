@@ -294,6 +294,45 @@ def analyze_resume_locally(resume_text, jd_text):
             "What projects are you most proud of and why?"
         ]
     }
+    def analyze_skill_gap(resume_text, jd_text):
+    """Analyze skill gaps between resume and JD"""
+    
+    # Extract skills from both
+    resume_skills = extract_skills_with_spacy(resume_text)
+    jd_skills = extract_skills_with_spacy(jd_text)
+    
+    # Find matching and missing skills
+    matching_skills = [s for s in resume_skills if s in jd_skills]
+    missing_skills = [s for s in jd_skills if s not in resume_skills]
+    
+    # Calculate gap percentage
+    total_jd_skills = len(jd_skills)
+    gap_percentage = 0
+    if total_jd_skills > 0:
+        gap_percentage = round((len(missing_skills) / total_jd_skills) * 100)
+    
+    # Generate learning path
+    learning_path = []
+    for skill in missing_skills[:5]:  # Top 5 missing skills
+        learning_path.append({
+            "skill": skill,
+            "resources": [
+                f"📚 Take a course on {skill}",
+                f"💻 Build a project using {skill}",
+                f"📝 Practice {skill} interview questions",
+                f"🔧 Get certified in {skill}"
+            ],
+            "estimated_hours": 20 if skill in ['Python', 'Java', 'JavaScript'] else 10
+        })
+    
+    return {
+        "matching_skills": matching_skills,
+        "missing_skills": missing_skills,
+        "gap_percentage": gap_percentage,
+        "learning_path": learning_path,
+        "total_jd_skills": total_jd_skills,
+        "total_resume_skills": len(resume_skills)
+    }
 
 app = Flask(__name__)
 CORS(app)
@@ -1952,6 +1991,58 @@ if (result.weaknesses && result.weaknesses.length > 0) {
             ${skillsHtml}
             ${swotHtml}
             ${questionsHtml}
+                    // Add Skill Gap Analysis
+        ${result.skill_gap ? `
+        <div style="margin-top: 15px; padding: 15px; background: #F9F6F0; border-radius: 8px; border-left: 4px solid #C9A96E;">
+            <h4 style="margin: 0 0 10px 0; color: #1A4D4A;">📊 Skill Gap Analysis</h4>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 10px;">
+                <div style="background: #E8F5E9; padding: 6px 14px; border-radius: 20px;">
+                    <strong style="color: #1B5E20;">✅ Matching:</strong> 
+                    <span style="color: #1B5E20; font-weight: bold;">${result.skill_gap.matching_skills.length}</span>
+                </div>
+                <div style="background: #FFEBEE; padding: 6px 14px; border-radius: 20px;">
+                    <strong style="color: #B71C1C;">❌ Missing:</strong> 
+                    <span style="color: #B71C1C; font-weight: bold;">${result.skill_gap.missing_skills.length}</span>
+                </div>
+                <div style="background: #FFF3E0; padding: 6px 14px; border-radius: 20px;">
+                    <strong style="color: #E65100;">📊 Gap:</strong> 
+                    <span style="color: #E65100; font-weight: bold;">${result.skill_gap.gap_percentage}%</span>
+                </div>
+            </div>
+            
+            ${result.skill_gap.matching_skills.length > 0 ? `
+            <div style="margin: 10px 0;">
+                <strong style="color: #1A4D4A;">✅ Matching Skills:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+                    ${result.skill_gap.matching_skills.map(s => `<span style="background: #1B6B2E; color: #FFFFFF; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; display: inline-block;">${escapeHtml(s)}</span>`).join('')}
+                </div>
+            </div>` : ''}
+            
+            ${result.skill_gap.missing_skills.length > 0 ? `
+            <div style="margin: 10px 0;">
+                <strong style="color: #1A4D4A;">❌ Missing Skills:</strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px;">
+                    ${result.skill_gap.missing_skills.map(s => `<span style="background: #B71C1C; color: #FFFFFF; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 500; display: inline-block;">${escapeHtml(s)}</span>`).join('')}
+                </div>
+            </div>` : ''}
+            
+            ${result.skill_gap.learning_path.length > 0 ? `
+            <div style="margin-top: 10px; background: #FFFFFF; padding: 12px; border-radius: 8px; border: 1px solid #E8E0D8;">
+                <strong style="color: #1A4D4A;">📚 Learning Path:</strong>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px; list-style-type: none;">
+                    ${result.skill_gap.learning_path.map(item => `
+                        <li style="margin-bottom: 10px; padding: 10px; background: #F9F6F0; border-radius: 6px; border-left: 3px solid #C9A96E;">
+                            <strong style="color: #1A4D4A;">${escapeHtml(item.skill)}</strong>
+                            <span style="background: #FFF3E0; color: #E65100; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px;">${item.estimated_hours} hours</span>
+                            <ul style="margin: 5px 0 0 0; padding-left: 20px; font-size: 12px; color: #555;">
+                                ${item.resources.map(r => `<li style="margin-bottom: 3px; color: #555;">${escapeHtml(r)}</li>`).join('')}
+                            </ul>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>` : ''}
+        </div>` : ''}
             <small style="display: block; margin-top: 10px;">✅ Analysis saved to candidate record</small>
         </div>
     `;
@@ -3218,6 +3309,9 @@ def analyze_match():
     
     # Use LOCAL open-source analysis (no API key needed!)
     result = analyze_resume_locally(resume_text, jd_text)
+    # ADD SKILL GAP ANALYSIS
+    skill_gap = analyze_skill_gap(resume_text, jd_text)
+    result['skill_gap'] = skill_gap
     
     if result and candidate_id:
         detailed_json = json.dumps(result, indent=2)
