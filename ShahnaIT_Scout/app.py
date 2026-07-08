@@ -313,7 +313,7 @@ def analyze_resume_locally(resume_text, jd_text):
     
     # Generate learning path
     learning_path = []
-    for skill in missing_skills[:5]:  # Top 5 missing skills
+    for skill in missing_skills[:5]:
         learning_path.append({
             "skill": skill,
             "resources": [
@@ -3392,12 +3392,14 @@ def analyze_match():
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
-    # Use LOCAL open-source analysis (no API key needed!)
+       # Use LOCAL open-source analysis (no API key needed!)
     result = analyze_resume_locally(resume_text, jd_text)
+    
     # ADD SKILL GAP ANALYSIS
     skill_gap = analyze_skill_gap(resume_text, jd_text)
     result['skill_gap'] = skill_gap
-   # ADD INTERVIEW QUESTIONS
+    
+    # ADD INTERVIEW QUESTIONS
     missing_skills = skill_gap.get('missing_skills', [])
     interview_questions = generate_interview_questions(jd_text, resume_text, missing_skills)
     result['interview_questions'] = interview_questions
