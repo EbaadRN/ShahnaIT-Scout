@@ -3587,75 +3587,150 @@ def update_candidate_status(candidate_id):
     
     return jsonify({'message': 'Status updated', 'status': new_status})
 # ========== PDF EXPORT ==========
+# ============================================
+# PDF EXPORT - CANDIDATE PROFILE
+# ============================================
 @app.route('/api/candidates/<int:candidate_id>/export-pdf')
 def export_candidate_pdf(candidate_id):
-    """Export candidate profile as PDF"""
+    """Export candidate profile as PDF with full details"""
     try:
         # Get candidate from database
         conn = get_db_connection()
         candidate = conn.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,)).fetchone()
-        conn.close()
         
         if not candidate:
+            conn.close()
             return jsonify({'error': 'Candidate not found'}), 404
         
-        # Create PDF in memory
-        buffer = io.BytesIO()
-        c = canvas.Canvas(buffer, pagesize=letter)
-        width, height = letter
-        
-        # Title
-        c.setFont("Helvetica-Bold", 20)
-        c.drawString(50, height - 50, f"Candidate Profile: {candidate['name']}")
-        
-        # Candidate Info
-        c.setFont("Helvetica", 12)
-        y = height - 100
-        c.drawString(50, y, f"Email: {candidate['email']}")
-        y -= 25
-        c.drawString(50, y, f"Phone: {candidate.get('phone', 'N/A')}")
-        y -= 25
-        c.drawString(50, y, f"Skills: {candidate.get('skills', 'N/A')}")
-        y -= 25
-        c.drawString(50, y, f"Match Score: {candidate.get('match_score', 0)}%")
-        y -= 25
-        c.drawString(50, y, f"Status: {candidate.get('status', 'N/A')}")
-        y -= 25
-        c.drawString(50, y, f"Uploaded: {candidate.get('uploaded_at', 'N/A')}")
-        
-        # Notes Section (FIXED - using dict access)
-        y -= 40
-        c.setFont("Helvetica-Bold", 14)
-        c.drawString(50, y, "Notes:")
-        y -= 25
-        
-        # Get notes from database
-        conn = get_db_connection()
+        # Get notes for this candidate
         notes = conn.execute(
             'SELECT note, created_at FROM candidate_notes WHERE candidate_id = ? ORDER BY created_at DESC',
             (candidate_id,)
         ).fetchall()
         conn.close()
         
-        c.setFont("Helvetica", 11)
+        # Create PDF in memory
+        buffer = io.BytesIO()
+        
+        # Use SimpleDocTemplate for better formatting
+        doc = SimpleDocTemplate(buffer, pagesize=letter,
+                               rightMargin=72, leftMargin=72,
+                               topMargin=72, bottomMargin=72)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#1a237e'),
+            spaceAfter=30,
+            alignment=TA_CENTER
+        )
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=16,
+            textColor=colors.HexColor('#0d47a1'),
+            spaceAfter=12,
+            spaceBefore=20
+        )
+        normal_style = styles['Normal']
+        normal_style.fontSize = 11
+        normal_style.spaceAfter = 6
+        
+        # Build content
+        story = []
+        
+        # Title
+        story.append(Paragraph(f"👤 Candidate Profile: {candidate['name']}", title_style))
+        story.append(Spacer(1, 12))
+        
+        # Personal Information
+        story.append(Paragraph("📋 Personal Information", heading_style))
+        story.append(Paragraph(f"<b>Name:</b> {candidate['name']}", normal_style))
+        story.append(Paragraph(f"<b>Email:</b> {candidate['email']}", normal_style))
+        story.append(Paragraph(f"<b>Phone:</b> {candidate.get('phone', 'N/A')}", normal_style))
+        story.append(Paragraph(f"<b>Status:</b> {candidate.get('status', 'New')}", normal_style))
+        story.append(Paragraph(f"<b>Uploaded:</b> {candidate.get('uploaded_at', 'N/A')}", normal_style))
+        story.append(Spacer(1, 12))
+        
+        # Skills
+        skills = candidate.get('skills', 'N/A')
+        story.append(Paragraph("🛠️ Skills", heading_style))
+        if skills and skills != 'N/A':
+            skill_list = skills.split(',') if isinstance(skills, str) else skills
+            for skill in skill_list[:10]:  # Show top 10 skills
+                story.append(Paragraph(f"• {skill.strip()}", normal_style))
+        else:
+            story.append(Paragraph("No skills listed", normal_style))
+        story.append(Spacer(1, 12))
+        
+        # Match Score
+        match_score = candidate.get('match_score', 0)
+        story.append(Paragraph("🎯 Match Score", heading_style))
+        score_color = '#4caf50' if match_score >= 70 else '#ff9800' if match_score >= 40 else '#f44336'
+        story.append(Paragraph(
+            f'<font color="{score_color}" size="18"><b>{match_score}%</b></font>',
+            normal_style
+        ))
+        story.append(Spacer(1, 12))
+        
+        # Analysis
+        analysis = candidate.get('analysis', '')
+        if analysis:
+            story.append(Paragraph("📊 AI Analysis", heading_style))
+            try:
+                # Parse analysis if it's JSON
+                if isinstance(analysis, str):
+                    analysis_data = json.loads(analysis)
+                    if isinstance(analysis_data, dict):
+                        # Summary
+                        if 'summary' in analysis_data:
+                            story.append(Paragraph(f"<b>Summary:</b> {analysis_data['summary']}", normal_style))
+                        # Strengths
+                        if 'strengths' in analysis_data and analysis_data['strengths']:
+                            story.append(Paragraph("<b>Strengths:</b>", normal_style))
+                            for strength in analysis_data['strengths'][:5]:
+                                story.append(Paragraph(f"✓ {strength}", normal_style))
+                        # Weaknesses
+                        if 'weaknesses' in analysis_data and analysis_data['weaknesses']:
+                            story.append(Paragraph("<b>Areas for Improvement:</b>", normal_style))
+                            for weakness in analysis_data['weaknesses'][:5]:
+                                story.append(Paragraph(f"○ {weakness}", normal_style))
+                    else:
+                        story.append(Paragraph(str(analysis)[:500], normal_style))
+                else:
+                    story.append(Paragraph(str(analysis)[:500], normal_style))
+            except:
+                story.append(Paragraph(str(analysis)[:500], normal_style))
+        story.append(Spacer(1, 12))
+        
+        # Notes
+        story.append(Paragraph("📝 Notes", heading_style))
         if notes:
             for note in notes:
-                if y < 50:  # New page if needed
-                    c.showPage()
-                    c.setFont("Helvetica", 11)
-                    y = height - 50
-                note_text = f"• {note['note'][:100]}{'...' if len(note['note']) > 100 else ''}"
-                c.drawString(60, y, note_text)
-                y -= 20
+                note_text = note['note'][:200]
+                if len(note['note']) > 200:
+                    note_text += '...'
+                story.append(Paragraph(f"• {note_text}", normal_style))
+                story.append(Paragraph(
+                    f"<i style='color: #666;'>{note['created_at']}</i>",
+                    normal_style
+                ))
+                story.append(Spacer(1, 6))
         else:
-            c.drawString(60, y, "No notes available")
+            story.append(Paragraph("No notes available", normal_style))
         
         # Footer
-        c.setFont("Helvetica", 8)
-        c.drawString(50, 30, f"Generated by ShahnaIT Scout - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        story.append(Spacer(1, 30))
+        story.append(Paragraph(
+            f"<i style='color: #999; font-size: 8pt;'>Generated by ShahnaIT Scout on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>",
+            normal_style
+        ))
         
-        # Save PDF
-        c.save()
+        # Build PDF
+        doc.build(story)
         buffer.seek(0)
         
         # Send file
