@@ -3554,79 +3554,118 @@ def update_candidate_status(candidate_id):
     
     return jsonify({'message': 'Status updated', 'status': new_status})
 # ========== PDF EXPORT ==========
-
 @app.route('/api/candidates/<int:candidate_id>/export-pdf', methods=['GET'])
 def export_candidate_pdf(candidate_id):
     try:
+        print("=" * 60)
+        print("📄 PDF EXPORT STARTED")
+        print(f"📄 Candidate ID: {candidate_id}")
+        
         # Get candidate data
+        print("📂 Connecting to database...")
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,))
         candidate = c.fetchone()
         conn.close()
+        print(f"✅ Candidate found: {candidate is not None}")
         
         if not candidate:
+            print("❌ Candidate not found")
             return jsonify({'error': 'Candidate not found'}), 404
         
         # Create PDF
+        print("📄 Creating PDF buffer...")
         buffer = io.BytesIO()
+        print("📄 Creating canvas...")
         p = canvas.Canvas(buffer, pagesize=letter)
         width, height = letter
+        print(f"✅ Canvas created: {width}x{height}")
         
         # Starting position
         y = height - 50
+        print(f"📐 Starting Y position: {y}")
         
         # Title
+        print("📝 Adding Title...")
         p.setFont("Helvetica-Bold", 18)
         p.drawString(50, y, "Candidate Profile")
         y -= 30
+        print(f"✅ Title added, Y: {y}")
         
         # Name
         name = (candidate['first_name'] or '') + ' ' + (candidate['last_name'] or '')
+        print(f"👤 Name: {name}")
         p.setFont("Helvetica", 12)
         p.drawString(50, y, f"Name: {name.strip() or 'Unknown'}")
         y -= 20
+        print(f"✅ Name added, Y: {y}")
+        
+        print("📧 Adding Email...")
         p.drawString(50, y, f"Email: {candidate['email'] or 'N/A'}")
         y -= 20
+        
+        print("📱 Adding Phone...")
         p.drawString(50, y, f"Phone: {candidate['phone'] or 'N/A'}")
         y -= 20
+        
+        print("💼 Adding Role...")
         p.drawString(50, y, f"Role: {candidate['current_role'] or 'N/A'}")
         y -= 20
+        
+        print("💰 Adding CTC...")
         p.drawString(50, y, f"CTC: Current: {candidate['current_ctc'] or 'N/A'} | Expected: {candidate['expected_ctc'] or 'N/A'}")
         y -= 20
+        
+        print("📊 Adding Status...")
         p.drawString(50, y, f"Status: {candidate['employment_status'] or 'N/A'}")
         y -= 30
+        print(f"✅ Basic info added, Y: {y}")
         
         # Skills
+        print("🔧 Adding Skills...")
         p.setFont("Helvetica-Bold", 14)
         p.drawString(50, y, "Skills")
         y -= 20
         p.setFont("Helvetica", 12)
-        skills = json.loads(candidate['core_skills'] or '[]')
-        if skills:
-            skill_text = ', '.join([f"{s['skill']} ({s.get('years_of_experience', 0)} yrs)" for s in skills])
-            # Wrap text if too long
-            if len(skill_text) > 80:
-                p.drawString(50, y, skill_text[:80])
-                y -= 20
-                p.drawString(50, y, skill_text[80:])
+        
+        try:
+            skills_data = candidate['core_skills'] or '[]'
+            print(f"📋 Skills data: {skills_data[:100]}...")
+            skills = json.loads(skills_data)
+            print(f"✅ Skills parsed: {len(skills)} skills found")
+            
+            if skills:
+                skill_text = ', '.join([f"{s.get('skill', 'Unknown')} ({s.get('years_of_experience', 0)} yrs)" for s in skills])
+                print(f"📝 Skill text length: {len(skill_text)}")
+                if len(skill_text) > 80:
+                    p.drawString(50, y, skill_text[:80])
+                    y -= 20
+                    p.drawString(50, y, skill_text[80:])
+                else:
+                    p.drawString(50, y, skill_text)
             else:
-                p.drawString(50, y, skill_text)
-        else:
-            p.drawString(50, y, "None")
+                p.drawString(50, y, "None")
+        except Exception as e:
+            print(f"❌ Skills error: {e}")
+            p.drawString(50, y, "Error loading skills")
         y -= 30
+        print(f"✅ Skills added, Y: {y}")
         
         # Education
+        print("🎓 Adding Education...")
         p.setFont("Helvetica-Bold", 14)
         p.drawString(50, y, "Education")
         y -= 20
         p.setFont("Helvetica", 12)
         p.drawString(50, y, candidate['education'] or 'N/A')
         y -= 30
+        print(f"✅ Education added, Y: {y}")
         
         # Notes (if exists)
         if candidate.get('notes'):
+            print("📝 Adding Notes...")
             p.setFont("Helvetica-Bold", 14)
             p.drawString(50, y, "Notes")
             y -= 20
@@ -3639,17 +3678,23 @@ def export_candidate_pdf(candidate_id):
             else:
                 p.drawString(50, y, notes)
             y -= 30
+            print(f"✅ Notes added, Y: {y}")
         
         # Match Score
         if candidate.get('match_score', 0) > 0:
+            print("🎯 Adding Match Score...")
             p.setFont("Helvetica-Bold", 14)
             p.drawString(50, y, "Match Score")
             y -= 20
             p.setFont("Helvetica", 12)
             p.drawString(50, y, f"{candidate['match_score']}% - {candidate.get('recommendation', 'Review')}")
+            print(f"✅ Match score added, Y: {y}")
         
+        print("💾 Saving PDF...")
         p.save()
         buffer.seek(0)
+        print("✅ PDF saved successfully!")
+        print("=" * 60)
         
         return send_file(
             buffer,
@@ -3657,7 +3702,13 @@ def export_candidate_pdf(candidate_id):
             download_name=f"{name.strip() or 'candidate'}_profile.pdf",
             mimetype='application/pdf'
         )
+        
     except Exception as e:
+        print("=" * 60)
+        print(f"❌ PDF ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 60)
         return jsonify({'error': str(e)}), 500
 # ========== DASHBOARD API ==========
 @app.route('/api/dashboard-data', methods=['GET'])
