@@ -1,7 +1,19 @@
-# app.py - COMPLETE WITH BULK RESUME UPLOAD
+# app.py - SHAHNAIT SCOUT - AI-POWERED RECRUITMENT PLATFORM
+
+# ============================================
+# PDF GENERATION (ReportLab)
+# ============================================
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib import colors
+
+# ============================================
+# STANDARD LIBRARY
+# ============================================
 import os
 import sqlite3
 import json
@@ -11,12 +23,33 @@ import csv
 import shutil
 import base64
 from datetime import datetime
+import traceback
+
+# ============================================
+# FLASK & WEB FRAMEWORK
+# ============================================
 from flask import Flask, render_template_string, request, jsonify, send_file, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+
+# ============================================
+# DOCUMENT PARSING
+# ============================================
 import PyPDF2
 import docx
+
+# ============================================
+# AI & HTTP REQUESTS
+# ============================================
 import requests
+# ============================================
+# DATABASE CONNECTION HELPER
+# ============================================
+def get_db_connection():
+    """Create and return a database connection"""
+    conn = sqlite3.connect('shahnai.db')
+    conn.row_factory = sqlite3.Row  # This enables dictionary-like access
+    return conn
 # ============ SPACY AUTO-DOWNLOAD ============
 import subprocess
 try:
@@ -3554,162 +3587,89 @@ def update_candidate_status(candidate_id):
     
     return jsonify({'message': 'Status updated', 'status': new_status})
 # ========== PDF EXPORT ==========
-@app.route('/api/candidates/<int:candidate_id>/export-pdf', methods=['GET'])
+@app.route('/api/candidates/<int:candidate_id>/export-pdf')
 def export_candidate_pdf(candidate_id):
+    """Export candidate profile as PDF"""
     try:
-        print("=" * 60)
-        print("📄 PDF EXPORT STARTED")
-        print(f"📄 Candidate ID: {candidate_id}")
-        
-        # Get candidate data
-        print("📂 Connecting to database...")
-        conn = sqlite3.connect(DB_PATH)
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        c.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,))
-        candidate = c.fetchone()
+        # Get candidate from database
+        conn = get_db_connection()
+        candidate = conn.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,)).fetchone()
         conn.close()
-        print(f"✅ Candidate found: {candidate is not None}")
         
         if not candidate:
-            print("❌ Candidate not found")
             return jsonify({'error': 'Candidate not found'}), 404
         
-        # Create PDF
-        print("📄 Creating PDF buffer...")
+        # Create PDF in memory
         buffer = io.BytesIO()
-        print("📄 Creating canvas...")
-        p = canvas.Canvas(buffer, pagesize=letter)
+        c = canvas.Canvas(buffer, pagesize=letter)
         width, height = letter
-        print(f"✅ Canvas created: {width}x{height}")
-        
-        # Starting position
-        y = height - 50
-        print(f"📐 Starting Y position: {y}")
         
         # Title
-        print("📝 Adding Title...")
-        p.setFont("Helvetica-Bold", 18)
-        p.drawString(50, y, "Candidate Profile")
-        y -= 30
-        print(f"✅ Title added, Y: {y}")
+        c.setFont("Helvetica-Bold", 20)
+        c.drawString(50, height - 50, f"Candidate Profile: {candidate['name']}")
         
-        # Name
-        name = (candidate['first_name'] or '') + ' ' + (candidate['last_name'] or '')
-        print(f"👤 Name: {name}")
-        p.setFont("Helvetica", 12)
-        p.drawString(50, y, f"Name: {name.strip() or 'Unknown'}")
-        y -= 20
-        print(f"✅ Name added, Y: {y}")
+        # Candidate Info
+        c.setFont("Helvetica", 12)
+        y = height - 100
+        c.drawString(50, y, f"Email: {candidate['email']}")
+        y -= 25
+        c.drawString(50, y, f"Phone: {candidate.get('phone', 'N/A')}")
+        y -= 25
+        c.drawString(50, y, f"Skills: {candidate.get('skills', 'N/A')}")
+        y -= 25
+        c.drawString(50, y, f"Match Score: {candidate.get('match_score', 0)}%")
+        y -= 25
+        c.drawString(50, y, f"Status: {candidate.get('status', 'N/A')}")
+        y -= 25
+        c.drawString(50, y, f"Uploaded: {candidate.get('uploaded_at', 'N/A')}")
         
-        print("📧 Adding Email...")
-        p.drawString(50, y, f"Email: {candidate['email'] or 'N/A'}")
-        y -= 20
+        # Notes Section (FIXED - using dict access)
+        y -= 40
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(50, y, "Notes:")
+        y -= 25
         
-        print("📱 Adding Phone...")
-        p.drawString(50, y, f"Phone: {candidate['phone'] or 'N/A'}")
-        y -= 20
+        # Get notes from database
+        conn = get_db_connection()
+        notes = conn.execute(
+            'SELECT note, created_at FROM candidate_notes WHERE candidate_id = ? ORDER BY created_at DESC',
+            (candidate_id,)
+        ).fetchall()
+        conn.close()
         
-        print("💼 Adding Role...")
-        p.drawString(50, y, f"Role: {candidate['current_role'] or 'N/A'}")
-        y -= 20
-        
-        print("💰 Adding CTC...")
-        p.drawString(50, y, f"CTC: Current: {candidate['current_ctc'] or 'N/A'} | Expected: {candidate['expected_ctc'] or 'N/A'}")
-        y -= 20
-        
-        print("📊 Adding Status...")
-        p.drawString(50, y, f"Status: {candidate['employment_status'] or 'N/A'}")
-        y -= 30
-        print(f"✅ Basic info added, Y: {y}")
-        
-        # Skills
-        print("🔧 Adding Skills...")
-        p.setFont("Helvetica-Bold", 14)
-        p.drawString(50, y, "Skills")
-        y -= 20
-        p.setFont("Helvetica", 12)
-        
-        try:
-            skills_data = candidate['core_skills'] or '[]'
-            print(f"📋 Skills data: {skills_data[:100]}...")
-            skills = json.loads(skills_data)
-            print(f"✅ Skills parsed: {len(skills)} skills found")
-            
-            if skills:
-                skill_text = ', '.join([f"{s.get('skill', 'Unknown')} ({s.get('years_of_experience', 0)} yrs)" for s in skills])
-                print(f"📝 Skill text length: {len(skill_text)}")
-                if len(skill_text) > 80:
-                    p.drawString(50, y, skill_text[:80])
-                    y -= 20
-                    p.drawString(50, y, skill_text[80:])
-                else:
-                    p.drawString(50, y, skill_text)
-            else:
-                p.drawString(50, y, "None")
-        except Exception as e:
-            print(f"❌ Skills error: {e}")
-            p.drawString(50, y, "Error loading skills")
-        y -= 30
-        print(f"✅ Skills added, Y: {y}")
-        
-        # Education
-        print("🎓 Adding Education...")
-        p.setFont("Helvetica-Bold", 14)
-        p.drawString(50, y, "Education")
-        y -= 20
-        p.setFont("Helvetica", 12)
-        p.drawString(50, y, candidate['education'] or 'N/A')
-        y -= 30
-        print(f"✅ Education added, Y: {y}")
-        
-        # Notes (if exists)
-        if candidate.get('notes'):
-            print("📝 Adding Notes...")
-            p.setFont("Helvetica-Bold", 14)
-            p.drawString(50, y, "Notes")
-            y -= 20
-            p.setFont("Helvetica", 12)
-            notes = candidate['notes']
-            if len(notes) > 80:
-                p.drawString(50, y, notes[:80])
+        c.setFont("Helvetica", 11)
+        if notes:
+            for note in notes:
+                if y < 50:  # New page if needed
+                    c.showPage()
+                    c.setFont("Helvetica", 11)
+                    y = height - 50
+                note_text = f"• {note['note'][:100]}{'...' if len(note['note']) > 100 else ''}"
+                c.drawString(60, y, note_text)
                 y -= 20
-                p.drawString(50, y, notes[80:160])
-            else:
-                p.drawString(50, y, notes)
-            y -= 30
-            print(f"✅ Notes added, Y: {y}")
+        else:
+            c.drawString(60, y, "No notes available")
         
-        # Match Score
-        if candidate.get('match_score', 0) > 0:
-            print("🎯 Adding Match Score...")
-            p.setFont("Helvetica-Bold", 14)
-            p.drawString(50, y, "Match Score")
-            y -= 20
-            p.setFont("Helvetica", 12)
-            p.drawString(50, y, f"{candidate['match_score']}% - {candidate.get('recommendation', 'Review')}")
-            print(f"✅ Match score added, Y: {y}")
+        # Footer
+        c.setFont("Helvetica", 8)
+        c.drawString(50, 30, f"Generated by ShahnaIT Scout - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         
-        print("💾 Saving PDF...")
-        p.save()
+        # Save PDF
+        c.save()
         buffer.seek(0)
-        print("✅ PDF saved successfully!")
-        print("=" * 60)
         
+        # Send file
         return send_file(
             buffer,
             as_attachment=True,
-            download_name=f"{name.strip() or 'candidate'}_profile.pdf",
+            download_name=f"{candidate['name']}_profile.pdf",
             mimetype='application/pdf'
         )
         
     except Exception as e:
-        print("=" * 60)
-        print(f"❌ PDF ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        print("=" * 60)
-        return jsonify({'error': str(e)}), 500
+        app.logger.error(f"PDF Export Error: {str(e)}")
+        app.logger.error(traceback.format_exc())
+        return jsonify({'error': f'PDF export failed: {str(e)}'}), 500
 # ========== DASHBOARD API ==========
 @app.route('/api/dashboard-data', methods=['GET'])
 def get_dashboard_data():
