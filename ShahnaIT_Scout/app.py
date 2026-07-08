@@ -3554,10 +3554,6 @@ def update_candidate_status(candidate_id):
     
     return jsonify({'message': 'Status updated', 'status': new_status})
 # ========== PDF EXPORT ==========
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-import io
 
 @app.route('/api/candidates/<int:candidate_id>/export-pdf', methods=['GET'])
 def export_candidate_pdf(candidate_id):
