@@ -712,6 +712,8 @@ HTML_TEMPLATE = '''
 <head>
     <title>ShahnaIT Scout</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
         .header { background: #1A4D4A; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
@@ -1881,7 +1883,12 @@ body.dark-mode .dark-mode-toggle {
 <div class="chart-container">
     <div class="chart-header">
         <h3>📈 Match Score Distribution</h3>
-        <button class="btn-small" onclick="refreshChart()">Refresh</button>
+     // ============================================
+// REFRESH CHART (alias for renderChart)
+// ============================================
+function refreshChart() {
+    renderChart();
+}
     </div>
     <div class="chart-bars" id="score-chart">
         <!-- Bars will be rendered dynamically -->
