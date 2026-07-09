@@ -1824,76 +1824,29 @@ body.dark-mode .dark-mode-toggle {
                 <button id="toggleViewBtn" class="btn" style="background: #6B7B7B;">📊 Grid/List</button>
             </div>
         </div>
-<!-- Dashboard Statistics -->
-<div class="dashboard-stats">
-    <div class="stat-card">
-        <div class="stat-icon" style="background: #4caf50;">
-            <i class="fas fa-users"></i>
+                <!-- Simple Stats Bar -->
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 10px 0 15px 0; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #1A4D4A;">👥 Total:</span>
+                <span id="simple-total" style="font-weight: bold; color: #1A4D4A; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #4CAF50;">✅ Hired:</span>
+                <span id="simple-hired" style="font-weight: bold; color: #4CAF50; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #FF9800;">🟡 Pending:</span>
+                <span id="simple-pending" style="font-weight: bold; color: #FF9800; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #F44336;">❌ Rejected:</span>
+                <span id="simple-rejected" style="font-weight: bold; color: #F44336; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+                <span style="font-weight: bold; color: #1A4D4A;">📊 Avg Score:</span>
+                <span id="simple-avg" style="font-weight: bold; color: #1A4D4A; font-size: 16px;">0%</span>
+            </div>
         </div>
-        <div class="stat-info">
-            <h3 id="total-candidates">0</h3>
-            <p>Total Candidates</p>
-        </div>
-        <div class="stat-change positive">
-            <i class="fas fa-arrow-up"></i> 12%
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon" style="background: #2196f3;">
-            <i class="fas fa-star"></i>
-        </div>
-        <div class="stat-info">
-            <h3 id="avg-score">0%</h3>
-            <p>Average Match Score</p>
-        </div>
-        <div class="stat-change positive">
-            <i class="fas fa-arrow-up"></i> 5%
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon" style="background: #ff9800;">
-            <i class="fas fa-user-check"></i>
-        </div>
-        <div class="stat-info">
-            <h3 id="shortlisted">0</h3>
-            <p>Shortlisted</p>
-        </div>
-        <div class="stat-change neutral">
-            <i class="fas fa-minus"></i> 0%
-        </div>
-    </div>
-    
-    <div class="stat-card">
-        <div class="stat-icon" style="background: #f44336;">
-            <i class="fas fa-clock"></i>
-        </div>
-        <div class="stat-info">
-            <h3 id="pending-review">0</h3>
-            <p>Pending Review</p>
-        </div>
-        <div class="stat-change negative">
-            <i class="fas fa-arrow-down"></i> 3%
-        </div>
-    </div>
-</div>
-
-<!-- Match Score Chart (Visual) -->
-<div class="chart-container">
-    <div class="chart-header">
-        <h3>📈 Match Score Distribution</h3>
-     // ============================================
-// REFRESH CHART (alias for renderChart)
-// ============================================
-function refreshChart() {
-    renderChart();
-}
-    </div>
-    <div class="chart-bars" id="score-chart">
-        <!-- Bars will be rendered dynamically -->
-    </div>
-</div>
         
         <!-- Pipeline Stats -->
         <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 12px 0;">
