@@ -1822,6 +1822,71 @@ body.dark-mode .dark-mode-toggle {
                 <button id="toggleViewBtn" class="btn" style="background: #6B7B7B;">📊 Grid/List</button>
             </div>
         </div>
+<!-- Dashboard Statistics -->
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #4caf50;">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+            <h3 id="total-candidates">0</h3>
+            <p>Total Candidates</p>
+        </div>
+        <div class="stat-change positive">
+            <i class="fas fa-arrow-up"></i> 12%
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #2196f3;">
+            <i class="fas fa-star"></i>
+        </div>
+        <div class="stat-info">
+            <h3 id="avg-score">0%</h3>
+            <p>Average Match Score</p>
+        </div>
+        <div class="stat-change positive">
+            <i class="fas fa-arrow-up"></i> 5%
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #ff9800;">
+            <i class="fas fa-user-check"></i>
+        </div>
+        <div class="stat-info">
+            <h3 id="shortlisted">0</h3>
+            <p>Shortlisted</p>
+        </div>
+        <div class="stat-change neutral">
+            <i class="fas fa-minus"></i> 0%
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon" style="background: #f44336;">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+            <h3 id="pending-review">0</h3>
+            <p>Pending Review</p>
+        </div>
+        <div class="stat-change negative">
+            <i class="fas fa-arrow-down"></i> 3%
+        </div>
+    </div>
+</div>
+
+<!-- Match Score Chart (Visual) -->
+<div class="chart-container">
+    <div class="chart-header">
+        <h3>📈 Match Score Distribution</h3>
+        <button class="btn-small" onclick="refreshChart()">Refresh</button>
+    </div>
+    <div class="chart-bars" id="score-chart">
+        <!-- Bars will be rendered dynamically -->
+    </div>
+</div>
         
         <!-- Pipeline Stats -->
         <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 12px 0;">
