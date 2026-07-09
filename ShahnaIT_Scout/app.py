@@ -5301,7 +5301,7 @@ def test_pdf():
         return jsonify({'status': 'error', 'message': f'Import error: {str(e)}'}), 500
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-        @app.route('/api/candidates/<int:candidate_id>/download-resume')
+@app.route('/api/candidates/<int:candidate_id>/download-resume')
 def download_resume(candidate_id):
     """Download the original resume file for a candidate"""
     conn = sqlite3.connect(DB_PATH)
