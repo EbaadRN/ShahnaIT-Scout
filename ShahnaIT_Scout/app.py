@@ -1703,16 +1703,112 @@ body.dark-mode .dark-mode-toggle {
         renderCandidates(filtered);
     }
     
-    function renderCandidates(candidates) {
-        const container = document.getElementById('candidatesList');
-        if(!candidates.length) { container.innerHTML = '<div class="card no-click">No candidates</div>'; return; }
-        container.innerHTML = candidates.map(c => {
-            const name = (c.first_name + ' ' + c.last_name).trim() || 'Unknown';
-            const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
-            const matchClass = c.match_score >= 70 ? 'match-high' : (c.match_score >= 40 ? 'match-medium' : 'match-low');
-            return `<div class="card" onclick="viewCandidate(${c.id})"><h3>👤 ${escapeHtml(name)}</h3>${c.email ? `<p>📧 ${escapeHtml(c.email)}</p>` : ''}<p>🔧 ${skills.slice(0,3).map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('')}</p>${c.match_score ? `<p>🎯 Score: <span class="${matchClass}">${c.match_score}%</span></p>` : ''}<small>${new Date(c.created_at).toLocaleDateString()}</small></div>`;
-        }).join('');
+   // ============================================
+// RENDER CANDIDATE CARDS - IMPROVED VERSION
+// ============================================
+function renderCandidates(candidates) {
+    const container = document.getElementById('candidatesList');
+    if(!candidates.length) { 
+        container.innerHTML = '<div class="card no-click" style="text-align: center; padding: 40px; color: #666;">🔍 No candidates found</div>'; 
+        return; 
     }
+    
+    container.innerHTML = candidates.map(c => {
+        const name = (c.first_name + ' ' + c.last_name).trim() || 'Unknown';
+        const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
+        const matchScore = c.match_score || 0;
+        const matchClass = matchScore >= 70 ? 'match-high' : (matchScore >= 40 ? 'match-medium' : 'match-low');
+        const status = c.employment_status || 'new';
+        
+        // Status colors
+        const statusColors = {
+            'new': '#2196F3',
+            'screening': '#FF9800',
+            'interview': '#FF5722',
+            'offer': '#9C27B0',
+            'hired': '#4CAF50',
+            'rejected': '#F44336'
+        };
+        const statusLabels = {
+            'new': '🟢 New',
+            'screening': '🔵 Screening',
+            'interview': '🟠 Interview',
+            'offer': '🟣 Offer',
+            'hired': '✅ Hired',
+            'rejected': '❌ Rejected'
+        };
+        const uploadedBy = c.uploaded_by || 'ShahnaIT';
+        
+        return `
+        <div class="candidate-card" data-id="${c.id}" onclick="viewCandidate(${c.id})">
+            <div class="card-header">
+                <div class="candidate-avatar">
+                    <span class="avatar-text">${escapeHtml(name.charAt(0) || '?')}</span>
+                    ${matchScore > 0 ? `<div class="score-badge" style="background: ${matchScore >= 70 ? '#4caf50' : (matchScore >= 40 ? '#ff9800' : '#f44336')}">${matchScore}%</div>` : ''}
+                </div>
+                <div class="candidate-title">
+                    <h3 class="candidate-name">👤 ${escapeHtml(name)}</h3>
+                    <span class="candidate-email">${c.email ? '📧 ' + escapeHtml(c.email) : ''}</span>
+                </div>
+                <button class="btn-expand" onclick="event.stopPropagation(); toggleCandidateDetails(${c.id})">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            
+            <div class="card-body">
+                <div class="candidate-skills">
+                    ${skills.length > 0 ? skills.slice(0,5).map(s => 
+                        `<span class="skill-tag">${escapeHtml(s.skill)}</span>`
+                    ).join('') : '<span class="no-skills">No skills listed</span>'}
+                    ${skills.length > 5 ? `<span class="skill-tag more">+${skills.length - 5}</span>` : ''}
+                </div>
+                
+                <div class="candidate-meta">
+                    <span class="meta-item">
+                        <i class="fas fa-phone"></i> ${c.phone || 'N/A'}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-calendar"></i> ${c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}
+                    </span>
+                    <span class="status-badge status-${status}" style="background: ${statusColors[status]}22; color: ${statusColors[status]};">
+                        ${statusLabels[status] || status}
+                    </span>
+                    <span class="meta-item" style="font-size: 11px; color: #999;">
+                        👤 ${escapeHtml(uploadedBy)}
+                    </span>
+                </div>
+                
+                <div class="card-actions">
+                    <button class="btn-primary" onclick="event.stopPropagation(); viewCandidate(${c.id})">
+                        <i class="fas fa-eye"></i> View Details
+                    </button>
+                    <button class="btn-secondary" onclick="event.stopPropagation(); exportPDF(${c.id}, event)">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                    <button class="btn-danger" onclick="event.stopPropagation(); deleteCandidate(${c.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Expanded Details -->
+            <div class="card-details" id="details-${c.id}" style="display: none;">
+                <div class="details-section">
+                    <h4>📊 AI Analysis</h4>
+                    <p>${c.detailed_analysis ? 'Analysis available' : 'No analysis available'}</p>
+                </div>
+                <div class="details-section">
+                    <h4>📝 Notes</h4>
+                    <div class="notes-container" id="notes-${c.id}">
+                        <p style="color: #999; font-style: italic;">Loading notes...</p>
+                    </div>
+                    <input type="text" class="note-input" placeholder="Add a note..." 
+                           onkeypress="if(event.key==='Enter') addNote(${c.id}, this.value)">
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
     
     document.getElementById('searchBox').onkeyup = filterCandidates;
     document.getElementById('scoreFilter').addEventListener('change', filterCandidates);
