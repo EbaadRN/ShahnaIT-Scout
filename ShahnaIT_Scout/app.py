@@ -2845,8 +2845,23 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             ${skills.map(s => `<span class="skill-with-years">${escapeHtml(s.skill)} (${s.years_of_experience||0}y)</span>`).join('') || '<p>None</p>'}
             <h4>Certifications</h4>
             ${certs.map(cert => `<div>📜 ${escapeHtml(cert)}</div>`).join('') || '<p>None</p>'}
-            <h4>Resume</h4>
-            ${resumeDoc ? `<div><span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span> <span style="background:#1B6B2E;color:white;padding:2px 8px;border-radius:12px;font-size:10px;">Original</span></div>` : '<p>None</p>'}
+            <h4>📄 Resume</h4>
+            ${resumeDoc ? `
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
+        <span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span>
+        <span style="background:#1B6B2E;color:white;padding:2px 8px;border-radius:12px;font-size:10px;">Original</span>
+        <button onclick="downloadResume(${c.id})" style="background: #1A4D4A; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+            ⬇️ Download Original
+        </button>
+        <button onclick="copyResumeText(${c.id})" style="background: #C9A96E; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+            📋 Copy Resume Text
+        </button>
+    </div>
+    <div id="resume-text-${c.id}" style="background: #f9f6f0; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.6; user-select: text; cursor: text;">
+        ${c.resume_text ? escapeHtml(c.resume_text.substring(0, 3000)) + (c.resume_text.length > 3000 ? '... (truncated)' : '') : 'No resume text available'}
+    </div>
+    ${c.resume_text && c.resume_text.length > 3000 ? `<p style="font-size: 12px; color: #999; margin-top: 5px;">📌 Showing first 3000 characters. Download the original file for full content.</p>` : ''}
+` : '<p>No resume uploaded</p>'}
             <h4>Other Documents</h4>
             ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>None</p>'}
             <h4>📝 Notes</h4>
@@ -4331,17 +4346,29 @@ def create_candidate():
     data = request.json
     candidate_id = save_candidate_to_db(data)
     
-    file_path = data.get('file_path')
+    # Handle resume file - using permanent_file_path from parse-resume
+    file_path = data.get('permanent_file_path')
     original_filename = data.get('original_filename')
+    permanent_filename = data.get('permanent_filename')
     
     if file_path and os.path.exists(file_path):
-        permanent_filename = secure_filename(f"{candidate_id}_{datetime.now().timestamp()}_{original_filename}")
-        permanent_path = os.path.join(app.config['DOCUMENTS_FOLDER'], permanent_filename)
-        shutil.move(file_path, permanent_path)
+        # File is already saved in permanent location by parse-resume
+        # Just record it in the database
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('''UPDATE candidates SET 
+            resume_file_path = ?,
+            resume_original_filename = ?
+            WHERE id = ?''',
+            (file_path, original_filename, candidate_id))
+        conn.commit()
+        conn.close()
+        
+        # Also add to candidate_documents for document management
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type, is_resume) VALUES (?, ?, ?, ?, ?, ?)',
-                  (candidate_id, permanent_filename, original_filename, permanent_path, original_filename.split('.')[-1], 1))
+                  (candidate_id, permanent_filename, original_filename, file_path, original_filename.split('.')[-1], 1))
         conn.commit()
         conn.close()
     
@@ -4436,6 +4463,7 @@ def parse_resume():
     temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(temp_filepath)
     
+    # Extract text for parsing
     if filename.endswith('.pdf'):
         text = extract_text_from_pdf(temp_filepath)
     else:
@@ -4445,16 +4473,26 @@ def parse_resume():
         os.remove(temp_filepath)
         return jsonify({'error': 'Could not extract text'}), 400
     
+    # Try Groq first, then fallback
     parsed = parse_resume_with_groq(text)
     if parsed and parsed.get('first_name'):
-        parsed['resume_text'] = text[:3000]
+        parsed['resume_text'] = text[:5000]  # Store for search (increased from 3000)
         parsed['ai_used'] = True
     else:
         parsed = fallback_parse_resume(text)
+        parsed['resume_text'] = text[:5000]  # Store for search (increased from 3000)
         parsed['ai_used'] = False
     
+    # Store the original file path for later download
     parsed['file_path'] = temp_filepath
     parsed['original_filename'] = original_filename
+    
+    # Save to permanent location
+    permanent_filename = secure_filename(f"{datetime.now().timestamp()}_{original_filename}")
+    permanent_path = os.path.join(app.config['DOCUMENTS_FOLDER'], permanent_filename)
+    shutil.move(temp_filepath, permanent_path)
+    parsed['permanent_file_path'] = permanent_path
+    parsed['permanent_filename'] = permanent_filename
     
     return jsonify(parsed)
 
@@ -4906,5 +4944,36 @@ def test_pdf():
         return jsonify({'status': 'error', 'message': f'Import error: {str(e)}'}), 500
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
+        @app.route('/api/candidates/<int:candidate_id>/download-resume')
+def download_resume(candidate_id):
+    """Download the original resume file for a candidate"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT resume_file_path, resume_original_filename FROM candidates WHERE id = ?', (candidate_id,))
+    row = c.fetchone()
+    conn.close()
+    
+    if not row or not row[0] or not os.path.exists(row[0]):
+        return jsonify({'error': 'Resume not found'}), 404
+    
+    file_path = row[0]
+    original_filename = row[1] or 'resume.pdf'
+    
+    # Determine mimetype based on file extension
+    if original_filename.endswith('.pdf'):
+        mimetype = 'application/pdf'
+    elif original_filename.endswith('.docx'):
+        mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    elif original_filename.endswith('.doc'):
+        mimetype = 'application/msword'
+    else:
+        mimetype = 'application/octet-stream'
+    
+    return send_file(
+        file_path,
+        as_attachment=True,
+        download_name=original_filename,
+        mimetype=mimetype
+    )
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
