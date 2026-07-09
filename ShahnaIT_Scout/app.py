@@ -472,6 +472,17 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
     )''')
+   # Add resume file storage columns if they don't exist
+    c.execute("PRAGMA table_info(candidates)")
+    columns = [col[1] for col in c.fetchall()]
+    
+    if 'resume_file_path' not in columns:
+        c.execute('ALTER TABLE candidates ADD COLUMN resume_file_path TEXT')
+        print("✅ Added resume_file_path column")
+    
+    if 'resume_original_filename' not in columns:
+        c.execute('ALTER TABLE candidates ADD COLUMN resume_original_filename TEXT')
+        print("✅ Added resume_original_filename column")
     
     conn.commit()
     conn.close()
@@ -615,12 +626,48 @@ def extract_text_from_docx(file_path):
         return ""
 
 def extract_email(text):
-    match = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
-    return match.group(0) if match else ""
+    """Extract email with multiple pattern matching"""
+    patterns = [
+        r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+        r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}',
+        r'Email\s*[:：]\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})',
+        r'E-mail\s*[:：]\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,})'
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            # If it's a labeled pattern (Email:/E-mail:), return group 1
+            if 'Email' in pattern or 'E-mail' in pattern:
+                return match.group(1)
+            return match.group(0)
+    
+    return ""
 
 def extract_phone(text):
-    match = re.search(r'\b\d{10}\b|\b\d{3}[-.]?\d{3}[-.]?\d{4}\b|\+\d{2}\s?\d{10}\b', text)
-    return match.group(0) if match else ""
+    """Extract phone with better pattern matching"""
+    patterns = [
+        r'\+\d{1,3}[-.\s]?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{4}',
+        r'\d{3}[-.\s]?\d{3}[-.\s]?\d{4}',
+        r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}',
+        r'Phone\s*[:：]\s*([+\d\s\-()]{10,})',
+        r'Mobile\s*[:：]\s*([+\d\s\-()]{10,})',
+        r'Contact\s*[:：]\s*([+\d\s\-()]{10,})'
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            # If it's a labeled pattern (Phone:/Mobile:/Contact:), return group 1
+            if any(x in pattern for x in ['Phone', 'Mobile', 'Contact']):
+                phone = match.group(1)
+            else:
+                phone = match.group(0)
+            # Clean up - keep only digits, +, -, (, )
+            phone = re.sub(r'[^\d+\s\-()]', '', phone)
+            return phone
+    
+    return ""
 
 def extract_years_from_text(text, skill):
     patterns = [
@@ -636,14 +683,114 @@ def extract_years_from_text(text, skill):
     return 0
 
 def extract_name_from_text(text):
+    """Extract name intelligently - returns actual name, not job title"""
     lines = text.strip().split('\n')
-    name = lines[0].strip() if lines else "Unknown"
-    name_parts = name.split()
-    first_name = name_parts[0] if name_parts else ""
-    last_name = name_parts[-1] if len(name_parts) > 1 else ""
-    middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
-    return first_name, last_name, middle_name
-
+    
+    # Clean lines
+    lines = [line.strip() for line in lines if line.strip()]
+    
+    # Common headers to skip (these are NOT names)
+    common_headers = ['resume', 'curriculum vitae', 'cv', 'profile', 'summary', 
+                      'objective', 'contact', 'education', 'experience', 'skills',
+                      'software developer', 'engineer', 'manager', 'analyst', 
+                      'consultant', 'architect', 'specialist', 'lead', 'senior']
+    
+    # Strategy 1: Check first 10 lines for a proper name
+    for line in lines[:10]:
+        line_lower = line.lower()
+        
+        # Skip if it's a common header or job title
+        if any(header in line_lower for header in common_headers):
+            continue
+        
+        # Skip if too short or too long
+        if len(line) < 10 or len(line) > 50:
+            continue
+        
+        # Skip if it contains email or URL
+        if '@' in line or 'http' in line_lower or 'www.' in line_lower:
+            continue
+        
+        # Skip if it contains phone number patterns
+        if re.search(r'\d{3}[-.\s]?\d{3}[-.\s]?\d{4}', line):
+            continue
+        
+        # Check if it looks like a proper name (at least 2 words, both capitalized)
+        words = line.split()
+        if len(words) >= 2:
+            # Check if first and last words start with capital letters
+            if words[0][0].isupper() and words[-1][0].isupper():
+                # Make sure it's not all caps (could be company name)
+                if not line.isupper():
+                    # Split into parts and return as tuple
+                    name_parts = line.split()
+                    first_name = name_parts[0] if name_parts else ""
+                    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+                    middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+                    return first_name, last_name, middle_name
+        
+        # If first word is capitalized and line has 2-4 words
+        if len(words) in [2, 3, 4] and words[0][0].isupper():
+            name_parts = line.split()
+            first_name = name_parts[0] if name_parts else ""
+            last_name = name_parts[-1] if len(name_parts) > 1 else ""
+            middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+            return first_name, last_name, middle_name
+    
+    # Strategy 2: Use regex pattern for proper names
+    name_pattern = r'^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$'
+    for line in lines[:15]:
+        # Remove punctuation and extra spaces
+        cleaned = re.sub(r'[^\w\s]', '', line).strip()
+        if re.match(name_pattern, cleaned):
+            name_parts = cleaned.split()
+            first_name = name_parts[0] if name_parts else ""
+            last_name = name_parts[-1] if len(name_parts) > 1 else ""
+            middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+            return first_name, last_name, middle_name
+    
+    # Strategy 3: Use spaCy NER if available
+    if nlp:
+        doc = nlp(text[:500])
+        for ent in doc.ents:
+            if ent.label_ == 'PERSON':
+                # Make sure it's not a company or product
+                if len(ent.text.split()) >= 2:
+                    name_parts = ent.text.split()
+                    first_name = name_parts[0] if name_parts else ""
+                    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+                    middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+                    return first_name, last_name, middle_name
+    
+    # Strategy 4: Look for "Name:" or "Full Name:" prefix
+    name_prefix_patterns = [
+        r'Name\s*[:：]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)',
+        r'Full Name\s*[:：]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)',
+        r'Candidate Name\s*[:：]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)'
+    ]
+    for pattern in name_prefix_patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            name_parts = match.group(1).split()
+            first_name = name_parts[0] if name_parts else ""
+            last_name = name_parts[-1] if len(name_parts) > 1 else ""
+            middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+            return first_name, last_name, middle_name
+    
+    # Fallback: return first line that's not a common header
+    for line in lines[:5]:
+        line_lower = line.lower()
+        if line and len(line) < 50:
+            if not any(header in line_lower for header in common_headers):
+                if '@' not in line and not re.search(r'\d{3}[-.\s]?\d{3}[-.\s]?\d{4}', line):
+                    name_parts = line.split()
+                    first_name = name_parts[0] if name_parts else ""
+                    last_name = name_parts[-1] if len(name_parts) > 1 else ""
+                    middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
+                    return first_name, last_name, middle_name
+    
+    return "", "", ""
+    
 def fallback_parse_resume(text):
     first_name, last_name, middle_name = extract_name_from_text(text)
     email = extract_email(text)
@@ -691,15 +838,17 @@ def save_candidate_to_db(candidate_data):
         (first_name, last_name, middle_name, phone, email, address, linkedin,
          current_role, current_ctc, expected_ctc,
          employment_status, notice_period_days, work_experience, certifications,
-         core_skills, education, notes, resume_text, resume_filename, uploaded_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+         core_skills, education, notes, resume_text, resume_filename, uploaded_by,
+         resume_file_path, resume_original_filename)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (candidate_data.get('first_name'), candidate_data.get('last_name'), candidate_data.get('middle_name'),
          candidate_data.get('phone'), candidate_data.get('email'), candidate_data.get('address'), candidate_data.get('linkedin'),
          candidate_data.get('current_role'), candidate_data.get('current_ctc'), candidate_data.get('expected_ctc'),
          candidate_data.get('employment_status'), candidate_data.get('notice_period_days', 0),
          work_exp, certs, skills, candidate_data.get('education'), candidate_data.get('notes'), 
          candidate_data.get('resume_text'), candidate_data.get('resume_filename'),
-         candidate_data.get('uploaded_by', 'ShahnaIT')))
+         candidate_data.get('uploaded_by', 'ShahnaIT'),
+         candidate_data.get('permanent_file_path'), candidate_data.get('original_filename')))
     
     candidate_id = c.lastrowid
     conn.commit()
