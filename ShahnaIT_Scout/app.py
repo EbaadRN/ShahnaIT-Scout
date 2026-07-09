@@ -2107,6 +2107,116 @@ body.dark-mode .dark-mode-toggle {
     // updatePipelineStats();  // ← REMOVED - function doesn't exist
     renderUploaderStats();
     document.getElementById('candidateSelect').innerHTML = '<option value="">-- Select Candidate --</option>' + allCandidates.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
+  refreshDashboard();
+}
+// ============================================
+// UPDATE DASHBOARD STATISTICS
+// ============================================
+function updateDashboardStats() {
+    // Get all candidates
+    const candidates = allCandidates || [];
+    const total = candidates.length;
+    
+    // Calculate average match score
+    let totalScore = 0;
+    let scoredCount = 0;
+    candidates.forEach(c => {
+        const score = c.match_score || 0;
+        if (score > 0) {
+            totalScore += score;
+            scoredCount++;
+        }
+    });
+    const avgScore = scoredCount > 0 ? Math.round(totalScore / scoredCount) : 0;
+    
+    // Count shortlisted (hired + offer status)
+    const shortlisted = candidates.filter(c => 
+        c.employment_status === 'hired' || 
+        c.employment_status === 'offer' || 
+        c.employment_status === 'shortlisted'
+    ).length;
+    
+    // Count pending review (new + screening + interview)
+    const pendingReview = candidates.filter(c => 
+        c.employment_status === 'new' || 
+        c.employment_status === 'screening' || 
+        c.employment_status === 'interview' ||
+        !c.employment_status  // If no status, treat as new
+    ).length;
+    
+    // Update the stat cards
+    document.getElementById('total-candidates').textContent = total;
+    document.getElementById('avg-score').textContent = avgScore + '%';
+    document.getElementById('shortlisted').textContent = shortlisted;
+    document.getElementById('pending-review').textContent = pendingReview;
+}
+
+// ============================================
+// RENDER MATCH SCORE CHART
+// ============================================
+function renderChart() {
+    const chart = document.getElementById('score-chart');
+    if (!chart) return;
+    
+    const candidates = allCandidates || [];
+    const scores = [];
+    
+    // Collect all match scores
+    candidates.forEach(c => {
+        const score = c.match_score || 0;
+        if (score > 0) scores.push(score);
+    });
+    
+    if (scores.length === 0) {
+        chart.innerHTML = '<p style="text-align: center; color: #999; width: 100%;">No data to display</p>';
+        return;
+    }
+    
+    // Group scores into ranges
+    const ranges = {
+        '0-20': 0,
+        '21-40': 0,
+        '41-60': 0,
+        '61-80': 0,
+        '81-100': 0
+    };
+    
+    scores.forEach(score => {
+        if (score <= 20) ranges['0-20']++;
+        else if (score <= 40) ranges['21-40']++;
+        else if (score <= 60) ranges['41-60']++;
+        else if (score <= 80) ranges['61-80']++;
+        else ranges['81-100']++;
+    });
+    
+    const max = Math.max(...Object.values(ranges), 1);
+    const colors = ['#f44336', '#ff9800', '#ffc107', '#4caf50', '#2196f3'];
+    const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+    
+    let html = '';
+    let index = 0;
+    for (const [range, count] of Object.entries(ranges)) {
+        const height = Math.max((count / max) * 100, 5); // Minimum 5% height for visibility
+        const color = colors[index];
+        html += `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <div class="bar" style="width: 100%; max-width: 40px; border-radius: 4px 4px 0 0; height: ${height}%; background: ${color}; transition: height 0.5s ease; min-height: 5px;"></div>
+                <span class="bar-label" style="font-size: 11px; color: #666;">${labels[index]}</span>
+                <span class="bar-label" style="font-size: 10px; font-weight: 600; color: #333;">${count}</span>
+            </div>
+        `;
+        index++;
+    }
+    
+    chart.innerHTML = html;
+}
+
+// ============================================
+// REFRESH DASHBOARD (called from page load)
+// ============================================
+function refreshDashboard() {
+    updateDashboardStats();
+    renderChart();
 }
     
     function filterCandidates() {
