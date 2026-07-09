@@ -730,6 +730,358 @@ HTML_TEMPLATE = '''
         .match-low { background: #B71C1C; color: #FFFFFF; padding: 4px 14px; border-radius: 20px; display: inline-block; font-weight: bold; font-size: 16px; }
         .alert-success { background: #1B6B2E; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
         .alert-error { background: #B22222; color: white; padding: 10px; border-radius: 8px; margin: 10px 0; }
+        /* ============================================
+   CANDIDATE CARDS - NEW STYLES
+   ============================================ */
+.candidate-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
+    cursor: default;
+}
+
+.candidate-card:hover {
+    box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.candidate-avatar {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.avatar-text {
+    text-transform: uppercase;
+}
+
+.score-badge {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.candidate-title {
+    flex: 1;
+}
+
+.candidate-name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1A4D4A;
+}
+
+.candidate-email {
+    font-size: 13px;
+    color: #666;
+    display: block;
+    margin-top: 2px;
+}
+
+.btn-expand {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 8px;
+    font-size: 16px;
+    transition: transform 0.3s ease;
+    border-radius: 50%;
+}
+
+.btn-expand:hover {
+    background: #f0f0f0;
+    color: #1A4D4A;
+}
+
+.btn-expand.expanded {
+    transform: rotate(180deg);
+}
+
+.card-body {
+    padding: 0 20px 16px 20px;
+}
+
+.candidate-skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 12px 0 10px 0;
+}
+
+.skill-tag {
+    background: #F5F0E8;
+    color: #1A4D4A;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.skill-tag.more {
+    background: #e0e0e0;
+    color: #666;
+    font-weight: 600;
+}
+
+.no-skills {
+    color: #999;
+    font-size: 13px;
+    font-style: italic;
+}
+
+.candidate-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.meta-item {
+    font-size: 13px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.meta-item i {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.btn-primary, .btn-secondary, .btn-danger {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: #1A4D4A;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2A6B67;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(26, 77, 74, 0.3);
+}
+
+.btn-secondary {
+    background: #e0e0e0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: #ff5252;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #ff1744;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 23, 68, 0.3);
+}
+
+.card-details {
+    padding: 16px 20px 20px 20px;
+    background: #f9f9f9;
+    border-top: 1px solid #e0e0e0;
+}
+
+.details-section {
+    margin-bottom: 15px;
+}
+
+.details-section h4 {
+    margin: 0 0 8px 0;
+    color: #1A4D4A;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.details-section p {
+    margin: 0;
+    font-size: 13px;
+    color: #555;
+    line-height: 1.5;
+}
+
+.notes-container {
+    max-height: 150px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+}
+
+.notes-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.notes-container::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.notes-container::-webkit-scrollbar-track {
+    background: #f0f0f0;
+}
+
+.note-input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+.note-input:focus {
+    outline: none;
+    border-color: #1A4D4A;
+}
+
+/* Dark mode overrides */
+body.dark-mode .candidate-card {
+    background: #2d2d44;
+    border-color: #444466;
+}
+
+body.dark-mode .card-header {
+    background: #25253a;
+    border-bottom-color: #3d3d55;
+}
+
+body.dark-mode .candidate-name {
+    color: #e0e0e0;
+}
+
+body.dark-mode .candidate-email {
+    color: #999;
+}
+
+body.dark-mode .card-details {
+    background: #25253a;
+    border-top-color: #444466;
+}
+
+body.dark-mode .details-section h4 {
+    color: #C9A96E;
+}
+
+body.dark-mode .details-section p {
+    color: #bbb;
+}
+
+body.dark-mode .note-input {
+    background: #3d3d55;
+    color: #e0e0e0;
+    border-color: #555577;
+}
+
+body.dark-mode .note-input:focus {
+    border-color: #C9A96E;
+}
+
+body.dark-mode .notes-container::-webkit-scrollbar-thumb {
+    background: #555577;
+}
+
+body.dark-mode .notes-container::-webkit-scrollbar-track {
+    background: #3d3d55;
+}
+
+body.dark-mode .btn-secondary {
+    background: #444466;
+    color: #e0e0e0;
+}
+
+body.dark-mode .btn-secondary:hover {
+    background: #555577;
+}
+
+body.dark-mode .btn-expand:hover {
+    background: #3d3d55;
+    color: #C9A96E;
+}
+
+body.dark-mode .skill-tag {
+    background: #3d3d55;
+    color: #e0e0e0;
+}
+
+body.dark-mode .skill-tag.more {
+    background: #444466;
+    color: #aaa;
+}
+
+body.dark-mode .status-badge {
+    border-color: rgba(255,255,255,0.1);
+}
+
+body.dark-mode .meta-item {
+    color: #999;
+}
         .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #1A4D4A; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .flex { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -1536,8 +1888,8 @@ body.dark-mode .dark-mode-toggle {
         </div>
     </div>
     
-    <!-- Candidates List -->
-    <div id="candidatesList" style="min-height: 400px;"></div>
+    <!-- Candidates List - Updated with new card structure -->
+<div id="candidatesList" style="min-height: 400px;"></div>
     
     <!-- Pagination -->
     <div id="pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; flex-wrap: wrap; gap: 10px;">
@@ -1808,6 +2160,128 @@ function renderCandidates(candidates) {
             </div>
         </div>`;
     }).join('');
+}
+// ============================================
+// TOGGLE CANDIDATE DETAILS
+// ============================================
+function toggleCandidateDetails(id) {
+    const details = document.getElementById(`details-${id}`);
+    if (!details) return;
+    
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+        // Load notes when expanded
+        loadNotes(id);
+    } else {
+        details.style.display = 'none';
+    }
+}
+
+// ============================================
+// LOAD NOTES FOR CANDIDATE
+// ============================================
+async function loadNotes(candidateId) {
+    const container = document.getElementById(`notes-${candidateId}`);
+    if (!container) return;
+    
+    try {
+        const res = await fetch(`/api/candidates/${candidateId}/notes`);
+        const notes = await res.json();
+        
+        if (notes.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-style: italic; margin: 5px 0;">No notes yet. Add one above.</p>';
+            return;
+        }
+        
+        let html = '';
+        notes.forEach(note => {
+            const date = new Date(note.created_at).toLocaleString();
+            html += `
+                <div style="background: #F9F6F0; padding: 8px; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid #1A4D4A;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1; font-size: 13px;">${escapeHtml(note.note_text)}</div>
+                        <button class="btn" style="background: #B22222; padding: 2px 8px; font-size: 10px; margin-left: 8px; border: none; border-radius: 4px; color: white; cursor: pointer;" onclick="deleteNote(${note.id}, ${candidateId})">✕</button>
+                    </div>
+                    <small style="color: #666; font-size: 10px;">📅 ${date}</small>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    } catch(e) {
+        container.innerHTML = '<p style="color: #B22222;">Failed to load notes</p>';
+    }
+}
+
+// ============================================
+// ADD NOTE
+// ============================================
+async function addNote(candidateId, inputElement) {
+    const noteText = inputElement.trim();
+    if (!noteText) { toastWarning('Please enter a note'); return; }
+    
+    try {
+        const res = await fetch(`/api/candidates/${candidateId}/notes`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ note_text: noteText })
+        });
+        
+        if (res.ok) {
+            // Clear input
+            const inputField = document.querySelector(`#details-${candidateId} .note-input`);
+            if (inputField) inputField.value = '';
+            loadNotes(candidateId);
+            toastSuccess('Note added!');
+        } else {
+            toastError('Failed to add note');
+        }
+    } catch(e) {
+        toastError('Error adding note');
+    }
+}
+
+// ============================================
+// DELETE NOTE
+// ============================================
+async function deleteNote(noteId, candidateId) {
+    if (!confirm('Delete this note?')) return;
+    
+    try {
+        const res = await fetch(`/api/candidates/notes/${noteId}`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            loadNotes(candidateId);
+            toastSuccess('Note deleted');
+        } else {
+            toastError('Failed to delete note');
+        }
+    } catch(e) {
+        toastError('Error deleting note');
+    }
+}
+
+// ============================================
+// DELETE CANDIDATE
+// ============================================
+async function deleteCandidate(candidateId) {
+    if (!confirm('Delete this candidate?')) return;
+    
+    try {
+        const res = await fetch(`/api/candidates/${candidateId}`, {
+            method: 'DELETE'
+        });
+        
+        if (res.ok) {
+            toastSuccess('Candidate deleted');
+            loadCandidates();
+        } else {
+            toastError('Failed to delete candidate');
+        }
+    } catch(e) {
+        toastError('Error deleting candidate');
+    }
 }
     
     document.getElementById('searchBox').onkeyup = filterCandidates;
