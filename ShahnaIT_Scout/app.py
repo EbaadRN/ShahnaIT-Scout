@@ -2226,16 +2226,178 @@ function refreshDashboard() {
     renderChart();
 }
     
-    function filterCandidates() {
-        const search = document.getElementById('searchBox').value.toLowerCase();
-        const score = document.getElementById('scoreSelect').value;
-        let filtered = allCandidates;
-        if(search) filtered = filtered.filter(c => (c.first_name + ' ' + c.last_name).toLowerCase().includes(search));
-        if(score === 'high') filtered = filtered.filter(c => (c.match_score || 0) >= 70);
-        else if(score === 'medium') filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
-        else if(score === 'low') filtered = filtered.filter(c => (c.match_score || 0) < 40);
-        renderCandidates(filtered);
+    // ============================================
+// FILTER CANDIDATES - ENHANCED VERSION
+// ============================================
+function filterCandidates() {
+    const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const scoreFilter = document.getElementById('scoreFilter').value;
+    const uploaderFilter = document.getElementById('uploadedByFilter').value.toLowerCase();
+    const sortBy = document.getElementById('sortBy').value;
+    
+    let filtered = allCandidates;
+    
+    // 1. Search filter - name, email, phone, skills
+    if (searchTerm) {
+        filtered = filtered.filter(c => {
+            const name = ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase().trim();
+            const email = (c.email || '').toLowerCase();
+            const phone = (c.phone || '').toLowerCase();
+            let skills = '';
+            if (c.core_skills) {
+                try {
+                    const parsedSkills = JSON.parse(c.core_skills);
+                    skills = parsedSkills.map(s => (s.skill || '').toLowerCase()).join(' ');
+                } catch(e) {
+                    skills = '';
+                }
+            }
+            return name.includes(searchTerm) || 
+                   email.includes(searchTerm) || 
+                   phone.includes(searchTerm) || 
+                   skills.includes(searchTerm);
+        });
     }
+    
+    // 2. Status filter
+    if (statusFilter !== 'all') {
+        filtered = filtered.filter(c => (c.employment_status || 'new') === statusFilter);
+    }
+    
+    // 3. Score filter
+    if (scoreFilter === 'high') {
+        filtered = filtered.filter(c => (c.match_score || 0) >= 70);
+    } else if (scoreFilter === 'medium') {
+        filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
+    } else if (scoreFilter === 'low') {
+        filtered = filtered.filter(c => (c.match_score || 0) < 40);
+    }
+    
+    // 4. Uploader filter
+    if (uploaderFilter) {
+        filtered = filtered.filter(c => (c.uploaded_by || 'ShahnaIT').toLowerCase().includes(uploaderFilter));
+    }
+    
+    // 5. Sorting
+    if (sortBy === 'score') {
+        filtered.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
+    } else if (sortBy === 'name') {
+        filtered.sort((a, b) => ((a.first_name || '') + ' ' + (a.last_name || '')).localeCompare((b.first_name || '') + ' ' + (b.last_name || '')));
+    } else if (sortBy === 'date') {
+        filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (sortBy === 'status') {
+        filtered.sort((a, b) => (a.employment_status || '').localeCompare(b.employment_status || ''));
+    } else if (sortBy === 'uploader') {
+        filtered.sort((a, b) => (a.uploaded_by || 'ShahnaIT').localeCompare(b.uploaded_by || 'ShahnaIT'));
+    }
+    
+    // 6. Render the filtered candidates
+    renderCandidates(filtered);
+    
+    // 7. Update dashboard stats based on filtered results
+    updateFilteredStats(filtered);
+}
+// ============================================
+// UPDATE STATS BASED ON FILTERED RESULTS
+// ============================================
+function updateFilteredStats(filteredCandidates) {
+    const total = filteredCandidates.length;
+    
+    // Calculate average match score for filtered results
+    let totalScore = 0;
+    let scoredCount = 0;
+    filteredCandidates.forEach(c => {
+        const score = c.match_score || 0;
+        if (score > 0) {
+            totalScore += score;
+            scoredCount++;
+        }
+    });
+    const avgScore = scoredCount > 0 ? Math.round(totalScore / scoredCount) : 0;
+    
+    // Count shortlisted in filtered results
+    const shortlisted = filteredCandidates.filter(c => 
+        c.employment_status === 'hired' || 
+        c.employment_status === 'offer' || 
+        c.employment_status === 'shortlisted'
+    ).length;
+    
+    // Count pending review in filtered results
+    const pendingReview = filteredCandidates.filter(c => 
+        c.employment_status === 'new' || 
+        c.employment_status === 'screening' || 
+        c.employment_status === 'interview' ||
+        !c.employment_status
+    ).length;
+    
+    // Update the stat cards with filtered data
+    document.getElementById('total-candidates').textContent = total;
+    document.getElementById('avg-score').textContent = avgScore + '%';
+    document.getElementById('shortlisted').textContent = shortlisted;
+    document.getElementById('pending-review').textContent = pendingReview;
+    
+    // Re-render the chart with filtered data
+    renderFilteredChart(filteredCandidates);
+}
+// ============================================
+// RENDER CHART WITH FILTERED DATA
+// ============================================
+function renderFilteredChart(filteredCandidates) {
+    const chart = document.getElementById('score-chart');
+    if (!chart) return;
+    
+    const scores = [];
+    
+    // Collect all match scores from filtered candidates
+    filteredCandidates.forEach(c => {
+        const score = c.match_score || 0;
+        if (score > 0) scores.push(score);
+    });
+    
+    if (scores.length === 0) {
+        chart.innerHTML = '<p style="text-align: center; color: #999; width: 100%;">No data to display</p>';
+        return;
+    }
+    
+    // Group scores into ranges
+    const ranges = {
+        '0-20': 0,
+        '21-40': 0,
+        '41-60': 0,
+        '61-80': 0,
+        '81-100': 0
+    };
+    
+    scores.forEach(score => {
+        if (score <= 20) ranges['0-20']++;
+        else if (score <= 40) ranges['21-40']++;
+        else if (score <= 60) ranges['41-60']++;
+        else if (score <= 80) ranges['61-80']++;
+        else ranges['81-100']++;
+    });
+    
+    const max = Math.max(...Object.values(ranges), 1);
+    const colors = ['#f44336', '#ff9800', '#ffc107', '#4caf50', '#2196f3'];
+    const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+    
+    let html = '';
+    let index = 0;
+    for (const [range, count] of Object.entries(ranges)) {
+        const height = Math.max((count / max) * 100, 5);
+        const color = colors[index];
+        html += `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                <div class="bar" style="width: 100%; max-width: 40px; border-radius: 4px 4px 0 0; height: ${height}%; background: ${color}; transition: height 0.5s ease; min-height: 5px;"></div>
+                <span class="bar-label" style="font-size: 11px; color: #666;">${labels[index]}</span>
+                <span class="bar-label" style="font-size: 10px; font-weight: 600; color: #333;">${count}</span>
+            </div>
+        `;
+        index++;
+    }
+    
+    chart.innerHTML = html;
+}
     
    // ============================================
 // RENDER CANDIDATE CARDS - IMPROVED VERSION
@@ -2466,15 +2628,35 @@ async function deleteCandidate(candidateId) {
     }
 }
     
-    document.getElementById('searchBox').onkeyup = filterCandidates;
-    document.getElementById('scoreFilter').addEventListener('change', filterCandidates);
-   document.getElementById('clearFiltersBtn').addEventListener('click', function() {
+   // ============================================
+// EVENT LISTENERS FOR FILTERS
+// ============================================
+// Search input - real-time filtering
+document.getElementById('searchBox').addEventListener('input', filterCandidates);
+
+// Status filter
+document.getElementById('statusFilter').addEventListener('change', filterCandidates);
+
+// Score filter
+document.getElementById('scoreFilter').addEventListener('change', filterCandidates);
+
+// Uploader filter
+document.getElementById('uploadedByFilter').addEventListener('input', filterCandidates);
+
+// Sort by
+document.getElementById('sortBy').addEventListener('change', filterCandidates);
+
+// Clear all filters
+document.getElementById('clearFiltersBtn').addEventListener('click', function() {
     document.getElementById('searchBox').value = '';
     document.getElementById('statusFilter').value = 'all';
     document.getElementById('scoreFilter').value = 'all';
     document.getElementById('uploadedByFilter').value = '';
     document.getElementById('sortBy').value = 'score';
     filterCandidates();
+    
+    // Show success message
+    toastSuccess('Filters cleared!');
 });
     
     // Edit Job
