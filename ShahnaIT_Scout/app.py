@@ -1917,41 +1917,48 @@ body.dark-mode .dark-mode-toggle {
         </div>
         
         <!-- Advanced Filters -->
-        <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-                <input type="text" id="searchBox" placeholder="🔍 Search name, email, skills..." style="flex: 2; min-width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                
-                <select id="statusFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                    <option value="all">All Status</option>
-                    <option value="new">🟢 New</option>
-                    <option value="screening">🔵 Screening</option>
-                    <option value="interview">🟠 Interview</option>
-                    <option value="offer">🟣 Offer</option>
-                    <option value="hired">✅ Hired</option>
-                    <option value="rejected">❌ Rejected</option>
-                </select>
-                
-                <select id="scoreFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                    <option value="all">All Scores</option>
-                    <option value="high">High (70%+)</option>
-                    <option value="medium">Medium (40-69%)</option>
-                    <option value="low">Low (<40%)</option>
-                </select>
-                
-                <input type="text" id="uploadedByFilter" placeholder="👤 Uploaded by..." style="min-width: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                
-                <select id="sortBy" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-                    <option value="score">Sort by Match Score</option>
-                    <option value="name">Sort by Name</option>
-                    <option value="date">Sort by Date Added</option>
-                    <option value="status">Sort by Status</option>
-                    <option value="uploader">Sort by Uploader</option>
-                </select>
-                
-                <button id="clearFiltersBtn" class="btn" style="background: #6B7B7B; padding: 8px 16px;">Clear Filters</button>
-            </div>
-        </div>
-    </div>
+      <!-- Advanced Filters -->
+<div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <!-- Search Box -->
+        <input type="text" id="searchBox" placeholder="🔍 Search name, email, skills..." style="flex: 2; min-width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        
+        <!-- Status Filter -->
+        <select id="statusFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+            <option value="all">All Status</option>
+            <option value="new">🟢 New</option>
+            <option value="screening">🔵 Screening</option>
+            <option value="interview">🟠 Interview</option>
+            <option value="offer">🟣 Offer</option>
+            <option value="hired">✅ Hired</option>
+            <option value="rejected">❌ Rejected</option>
+        </select>
+        
+        <!-- Score Filter -->
+        <select id="scoreFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+            <option value="all">All Scores</option>
+            <option value="high">High (70%+)</option>
+            <option value="medium">Medium (40-69%)</option>
+            <option value="low">Low (<40%)</option>
+        </select>
+        
+        <!-- Uploader Filter -->
+        <input type="text" id="uploadedByFilter" placeholder="👤 Uploaded by..." style="min-width: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        
+        <!-- Sort By -->
+        <select id="sortBy" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+            <option value="score">Sort by Match Score</option>
+            <option value="name">Sort by Name</option>
+            <option value="date">Sort by Date Added</option>
+            <option value="status">Sort by Status</option>
+            <option value="uploader">Sort by Uploader</option>
+        </select>
+        
+        <!-- Clear Filters Button -->
+        <button id="clearFiltersBtn" class="btn" style="background: #6B7B7B; padding: 8px 16px; border: none; border-radius: 5px; color: white; cursor: pointer;">Clear Filters</button>
+      </div>
+   </div>
+</div>
     
     <!-- Candidates List - Updated with new card structure -->
 <div id="candidatesList" style="min-height: 400px;"></div>
