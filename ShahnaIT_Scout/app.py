@@ -1922,6 +1922,220 @@ body.dark-mode .dark-mode-toggle {
         padding: 10px 14px !important;
     }
 }
+/* ============================================
+   RESUME TEXT VIEWER STYLES
+   ============================================ */
+#resume-text-container {
+    background: #f9f6f0;
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    user-select: text;
+    cursor: text;
+}
+
+/* Scrollbar styling for resume text */
+#resume-text-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#resume-text-container::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+#resume-text-container::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+#resume-text-container::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* Preview modal text styles */
+#previewBody div {
+    white-space: pre-wrap;
+    background: #f9f6f0;
+    padding: 15px;
+    border-radius: 8px;
+    max-height: 500px;
+    overflow-y: auto;
+    user-select: text;
+    cursor: text;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    border: 1px solid #e0e0e0;
+}
+
+/* Preview modal scrollbar */
+#previewBody div::-webkit-scrollbar {
+    width: 6px;
+}
+
+#previewBody div::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+#previewBody div::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+#previewBody div::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* Button styles for preview modal */
+#previewBody button {
+    transition: all 0.2s;
+}
+
+#previewBody button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* ============================================
+   DARK MODE - RESUME TEXT VIEWER
+   ============================================ */
+body.dark-mode #resume-text-container {
+    background: #2d2d44;
+    border-color: #444466;
+    color: #e0e0e0;
+}
+
+body.dark-mode #resume-text-container::-webkit-scrollbar-track {
+    background: #3d3d55;
+}
+
+body.dark-mode #resume-text-container::-webkit-scrollbar-thumb {
+    background: #555577;
+}
+
+body.dark-mode #resume-text-container::-webkit-scrollbar-thumb:hover {
+    background: #666688;
+}
+
+body.dark-mode #previewBody div {
+    background: #2d2d44;
+    border-color: #444466;
+    color: #e0e0e0;
+}
+
+body.dark-mode #previewBody div::-webkit-scrollbar-track {
+    background: #3d3d55;
+}
+
+body.dark-mode #previewBody div::-webkit-scrollbar-thumb {
+    background: #555577;
+}
+
+body.dark-mode #previewBody div::-webkit-scrollbar-thumb:hover {
+    background: #666688;
+}
+
+/* ============================================
+   RESUME SECTION IN CANDIDATE VIEW
+   ============================================ */
+.resume-section {
+    margin-top: 10px;
+}
+
+.resume-section .btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.resume-section .btn-group button {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.resume-section .btn-group button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.resume-section .btn-download {
+    background: #1A4D4A;
+    color: white;
+}
+
+.resume-section .btn-download:hover {
+    background: #2A6B67;
+}
+
+.resume-section .btn-copy {
+    background: #C9A96E;
+    color: white;
+}
+
+.resume-section .btn-copy:hover {
+    background: #B8985E;
+}
+
+.resume-section .resume-text-box {
+    background: #f9f6f0;
+    border-radius: 8px;
+    padding: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    white-space: pre-wrap;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    user-select: text;
+    cursor: text;
+}
+
+.resume-section .resume-text-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.resume-section .resume-text-box::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+.resume-section .resume-text-box::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+.resume-section .resume-text-box::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+body.dark-mode .resume-section .resume-text-box {
+    background: #2d2d44;
+    border-color: #444466;
+    color: #e0e0e0;
+}
+
+body.dark-mode .resume-section .resume-text-box::-webkit-scrollbar-track {
+    background: #3d3d55;
+}
+
+body.dark-mode .resume-section .resume-text-box::-webkit-scrollbar-thumb {
+    background: #555577;
+}
 </style>
 </head>
 <body>
@@ -2879,11 +3093,45 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     };
     
     window.previewDocument = async function(docId) {
+    try {
         const res = await fetch(`/api/documents/${docId}/preview`);
         const data = await res.json();
-        document.getElementById('previewBody').innerHTML = data.type === 'image' ? `<img src="data:image/png;base64,${data.content}" style="max-width:100%;">` : `<div style="white-space:pre-wrap; background:white; padding:15px;">${escapeHtml(data.content)}</div>`;
+        
+        if (data.error) {
+            toastError(data.error);
+            return;
+        }
+        
+        if (data.type === 'image') {
+            document.getElementById('previewBody').innerHTML = `
+                <img src="data:image/png;base64,${data.content}" style="max-width:100%; border-radius: 8px;">
+                <div style="margin-top: 15px; text-align: center;">
+                    <button onclick="copyPreviewText()" style="background: #C9A96E; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        📋 Copy Image Description
+                    </button>
+                </div>
+            `;
+        } else {
+            document.getElementById('previewBody').innerHTML = `
+                <div style="white-space:pre-wrap; background: #f9f6f0; padding: 15px; border-radius: 8px; max-height: 500px; overflow-y: auto; user-select: text; cursor: text; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; border: 1px solid #e0e0e0;">
+                    ${escapeHtml(data.content)}
+                </div>
+                <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                    <button onclick="copyPreviewText()" style="background: #C9A96E; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        📋 Copy All Text
+                    </button>
+                    <button onclick="window.print()" style="background: #1A4D4A; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                        🖨️ Print
+                    </button>
+                </div>
+            `;
+        }
         document.getElementById('previewModal').style.display = 'block';
-    };
+    } catch (e) {
+        toastError('Error loading preview');
+        console.error('Preview error:', e);
+    }
+};
     function closePreviewModal() { document.getElementById('previewModal').style.display = 'none'; }
     window.closePreviewModal = closePreviewModal;
     
@@ -2896,6 +3144,115 @@ toastSuccess('Copied!');
     
     function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
     window.closeModal = closeModal;
+    // ============================================
+// DOWNLOAD ORIGINAL RESUME
+// ============================================
+async function downloadResume(candidateId) {
+    try {
+        const res = await fetch(`/api/candidates/${candidateId}/download-resume`);
+        if (res.ok) {
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            
+            // Get filename from content-disposition or use default
+            const disposition = res.headers.get('content-disposition');
+            let filename = 'resume.pdf';
+            if (disposition) {
+                const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (match) filename = match[1].replace(/['"]/g, '');
+            }
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            toastSuccess('Resume downloaded!');
+        } else {
+            toastError('Resume not found');
+        }
+    } catch(e) {
+        toastError('Error downloading resume');
+        console.error('Download error:', e);
+    }
+}
+
+// ============================================
+// COPY RESUME TEXT TO CLIPBOARD
+// ============================================
+async function copyResumeText(candidateId) {
+    try {
+        const container = document.getElementById(`resume-text-${candidateId}`);
+        if (!container) {
+            toastError('Resume text not found');
+            return;
+        }
+        
+        const text = container.textContent;
+        
+        // Check if there's actual text
+        if (!text || text.trim() === '' || text.includes('No resume text available')) {
+            toastWarning('No resume text to copy');
+            return;
+        }
+        
+        // Try using the Clipboard API
+        try {
+            await navigator.clipboard.writeText(text);
+            toastSuccess('Resume text copied to clipboard!');
+            return;
+        } catch (e) {
+            // Fallback: use the old method
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            toastSuccess('Resume text copied to clipboard!');
+        }
+    } catch (e) {
+        toastError('Failed to copy text');
+        console.error('Copy error:', e);
+    }
+}
+
+// ============================================
+// COPY PREVIEW TEXT
+// ============================================
+function copyPreviewText() {
+    const previewBody = document.getElementById('previewBody');
+    if (!previewBody) {
+        toastError('Preview not found');
+        return;
+    }
+    
+    const textDiv = previewBody.querySelector('div');
+    if (!textDiv) {
+        toastError('No text to copy');
+        return;
+    }
+    
+    const text = textDiv.textContent;
+    
+    // Try using the Clipboard API
+    navigator.clipboard.writeText(text).then(() => {
+        toastSuccess('Preview text copied!');
+    }).catch(() => {
+        // Fallback
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        toastSuccess('Preview text copied!');
+    });
+}
     function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
     window.closeEditModal = closeEditModal;
     function closeDocModal() { document.getElementById('docModal').style.display = 'none'; }
