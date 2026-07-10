@@ -4386,6 +4386,32 @@ def update_candidate(candidate_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Candidate updated'})
+# ============================================
+# DELETE CANDIDATE ENDPOINT
+# ============================================
+@app.route('/api/candidates/<int:candidate_id>', methods=['DELETE'])
+def delete_candidate(candidate_id):
+    """Delete a candidate and their documents"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        # Get file paths to delete
+        c.execute('SELECT file_path FROM candidate_documents WHERE candidate_id = ?', (candidate_id,))
+        files = c.fetchall()
+        for file in files:
+            if os.path.exists(file[0]):
+                os.remove(file[0])
+        
+        # Delete candidate (cascade will delete notes and documents)
+        c.execute('DELETE FROM candidates WHERE id = ?', (candidate_id,))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'message': 'Candidate deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/candidates/<int:candidate_id>/documents', methods=['GET'])
 def get_candidate_documents(candidate_id):
