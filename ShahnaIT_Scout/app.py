@@ -2654,11 +2654,18 @@ function updateFilteredStats(filteredCandidates) {
         !c.employment_status
     ).length;
     
-    // Update the stat cards with filtered data
-    document.getElementById('total-candidates').textContent = total;
-    document.getElementById('avg-score').textContent = avgScore + '%';
-    document.getElementById('shortlisted').textContent = shortlisted;
-    document.getElementById('pending-review').textContent = pendingReview;
+    // Update the SIMPLE stat cards (not the old ones)
+    const totalEl = document.getElementById('simple-total');
+    const avgEl = document.getElementById('simple-avg');
+    const hiredEl = document.getElementById('simple-hired');
+    const rejectedEl = document.getElementById('simple-rejected');
+    const pendingEl = document.getElementById('simple-pending');
+    
+    if (totalEl) totalEl.textContent = total;
+    if (avgEl) avgEl.textContent = avgScore + '%';
+    if (hiredEl) hiredEl.textContent = shortlisted;
+    if (pendingEl) pendingEl.textContent = pendingReview;
+    if (rejectedEl) rejectedEl.textContent = filteredCandidates.filter(c => c.employment_status === 'rejected').length;
     
     // Re-render the chart with filtered data
     renderFilteredChart(filteredCandidates);
