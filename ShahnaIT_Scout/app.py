@@ -3160,7 +3160,13 @@ async function downloadResume(candidateId) {
             const disposition = res.headers.get('content-disposition');
             let filename = 'resume.pdf';
             if (disposition) {
-                const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+               const parts = disposition.split(';');
+for (let part of parts) {
+    if (part.trim().startsWith('filename=')) {
+        filename = part.trim().substring(9).replace(/['"]/g, '');
+        break;
+    }
+}
                 if (match) filename = match[1].replace(/['"]/g, '');
             }
             a.download = filename;
