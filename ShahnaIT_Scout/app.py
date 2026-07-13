@@ -4235,7 +4235,17 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             `;
         }).join('');
     }
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
+    function escapeHtml(str) { 
+    if (!str) return ''; 
+    // Convert to string if it's not already
+    str = String(str);
+    return str.replace(/[&<>]/g, function(m) { 
+        if(m==='&') return '&amp;'; 
+        if(m==='<') return '&lt;'; 
+        if(m==='>') return '&gt;'; 
+        return m; 
+    }); 
+}
       
 </script>
 </body>
