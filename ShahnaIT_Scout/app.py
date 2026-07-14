@@ -5099,6 +5099,38 @@ def download_resume(candidate_id):
         download_name=original_filename,
         mimetype=mimetype
     )
+    @app.route('/api/candidates/<int:candidate_id>/view-resume')
+def view_resume(candidate_id):
+    """View the original resume file in the browser (PDF/DOCX)"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT resume_file_path, resume_original_filename FROM candidates WHERE id = ?', (candidate_id,))
+    row = c.fetchone()
+    conn.close()
+    
+    if not row or not row[0] or not os.path.exists(row[0]):
+        return jsonify({'error': 'Resume not found'}), 404
+    
+    file_path = row[0]
+    original_filename = row[1] or 'resume.pdf'
+    
+    # Determine mimetype based on file extension
+    if original_filename.endswith('.pdf'):
+        mimetype = 'application/pdf'
+    elif original_filename.endswith('.docx'):
+        mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    elif original_filename.endswith('.doc'):
+        mimetype = 'application/msword'
+    else:
+        mimetype = 'application/octet-stream'
+    
+    # Display in browser instead of downloading
+    return send_file(
+        file_path,
+        as_attachment=False,  # 👈 This shows in browser
+        download_name=original_filename,
+        mimetype=mimetype
+    )
 @app.route('/api/check-resume/<int:candidate_id>')
 def check_resume(candidate_id):
     conn = sqlite3.connect(DB_PATH)
