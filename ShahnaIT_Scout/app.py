@@ -3168,7 +3168,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             <h4>Other Documents</h4>
             ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>None</p>'}
             <h4>📝 Notes</h4>
-            <div id="notesList-${c.id}" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
+            <div id="notes-${c.id}" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
                 <div class="spinner" style="width: 20px; height: 20px;"></div>
             </div>
             <div style="display: flex; gap: 8px; margin-top: 5px;">
@@ -5127,7 +5127,7 @@ def view_resume(candidate_id):
     # Display in browser instead of downloading
     return send_file(
         file_path,
-        as_attachment=False,  # 👈 This shows in browser
+        as_attachment=False,
         download_name=original_filename,
         mimetype=mimetype
     )
