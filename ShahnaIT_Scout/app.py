@@ -5086,7 +5086,11 @@ def download_resume(candidate_id):
         download_name=original_filename,
         mimetype=mimetype
     )
-    @app.route('/api/debug-db')
+
+# ============================================
+# ✅ CORRECT: No indentation before @app.route
+# ============================================
+@app.route('/api/debug-db')
 def debug_db():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -5101,5 +5105,6 @@ def debug_db():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
