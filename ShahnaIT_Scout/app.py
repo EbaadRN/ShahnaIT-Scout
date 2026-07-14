@@ -2394,6 +2394,12 @@ body.dark-mode .resume-section .resume-text-box::-webkit-scrollbar-thumb {
 <script>
     let allJobs = [], allCandidates = [], currentCandidateId = null;
     let selectedBulkFiles = [];
+    console.log('✅ App initialized');
+console.log('✅ loadNotes:', typeof loadNotes);
+console.log('✅ addNote:', typeof addNote);
+console.log('✅ deleteNote:', typeof deleteNote);
+console.log('✅ viewCandidate:', typeof viewCandidate);
+console.log('✅ viewOriginalResume:', typeof viewOriginalResume);
 // ============================================
     // DARK MODE
     // ============================================
