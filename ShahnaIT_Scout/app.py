@@ -3176,9 +3176,6 @@ ${c.resume_text && c.resume_text.length > 15000 ? `<p style="font-size: 12px; co
            loadNotes(c.id);
         document.getElementById('candidateModal').style.display = 'block';
     }
-        loadNotes(c.id);
-        document.getElementById('candidateModal').style.display = 'block';
-    };
     
     window.previewDocument = async function(docId) {
     try {
