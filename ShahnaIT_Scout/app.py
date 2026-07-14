@@ -3243,19 +3243,18 @@ async function downloadResume(candidateId) {
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            
+
             // Get filename from content-disposition or use default
             const disposition = res.headers.get('content-disposition');
             let filename = 'resume.pdf';
             if (disposition) {
-               const parts = disposition.split(';');
-for (let part of parts) {
-    if (part.trim().startsWith('filename=')) {
-        filename = part.trim().substring(9).replace(/['"]/g, '');
-        break;
-    }
-}
-                if (match) filename = match[1].replace(/['"]/g, '');
+                const parts = disposition.split(';');
+                for (let part of parts) {
+                    if (part.trim().startsWith('filename=')) {
+                        filename = part.trim().substring(9).replace(/['"]/g, '');
+                        break;
+                    }
+                }
             }
             a.download = filename;
             document.body.appendChild(a);
