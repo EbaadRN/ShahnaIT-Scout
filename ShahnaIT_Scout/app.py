@@ -3173,9 +3173,9 @@ ${c.resume_text && c.resume_text.length > 15000 ? `<p style="font-size: 12px; co
             <div style="display: flex; gap: 8px; margin-top: 5px;">
                 <input type="text" id="newNote-${c.id}" placeholder="Add a note..." style="flex: 1; padding: 6px;">
                 <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="addNote(${c.id})">➕ Add</button>
-            </div>
-            <button class="btn" onclick="closeModal()">Close</button>
-        `;
+           loadNotes(c.id);
+        document.getElementById('candidateModal').style.display = 'block';
+    }
         loadNotes(c.id);
         document.getElementById('candidateModal').style.display = 'block';
     };
