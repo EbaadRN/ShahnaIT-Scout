@@ -5086,6 +5086,21 @@ def download_resume(candidate_id):
         download_name=original_filename,
         mimetype=mimetype
     )
+@app.route('/api/check-resume/<int:candidate_id>')
+def check_resume(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT resume_file_path, resume_original_filename FROM candidates WHERE id = ?', (candidate_id,))
+    row = c.fetchone()
+    conn.close()
+    
+    if row:
+        return jsonify({
+            'file_path': row[0],
+            'filename': row[1],
+            'exists': os.path.exists(row[0]) if row[0] else False
+        })
+    return jsonify({'error': 'Candidate not found'}), 404
 
 # ============================================
 # ✅ CORRECT: No indentation before @app.route
