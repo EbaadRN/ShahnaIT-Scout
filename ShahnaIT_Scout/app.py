@@ -5099,7 +5099,9 @@ def download_resume(candidate_id):
         download_name=original_filename,
         mimetype=mimetype
     )
-    @app.route('/api/candidates/<int:candidate_id>/view-resume')
+
+
+@app.route('/api/candidates/<int:candidate_id>/view-resume')
 def view_resume(candidate_id):
     """View the original resume file in the browser (PDF/DOCX)"""
     conn = sqlite3.connect(DB_PATH)
@@ -5131,25 +5133,8 @@ def view_resume(candidate_id):
         download_name=original_filename,
         mimetype=mimetype
     )
-@app.route('/api/check-resume/<int:candidate_id>')
-def check_resume(candidate_id):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT resume_file_path, resume_original_filename FROM candidates WHERE id = ?', (candidate_id,))
-    row = c.fetchone()
-    conn.close()
-    
-    if row:
-        return jsonify({
-            'file_path': row[0],
-            'filename': row[1],
-            'exists': os.path.exists(row[0]) if row[0] else False
-        })
-    return jsonify({'error': 'Candidate not found'}), 404
 
-# ============================================
-# ✅ CORRECT: No indentation before @app.route
-# ============================================
+
 @app.route('/api/debug-db')
 def debug_db():
     try:
@@ -5165,6 +5150,7 @@ def debug_db():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
