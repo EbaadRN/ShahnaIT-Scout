@@ -3150,6 +3150,9 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px;">
         <span class="doc-link" onclick="previewDocument(${resumeDoc.id})">📄 ${escapeHtml(resumeDoc.original_filename)}</span>
         <span style="background:#1B6B2E;color:white;padding:2px 8px;border-radius:12px;font-size:10px;">Original</span>
+        <button onclick="viewOriginalResume(${c.id})" style="background: #9C27B0; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+            👁️ View Original
+        </button>
         <button onclick="downloadResume(${c.id})" style="background: #1A4D4A; color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
             ⬇️ Download Original
         </button>
@@ -3158,9 +3161,9 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
         </button>
     </div>
     <div id="resume-text-${c.id}" style="background: #f9f6f0; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.6; user-select: text; cursor: text;">
-        ${c.resume_text ? escapeHtml(c.resume_text.substring(0, 3000)) + (c.resume_text.length > 3000 ? '... (truncated)' : '') : 'No resume text available'}
+        ${c.resume_text ? escapeHtml(c.resume_text) : 'No resume text available'}
     </div>
-    ${c.resume_text && c.resume_text.length > 3000 ? `<p style="font-size: 12px; color: #999; margin-top: 5px;">📌 Showing first 3000 characters. Download the original file for full content.</p>` : ''}
+    ${c.resume_text && c.resume_text.length > 5000 ? `<p style="font-size: 12px; color: #999; margin-top: 5px;">📌 Resume is long. Click "View Original" to see the formatted version.</p>` : ''}
 ` : '<p>No resume uploaded</p>'}
             <h4>Other Documents</h4>
             ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>None</p>'}
@@ -3268,6 +3271,16 @@ for (let part of parts) {
         toastError('Error downloading resume');
         console.error('Download error:', e);
     }
+}
+// ============================================
+// VIEW ORIGINAL RESUME (Opens in new tab)
+// ============================================
+function viewOriginalResume(candidateId) {
+    // Get the resume URL
+    const url = `/api/candidates/${candidateId}/view-resume`;
+    
+    // Open in new tab
+    window.open(url, '_blank');
 }
 
 // ============================================
