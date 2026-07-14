@@ -2394,6 +2394,83 @@ body.dark-mode .resume-section .resume-text-box::-webkit-scrollbar-thumb {
 <script>
     let allJobs = [], allCandidates = [], currentCandidateId = null;
     let selectedBulkFiles = [];
+// ============================================
+    // DARK MODE
+    // ============================================
+    function toggleDarkMode() {
+        const body = document.body;
+        const toggle = document.querySelector('.dark-mode-toggle');
+        
+        body.classList.toggle('dark-mode');
+        
+        // Save preference
+        if (body.classList.contains('dark-mode')) {
+            localStorage.setItem('darkMode', 'enabled');
+            if (toggle) toggle.textContent = '☀️';
+        } else {
+            localStorage.setItem('darkMode', 'disabled');
+            if (toggle) toggle.textContent = '🌙';
+        }
+    }
+
+    // Load saved preference on page load
+    function loadDarkModePreference() {
+        const darkMode = localStorage.getItem('darkMode');
+        const toggle = document.querySelector('.dark-mode-toggle');
+        
+        if (darkMode === 'enabled') {
+            document.body.classList.add('dark-mode');
+            if (toggle) toggle.textContent = '☀️';
+        }
+    }
+
+    // Call on page load
+    loadDarkModePreference();
+
+    // ============================================
+    // TOAST NOTIFICATIONS
+    // ============================================
+    function showToast(message, type = 'info', duration = 4000) {
+        const container = document.getElementById('toastContainer');
+        
+        const icons = {
+            success: '✅',
+            error: '❌',
+            warning: '⚠️',
+            info: 'ℹ️'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+            <span class="toast-message">${message}</span>
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+        `;
+        
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.classList.add('toast-hidden');
+                setTimeout(() => toast.remove(), 500);
+            }
+        }, duration);
+        
+        toast.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON') {
+                this.classList.add('toast-hidden');
+                setTimeout(() => this.remove(), 500);
+            }
+        });
+    }
+
+    // Shortcut functions
+    function toastSuccess(msg) { showToast(msg, 'success'); }
+    function toastError(msg) { showToast(msg, 'error'); }
+    function toastWarning(msg) { showToast(msg, 'warning'); }
+    function toastInfo(msg) { showToast(msg, 'info'); }
+
     
     // Tab switching
     document.getElementById('tabJobs').onclick = function() { showPanel('jobs'); loadJobs(); };
@@ -2443,7 +2520,6 @@ body.dark-mode .resume-section .resume-text-box::-webkit-scrollbar-thumb {
 // UPDATE DASHBOARD STATISTICS
 // ============================================
 function updateDashboardStats() {
-    // Get all candidates
     const candidates = allCandidates || [];
     const total = candidates.length;
     
@@ -2459,26 +2535,29 @@ function updateDashboardStats() {
     });
     const avgScore = scoredCount > 0 ? Math.round(totalScore / scoredCount) : 0;
     
-    // Count shortlisted (hired + offer status)
-    const shortlisted = candidates.filter(c => 
-        c.employment_status === 'hired' || 
-        c.employment_status === 'offer' || 
-        c.employment_status === 'shortlisted'
-    ).length;
-    
-    // Count pending review (new + screening + interview)
-    const pendingReview = candidates.filter(c => 
+    // Count hired and rejected
+    const hired = candidates.filter(c => c.employment_status === 'hired').length;
+    const rejected = candidates.filter(c => c.employment_status === 'rejected').length;
+    const pending = candidates.filter(c => 
         c.employment_status === 'new' || 
         c.employment_status === 'screening' || 
         c.employment_status === 'interview' ||
-        !c.employment_status  // If no status, treat as new
+        c.employment_status === 'offer' ||
+        !c.employment_status
     ).length;
     
-    // Update the stat cards
-    document.getElementById('total-candidates').textContent = total;
-    document.getElementById('avg-score').textContent = avgScore + '%';
-    document.getElementById('shortlisted').textContent = shortlisted;
-    document.getElementById('pending-review').textContent = pendingReview;
+    // Update SIMPLE stat cards (the ones that exist)
+    const totalEl = document.getElementById('simple-total');
+    const avgEl = document.getElementById('simple-avg');
+    const hiredEl = document.getElementById('simple-hired');
+    const rejectedEl = document.getElementById('simple-rejected');
+    const pendingEl = document.getElementById('simple-pending');
+    
+    if (totalEl) totalEl.textContent = total;
+    if (avgEl) avgEl.textContent = avgScore + '%';
+    if (hiredEl) hiredEl.textContent = hired;
+    if (rejectedEl) rejectedEl.textContent = rejected;
+    if (pendingEl) pendingEl.textContent = pending;
 }
 
 // ============================================
@@ -4336,13 +4415,16 @@ def delete_job_document(doc_id):
 
 @app.route('/api/candidates', methods=['GET'])
 def get_candidates():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
-    candidates = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(candidates)
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT * FROM candidates ORDER BY created_at DESC')
+        candidates = [dict(row) for row in c.fetchall()]
+        conn.close()
+        return jsonify(candidates)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/candidates', methods=['POST'])
 def create_candidate():
@@ -5004,5 +5086,20 @@ def download_resume(candidate_id):
         download_name=original_filename,
         mimetype=mimetype
     )
+    @app.route('/api/debug-db')
+def debug_db():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute("PRAGMA table_info(candidates)")
+        columns = c.fetchall()
+        conn.close()
+        return jsonify({
+            'columns': [col[1] for col in columns],
+            'has_resume_file_path': 'resume_file_path' in [col[1] for col in columns],
+            'has_resume_original_filename': 'resume_original_filename' in [col[1] for col in columns]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
