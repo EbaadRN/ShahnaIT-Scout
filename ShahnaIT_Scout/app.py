@@ -3183,10 +3183,9 @@ ${c.resume_text && c.resume_text.length > 15000 ? `<p style="font-size: 12px; co
         </div>
         <button class="btn" onclick="closeModal()">Close</button>
     
-    loadNotes(c.id);
-    document.getElementById('candidateModal').style.display = 'block';
-}
-
+   loadNotes(c.id);
+document.getElementById('candidateModal').style.display = 'block';
+};
     
     window.previewDocument = async function(docId) {
     try {
