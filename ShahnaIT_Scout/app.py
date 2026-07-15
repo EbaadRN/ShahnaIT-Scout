@@ -3111,7 +3111,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     window.closeEditJobModal = closeEditJobModal;
     
     // View Candidate
-      window.viewCandidate = async function(id) {
+   window.viewCandidate = async function(id) {
     currentCandidateId = id;
     const c = allCandidates.find(c => c.id == id);
     const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
@@ -3186,7 +3186,6 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     loadNotes(c.id);
     document.getElementById('candidateModal').style.display = 'block';
 };
-  
 
     window.previewDocument = async function(docId) {
     try {
