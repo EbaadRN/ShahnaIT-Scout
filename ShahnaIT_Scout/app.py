@@ -1303,15 +1303,15 @@ body.dark-mode .meta-item {
 <style>
     body { font-family: Arial; background: #F5F0E8; margin: 0; padding: 20px; }
     /* ... all your existing CSS ... */
-    .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
-    
-    /* Sidebar container */
-    .sidebar-container {
-        display: flex;
-        gap: 20px;
-        align-items: flex-start;
-        margin-bottom: 20px;
-    }
+           .progress-fill { background: #1B6B2E; width: 0%; height: 100%; transition: width 0.3s; }
+        
+        /* Sidebar container */
+        .sidebar-container {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
 
     /* ===== MOBILE STYLES ===== */
     @media screen and (max-width: 768px) {
