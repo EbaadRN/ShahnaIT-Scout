@@ -3111,7 +3111,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     window.closeEditJobModal = closeEditJobModal;
     
     // View Candidate
-         window.viewCandidate = async function(id) {
+      window.viewCandidate = async function(id) {
     currentCandidateId = id;
     const c = allCandidates.find(c => c.id == id);
     const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
@@ -3166,26 +3166,27 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             📋 Copy Resume Text
         </button>
     </div>
-   <div id="resume-text-${c.id}" style="background: #f9f6f0; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.6; user-select: text; cursor: text;">
-    ${c.resume_text ? escapeHtml(c.resume_text) : 'No resume text available'}
-</div>
-${c.resume_text && c.resume_text.length > 15000 ? `<p style="font-size: 12px; color: #999; margin-top: 5px;">📌 Resume is long. Use the download button for the full file.</p>` : ''}
+    <div id="resume-text-${c.id}" style="background: #f9f6f0; border-radius: 8px; padding: 12px; max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.6; user-select: text; cursor: text;">
+        ${c.resume_text ? escapeHtml(c.resume_text) : 'No resume text available'}
+    </div>
+    ${c.resume_text && c.resume_text.length > 15000 ? `<p style="font-size: 12px; color: #999; margin-top: 5px;">📌 Resume is long. Use the download button for the full file.</p>` : ''}
         <h4>Other Documents</h4>
         ${otherDocs.map(d => `<div><span class="doc-link" onclick="previewDocument(${d.id})">📄 ${escapeHtml(d.original_filename)}</span></div>`).join('') || '<p>None</p>'}
         <h4>📝 Notes</h4>
         <div id="notes-${c.id}" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
             <div class="spinner" style="width: 20px; height: 20px;"></div>
         </div>
-                    <div style="display: flex; gap: 8px; margin-top: 5px;">
+        <div style="display: flex; gap: 8px; margin-top: 5px;">
             <input type="text" id="newNote-${c.id}" placeholder="Add a note..." style="flex: 1; padding: 6px;">
             <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="addNote(${c.id})">➕ Add</button>
         </div>
         <button class="btn" onclick="closeModal()">Close</button>
-    `;  // ← ADD THIS CLOSING BACKTICK AND SEMICOLON
+    `;
     
     loadNotes(c.id);
     document.getElementById('candidateModal').style.display = 'block';
-}  // ← KEEP THIS CLOSING BRACE
+};
+  
 
     window.previewDocument = async function(docId) {
     try {
