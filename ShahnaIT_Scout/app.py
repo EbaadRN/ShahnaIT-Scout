@@ -3181,11 +3181,11 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="addNote(${c.id})">➕ Add</button>
         </div>
         <button class="btn" onclick="closeModal()">Close</button>
-    `;
+    `;  // ← ADD THIS - closes the template string
     
     loadNotes(c.id);
     document.getElementById('candidateModal').style.display = 'block';
-};
+};  // ← Closes the function
 
     window.previewDocument = async function(docId) {
     try {
