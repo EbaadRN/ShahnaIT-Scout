@@ -471,9 +471,10 @@ def init_db():
         note_text TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
-    )''')
-   # Add resume file storage columns if they don't exist
-    c.execute("PRAGMA table_info(candidates)")
+        )''')
+    
+    # Add resume file storage columns if they don't exist
+    c.execute("PRAGMA table_info(candidates)")    
     columns = [col[1] for col in c.fetchall()]
     
     if 'resume_file_path' not in columns:
