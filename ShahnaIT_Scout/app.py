@@ -3176,17 +3176,16 @@ ${c.resume_text && c.resume_text.length > 15000 ? `<p style="font-size: 12px; co
         <div id="notes-${c.id}" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
             <div class="spinner" style="width: 20px; height: 20px;"></div>
         </div>
-        <div style="display: flex; gap: 8px; margin-top: 5px;">
+             <div style="display: flex; gap: 8px; margin-top: 5px;">
             <input type="text" id="newNote-${c.id}" placeholder="Add a note..." style="flex: 1; padding: 6px;">
             <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="addNote(${c.id})">➕ Add</button>
-        </div>
-        <button class="btn" onclick="closeModal()">Close</button>
+       <button class="btn" onclick="closeModal()">Close</button>
+    `;  // ← CLOSE THE TEMPLATE STRING HERE
     
-    loadNotes(c.id);
+    loadNotes(c.id);  // ← NOW OUTSIDE THE TEMPLATE STRING
     document.getElementById('candidateModal').style.display = 'block';
-}
+}  // ← CLOSE THE FUNCTION
 
-    
     window.previewDocument = async function(docId) {
     try {
         const res = await fetch(`/api/documents/${docId}/preview`);
