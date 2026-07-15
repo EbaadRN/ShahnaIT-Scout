@@ -3181,6 +3181,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             <input type="text" id="newNote-${c.id}" placeholder="Add a note..." style="flex: 1; padding: 6px;">
             <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="addNote(${c.id})">➕ Add</button>
         </div>
+       <button class="btn" onclick="closeModal()">Close</button>`;
        
     loadNotes(c.id);
     document.getElementById('candidateModal').style.display = 'block';
