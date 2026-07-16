@@ -2434,6 +2434,48 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
         }
     });
 });
+// VIEW CANDIDATE - MINIMAL VERSION
+// ============================================
+window.viewCandidate = function(id) {
+    console.log('View Candidate ID:', id);
+    alert('You clicked on candidate ID: ' + id);
+    
+    // Find the candidate data
+    const candidate = allCandidates.find(c => c.id == id);
+    if (candidate) {
+        console.log('Candidate Name:', candidate.first_name);
+        alert('Candidate: ' + candidate.first_name + ' ' + candidate.last_name);
+    } else {
+        console.log('Candidate not found in allCandidates');
+    }
+};
+console.log('✅ viewCandidate defined');
+// LOAD CANDIDATES
+// ============================================
+async function loadCandidates() {
+    try {
+        const res = await fetch('/api/candidates');
+        const data = await res.json();
+        allCandidates = data;
+        console.log('✅ Loaded ' + allCandidates.length + ' candidates');
+        
+        // Update the candidate cards with IDs
+        document.querySelectorAll('.candidate-card').forEach(function(card) {
+            const id = card.dataset.id;
+            if (id) {
+                card.onclick = function() {
+                    viewCandidate(parseInt(id));
+                };
+            }
+        });
+    } catch (e) {
+        console.error('Error loading candidates:', e);
+    }
+}
+console.log('✅ loadCandidates defined');
+
+// Call loadCandidates when page loads
+loadCandidates();
 // ============================================
     // DARK MODE
     // ============================================
