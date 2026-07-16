@@ -3112,7 +3112,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     window.closeEditJobModal = closeEditJobModal;
     
     // View Candidate
-        window.viewCandidate = async function(id) {
+       window.viewCandidate = async function(id) {
     currentCandidateId = id;
     const c = allCandidates.find(c => c.id == id);
     const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
@@ -3122,7 +3122,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     const documents = await docRes.json();
     const resumeDoc = documents.find(d => d.is_resume === 1);
     const otherDocs = documents.filter(d => !d.is_resume);
-    
+
     document.getElementById('modalBody').innerHTML = `
         <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:15px;">
             <button class="btn btn-edit" onclick="openEditModal(${c.id})">✏️ Edit</button>
@@ -3181,22 +3181,23 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             <input type="text" id="newNote-${c.id}" placeholder="Add a note..." style="flex: 1; padding: 6px;">
             <button class="btn btn-secondary" style="padding: 6px 12px;" onclick="addNote(${c.id})">➕ Add</button>
         </div>
-       <button class="btn" onclick="closeModal()">Close</button>`;
-       
+        <button class="btn" onclick="closeModal()">Close</button>
+    `;
+
     loadNotes(c.id);
     document.getElementById('candidateModal').style.display = 'block';
 };
     
-    window.previewDocument = async function(docId) {
+   window.previewDocument = async function(docId) {
     try {
         const res = await fetch(`/api/documents/${docId}/preview`);
         const data = await res.json();
-        
+
         if (data.error) {
             toastError(data.error);
             return;
         }
-        
+
         if (data.type === 'image') {
             document.getElementById('previewBody').innerHTML = `
                 <img src="data:image/png;base64,${data.content}" style="max-width:100%; border-radius: 8px;">
@@ -3227,56 +3228,6 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
         console.error('Preview error:', e);
     }
 };
-    function closePreviewModal() { document.getElementById('previewModal').style.display = 'none'; }
-    window.closePreviewModal = closePreviewModal;
-    
-    window.copyAllDetails = function() {
-        let text = '';
-        document.querySelectorAll('#modalBody .detail-row, #modalBody .company-item, #modalBody .skill-with-years').forEach(el => text += el.innerText + '\\n');
-        navigator.clipboard.writeText(text);
-toastSuccess('Copied!');
-    };
-    
-    function closeModal() { document.getElementById('candidateModal').style.display = 'none'; }
-    window.closeModal = closeModal;
-    // ============================================
-// DOWNLOAD ORIGINAL RESUME
-// ============================================
-async function downloadResume(candidateId) {
-    try {
-        const res = await fetch(`/api/candidates/${candidateId}/download-resume`);
-        if (res.ok) {
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-
-            // Get filename from content-disposition or use default
-            const disposition = res.headers.get('content-disposition');
-            let filename = 'resume.pdf';
-            if (disposition) {
-                const parts = disposition.split(';');
-                for (let part of parts) {
-                    if (part.trim().startsWith('filename=')) {
-                        filename = part.trim().substring(9).replace(/['"]/g, '');
-                        break;
-                    }
-                }
-            }
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            toastSuccess('Resume downloaded!');
-        } else {
-            toastError('Resume not found');
-        }
-    } catch(e) {
-        toastError('Error downloading resume');
-        console.error('Download error:', e);
-    }
-}
 // ============================================
 // VIEW ORIGINAL RESUME (Opens in new tab)
 // ============================================
