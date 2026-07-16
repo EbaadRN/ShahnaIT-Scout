@@ -2402,6 +2402,39 @@ console.log('✅ deleteNote:', typeof deleteNote);
 console.log('✅ viewCandidate:', typeof viewCandidate);
 console.log('✅ viewOriginalResume:', typeof viewOriginalResume);
 // ============================================
+// SIDEBAR TOGGLE FOR MOBILE
+// ============================================
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+    }
+}
+
+// Close sidebar when clicking outside (on mobile)
+document.addEventListener('click', function(event) {
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.querySelector('.mobile-menu-btn');
+    
+    if (window.innerWidth <= 768) {
+        if (sidebar && !sidebar.contains(event.target) && menuBtn && !menuBtn.contains(event.target)) {
+            sidebar.classList.remove('open');
+        }
+    }
+});
+
+// Close sidebar when a tab is clicked (on mobile)
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+});
+// ============================================
     // DARK MODE
     // ============================================
     function toggleDarkMode() {
@@ -2452,8 +2485,7 @@ console.log('✅ viewOriginalResume:', typeof viewOriginalResume);
         toast.innerHTML = `
             <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
             <span class="toast-message">${message}</span>
-            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
-        `;
+            <button class="toast-close" onclick="this.parentElement.remove()">✕</button>`;
         
         container.appendChild(toast);
         
