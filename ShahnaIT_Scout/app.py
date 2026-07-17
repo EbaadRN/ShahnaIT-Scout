@@ -425,7 +425,6 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    # REMOVED: c.execute('DROP TABLE IF EXISTS candidates')
     c.execute('''CREATE TABLE IF NOT EXISTS candidates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT, last_name TEXT, middle_name TEXT, phone TEXT, email TEXT,
@@ -437,10 +436,11 @@ def init_db():
         resume_text TEXT, resume_filename TEXT, match_score INTEGER DEFAULT 0,
         recommendation TEXT DEFAULT '', detailed_analysis TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        uploaded_by TEXT DEFAULT 'ShahnaIT'
+        uploaded_by TEXT DEFAULT 'ShahnaIT',
+        resume_file_path TEXT,
+        resume_original_filename TEXT
     )''')
     
-    # REMOVED: c.execute('DROP TABLE IF EXISTS candidate_documents')
     c.execute('''CREATE TABLE IF NOT EXISTS candidate_documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT, candidate_id INTEGER,
         filename TEXT, original_filename TEXT, file_path TEXT, file_type TEXT,
@@ -448,7 +448,6 @@ def init_db():
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
     
-    # REMOVED: c.execute('DROP TABLE IF EXISTS jobs')
     c.execute('''CREATE TABLE IF NOT EXISTS jobs (
         id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
         company TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -471,19 +470,7 @@ def init_db():
         note_text TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
-        )''')
-    
-    # Add resume file storage columns if they don't exist
-    c.execute("PRAGMA table_info(candidates)")    
-    columns = [col[1] for col in c.fetchall()]
-    
-    if 'resume_file_path' not in columns:
-        c.execute('ALTER TABLE candidates ADD COLUMN resume_file_path TEXT')
-        print("✅ Added resume_file_path column")
-    
-    if 'resume_original_filename' not in columns:
-        c.execute('ALTER TABLE candidates ADD COLUMN resume_original_filename TEXT')
-        print("✅ Added resume_original_filename column")
+    )''')
     
     conn.commit()
     conn.close()
