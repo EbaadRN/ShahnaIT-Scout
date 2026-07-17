@@ -425,8 +425,8 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
-    c.execute('DROP TABLE IF EXISTS candidates')
-    c.execute('''CREATE TABLE candidates (
+    # REMOVED: c.execute('DROP TABLE IF EXISTS candidates')
+    c.execute('''CREATE TABLE IF NOT EXISTS candidates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         first_name TEXT, last_name TEXT, middle_name TEXT, phone TEXT, email TEXT,
         address TEXT, linkedin TEXT, other_social TEXT, current_role TEXT,
@@ -440,16 +440,16 @@ def init_db():
         uploaded_by TEXT DEFAULT 'ShahnaIT'
     )''')
     
-    c.execute('DROP TABLE IF EXISTS candidate_documents')
-    c.execute('''CREATE TABLE candidate_documents (
+    # REMOVED: c.execute('DROP TABLE IF EXISTS candidate_documents')
+    c.execute('''CREATE TABLE IF NOT EXISTS candidate_documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT, candidate_id INTEGER,
         filename TEXT, original_filename TEXT, file_path TEXT, file_type TEXT,
         is_resume BOOLEAN DEFAULT 0, uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
     
-    c.execute('DROP TABLE IF EXISTS jobs')
-    c.execute('''CREATE TABLE jobs (
+    # REMOVED: c.execute('DROP TABLE IF EXISTS jobs')
+    c.execute('''CREATE TABLE IF NOT EXISTS jobs (
         id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
         company TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
