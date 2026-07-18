@@ -2179,15 +2179,178 @@ HTML_TEMPLATE = '''
         </div>
     </div>
 
-<!-- Modals -->
-<div id="candidateModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Candidate Profile</h2><span class="close" onclick="closeModal()">&times;</span></div><div class="modal-body" id="modalBody"></div></div></div>
-<div id="editModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>✏️ Edit Candidate</h2><span class="close" onclick="closeEditModal()">&times;</span></div><div class="modal-body" id="editModalBody"></div></div></div>
-<div id="docModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📎 Add Document</h2><span class="close" onclick="closeDocModal()">&times;</span></div><div class="modal-body"><input type="file" id="docFile"><button id="uploadDocBtn" class="btn">Upload</button><div id="docUploadStatus"></div></div></div></div>
-<div id="previewModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>Preview</h2><span class="close" onclick="closePreviewModal()">&times;</span></div><div class="modal-body" id="previewBody"></div></div></div>
-<div id="editJobModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>✏️ Edit Job</h2><span class="close" onclick="closeEditJobModal()">&times;</span></div><div class="modal-body" id="editJobModalBody"></div></div></div>
+<!-- ============================================ -->
+<!-- MODALS - SHAHNAIT SCOUT                     -->
+<!-- ============================================ -->
+
+<!-- CANDIDATE PROFILE MODAL -->
+<div id="candidateModal" class="modal">
+    <div class="modal-content modal-xl">
+        <div class="modal-header">
+            <h2 id="modalCandidateName">Candidate Profile</h2>
+            <div style="display:flex;align-items:center;gap:15px;">
+                <span id="modalHRName" style="font-size:13px;opacity:0.9;"></span>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+        </div>
+        <div class="modal-body" id="modalBody" style="padding:0;">
+            <!-- AI Summary Section -->
+            <div id="aiSummarySection" style="display:none;background:#F0F4FA;padding:14px 20px;border-bottom:2px solid #D0D8E4;margin:0;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <i class="fas fa-robot" style="color:#1B2A4A;font-size:16px;"></i>
+                    <strong style="color:#1B2A4A;">AI Analysis Summary</strong>
+                    <span id="aiMatchedJD" style="font-size:12px;background:#1B2A4A;color:#fff;padding:2px 10px;border-radius:12px;"></span>
+                </div>
+                <p id="aiSummaryText" style="margin:4px 0 0 0;font-size:13px;color:#2C3E5A;line-height:1.5;"></p>
+            </div>
+            
+            <!-- Main Content Grid -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;padding:20px;">
+                <!-- LEFT COLUMN -->
+                <div style="padding-right:15px;border-right:1px solid #E2E8F0;">
+                    <!-- Basic Info -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-user"></i> Basic Information</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>First Name</label><input type="text" id="edit_first_name" class="form-input"></div>
+                            <div class="form-group"><label>Last Name</label><input type="text" id="edit_last_name" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Email ID</label><input type="email" id="edit_email" class="form-input"></div>
+                            <div class="form-group"><label>Phone Number</label><input type="text" id="edit_phone" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Designation</label><input type="text" id="edit_designation" class="form-input"></div>
+                            <div class="form-group"><label>LinkedIn</label><input type="text" id="edit_linkedin" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Location</label><input type="text" id="edit_location" class="form-input"></div>
+                            <div class="form-group"><label>Years of Experience</label><input type="text" id="edit_years_exp" class="form-input"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Compensation -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-money-bill-wave"></i> Compensation</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>Current CTC</label><input type="text" id="edit_current_ctc" class="form-input"></div>
+                            <div class="form-group"><label>Expected CTC</label><input type="text" id="edit_expected_ctc" class="form-input"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Proposed Info -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-building"></i> Proposed To</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>Client</label><input type="text" id="edit_proposed_client" class="form-input"></div>
+                            <div class="form-group"><label>Requirement</label><input type="text" id="edit_proposed_requirement" class="form-input"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Candidate Stage -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-flag-checkered"></i> Candidate Stage</h3>
+                        <select id="edit_stage" class="form-input stage-select" onchange="updateStageColor()">
+                            <option value="new">🆕 New</option>
+                            <option value="proposed">📋 Proposed</option>
+                            <option value="screening">🔍 Screening</option>
+                            <option value="technical_l1">💻 Technical L1</option>
+                            <option value="technical_l2">💻 Technical L2</option>
+                            <option value="technical_l3">💻 Technical L3</option>
+                            <option value="rejected">❌ Rejected</option>
+                            <option value="shortlisted">⭐ Shortlisted</option>
+                            <option value="offer_letter_shared">📄 Offer Letter Shared</option>
+                            <option value="onboarded">✅ Onboarded</option>
+                        </select>
+                        <div id="stageColorBar" style="height:6px;border-radius:3px;margin-top:6px;transition:background 0.3s;"></div>
+                    </div>
+                </div>
+                
+                <!-- RIGHT COLUMN -->
+                <div style="padding-left:15px;">
+                    <!-- Skills -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-code"></i> Skill Sets</h3>
+                        <div id="skillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;min-height:30px;"></div>
+                        <div style="display:flex;gap:6px;margin-top:8px;">
+                            <input type="text" id="newSkillInput" class="form-input" placeholder="Add skill..." style="flex:1;">
+                            <button class="btn btn-sm" onclick="addSkillToCandidate()" style="white-space:nowrap;">+ Add</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Work History -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-briefcase"></i> Work History</h3>
+                        <div id="workHistoryContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add Work Entry</button>
+                    </div>
+                    
+                    <!-- Certifications -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-certificate"></i> Certifications</h3>
+                        <div id="certificationsContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addCertification()" style="margin-top:6px;">+ Add Certification</button>
+                    </div>
+                    
+                    <!-- Attachments -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-paperclip"></i> Attachments</h3>
+                        <div id="attachmentsList" style="margin-bottom:8px;"></div>
+                        <input type="file" id="attachmentFileInput" multiple style="display:none;" onchange="uploadAttachments()">
+                        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('attachmentFileInput').click()">📎 Attach Files</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FULL WIDTH: Resume Section -->
+            <div style="padding:0 20px 20px 20px;">
+                <div class="modal-section">
+                    <h3 class="modal-section-title"><i class="fas fa-file-alt"></i> Resume</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button class="btn btn-sm" onclick="viewOriginalResume(currentCandidateId)"><i class="fas fa-external-link-alt"></i> View Original Resume</button>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadOriginalResume(currentCandidateId)"><i class="fas fa-download"></i> Download Resume</button>
+                        <button class="btn btn-sm btn-secondary" onclick="copyResumeText()"><i class="fas fa-copy"></i> Copy Text</button>
+                    </div>
+                    <div id="resumeFullText" style="background:#F5F7FA;border:2px solid #D0D8E4;border-radius:8px;padding:16px;max-height:400px;overflow-y:auto;font-size:13px;line-height:1.6;white-space:pre-wrap;color:#0F1D33;font-family:'Times New Roman',serif;"></div>
+                </div>
+                
+                <!-- Notes -->
+                <div class="modal-section">
+                    <h3 class="modal-section-title"><i class="fas fa-sticky-note"></i> Notes</h3>
+                    <textarea id="edit_notes" class="form-input" rows="3" placeholder="Add notes about this candidate..."></textarea>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:15px;border-top:2px solid #E2E8F0;">
+                    <button class="btn btn-primary" onclick="saveCandidateChanges()"><i class="fas fa-save"></i> Save Changes</button>
+                    <button class="btn btn-secondary" onclick="generateCandidatePDF()"><i class="fas fa-file-pdf"></i> Generate PDF Report</button>
+                    <button class="btn btn-secondary" onclick="runAIAnalysis()"><i class="fas fa-robot"></i> Run AI Analysis</button>
+                    <button class="btn btn-danger" onclick="closeModal()" style="margin-left:auto;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT JOB MODAL -->
+<div id="editJobModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>✏️ Edit Job</h2><span class="close" onclick="closeEditJobModal()">&times;</span></div>
+        <div class="modal-body" id="editJobModalBody"></div>
+    </div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div id="previewModal" class="modal">
+    <div class="modal-content modal-xl">
+        <div class="modal-header"><h2>Preview</h2><span class="close" onclick="closePreviewModal()">&times;</span></div>
+        <div class="modal-body" id="previewBody"></div>
+    </div>
+</div>
 
 <script>
     let allJobs = [], allCandidates = [], currentCandidateId = null;
+    let currentCandidateData = null;
     let selectedBulkFiles = [];
     console.log('✅ App initialized');
 console.log('✅ loadNotes:', typeof loadNotes);
