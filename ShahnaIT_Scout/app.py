@@ -2795,7 +2795,7 @@ async function loadCandidates() {
         document.querySelectorAll('.candidate-card').forEach(function(card) {
             const id = card.getAttribute('data-id');
             if (id) {
-                card.onclick = function() {
+               if (card) card.onclick = function() {
                     viewCandidate(parseInt(id));
                 };
             }
@@ -2886,12 +2886,12 @@ loadCandidates();
 
     
     // Tab switching
-    document.getElementById('tabJobs').onclick = function() { showPanel('jobs'); loadJobs(); };
-    document.getElementById('tabCandidates').onclick = function() { showPanel('candidates'); loadCandidates(); };
-    document.getElementById('tabUpload').onclick = function() { showPanel('upload'); };
-    document.getElementById('tabCreateJob').onclick = function() { showPanel('createJob'); };
-    document.getElementById('tabAnalyze').onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
-    document.getElementById('tabDashboard').onclick = function() { showPanel('dashboard'); loadDashboard(); };
+    const tabJobs = document.getElementById('tabJobs'); if (tabJobs) tabJobs.onclick = function() { showPanel('jobs'); loadJobs(); };
+    const tabCandidates = document.getElementById('tabCandidates'); if (tabCandidates) tabCandidates.onclick = function() { showPanel('candidates'); loadCandidates(); };
+    const tabUpload = document.getElementById('tabUpload'); if (tabUpload) tabUpload.onclick = function() { showPanel('upload'); };
+    const tabCreateJob = document.getElementById('tabCreateJob'); if (tabCreateJob) tabCreateJob.onclick = function() { showPanel('createJob'); };
+    const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
+    const tabDashboard = document.getElementById('tabDashboard'); if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     
     function showPanel(panel) {
     document.getElementById('jobsPanel').style.display = 'none';
@@ -3494,7 +3494,8 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
         }
         document.getElementById('editJobModalBody').innerHTML = `<form id="editJobForm"><label>Job Title</label><input type="text" id="editJobTitle" value="${escapeHtml(job.title || '')}"><label>Company</label><input type="text" id="editJobCompany" value="${escapeHtml(job.company || '')}"><label>Description</label><textarea id="editJobDesc" rows="5">${escapeHtml(job.description || '')}</textarea><h4>Attach Document</h4><input type="file" id="jobDocFile"><button type="button" id="uploadJobDocBtn" class="btn btn-secondary">Upload</button><div id="jobDocUploadStatus"></div>${docsHtml}<div style="margin-top:20px;"><button type="submit" class="btn">Save</button><button type="button" class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button></div></form>`;
         document.getElementById('editJobModal').style.display = 'block';
-        document.getElementById('uploadJobDocBtn').onclick = async function() {
+        const uploadJobDocBtn = document.getElementById('uploadJobDocBtn');
+if (uploadJobDocBtn) uploadJobDocBtn.onclick = async function() {
             const file = document.getElementById('jobDocFile').files[0];
             if (!file) return;
             const fd = new FormData(); fd.append('document', file); fd.append('job_id', id);
@@ -3681,7 +3682,7 @@ window.openDocModal = function(id) {
 
 const uploadDocBtn = document.getElementById('uploadDocBtn');
 if (uploadDocBtn) {
-    uploadDocBtn.onclick = async function() {
+    if (uploadDocBtn) uploadDocBtn.onclick = async function() {
         const docFile = document.getElementById('docFile');
         if (!docFile) return;
         const file = docFile.files[0];
@@ -3702,9 +3703,11 @@ if (uploadDocBtn) {
     };
 }
     
-    document.getElementById('exportBtn').onclick = () => window.location.href = '/api/export-candidates';
+    const exportBtn = document.getElementById('exportBtn');
+if (exportBtn) exportBtn.onclick = () => window.location.href = '/api/export-candidates';
     
-    document.getElementById('parseBtn').onclick = async function() {
+    const parseBtn = document.getElementById('parseBtn');
+if (parseBtn) parseBtn.onclick = async function() {
         const file = document.getElementById('resumeFile').files[0];
         if(!file) return;
         const fd = new FormData(); fd.append('resume', file);
@@ -3714,7 +3717,7 @@ if (uploadDocBtn) {
         const result = await res.json();
         if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
         div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name||'')} ${escapeHtml(result.last_name||'')}</p><p><strong>Email:</strong> ${escapeHtml(result.email||'')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone||'')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button id="saveBtn">💾 Save</button></div>`;
-               document.getElementById('saveBtn').onclick = async function() {
+               const saveBtn = document.getElementById('saveBtn'); if (saveBtn) saveBtn.onclick = async function() {
             // Ask for uploader name
             const uploaded_by = prompt('Enter your name (for tracking):', 'HR Team');
             result.uploaded_by = uploaded_by || 'ShahnaIT';
@@ -3735,7 +3738,7 @@ if (uploadDocBtn) {
         };
     };
     
-    document.getElementById('createJobBtn').onclick = async function() {
+    const createJobBtn = document.getElementById('createJobBtn'); if (createJobBtn) createJobBtn.onclick = async function() {
         const data = { title: document.getElementById('jobTitle').value, company: document.getElementById('jobCompany').value, description: document.getElementById('jobDesc').value };
         if(!data.title) return;
         const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
@@ -3743,7 +3746,7 @@ if (uploadDocBtn) {
         else alert('Error');
     };
     
-    document.getElementById('analyzeBtn').onclick = async function() {
+    const analyzeBtn = document.getElementById('analyzeBtn'); if (analyzeBtn) analyzeBtn.onclick = async function() {
     const jobId = document.getElementById('jobSelect').value;
     const candidateId = document.getElementById('candidateSelect').value;
     if(!jobId || !candidateId) return;
@@ -4010,7 +4013,7 @@ if (result.weaknesses && result.weaknesses.length > 0) {
         }
     };
     
-    document.getElementById('bulkUploadBtn').onclick = async function() {
+    const bulkUploadBtn = document.getElementById('bulkUploadBtn'); if (bulkUploadBtn) bulkUploadBtn.onclick = async function() {
         if (selectedBulkFiles.length === 0) { toastWarning('Please select files first'); return; }
         
         const div = document.getElementById('bulkUploadResult');
@@ -4086,7 +4089,7 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
     };
 
         // ========== BATCH ANALYZE - Match JD Against ALL Candidates ==========
-       document.getElementById('batchAnalyzeBtn').onclick = async function() {
+       const batchAnalyzeBtn = document.getElementById('batchAnalyzeBtn'); if (batchAnalyzeBtn) batchAnalyzeBtn.onclick = async function() {
         const jobId = document.getElementById('batchJobSelect').value;
        if (!jobId) { toastWarning('Please select a Job'); return; }
         
