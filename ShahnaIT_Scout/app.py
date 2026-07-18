@@ -4101,6 +4101,52 @@ def create_job():
     conn.close()
     return jsonify({'message': 'Job created'})
 
+@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
+def update_candidate(candidate_id):
+    """Update candidate details"""
+    try:
+        data = request.json
+        
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        # Build dynamic update query
+        allowed_fields = [
+            'first_name', 'last_name', 'middle_name', 'phone', 'email', 'address', 'linkedin',
+            'current_role', 'current_ctc', 'expected_ctc', 'designation', 'location', 'years_of_experience',
+            'employment_status', 'notice_period_days', 'education', 'notes',
+            'proposed_client', 'proposed_requirement', 'stage', 'analysis_summary', 'matched_jd', 'uploaded_by_name'
+        ]
+        
+        json_fields = ['work_experience', 'certifications', 'core_skills', 'attachments']
+        
+        updates = []
+        values = []
+        
+        for field in allowed_fields:
+            if field in data:
+                updates.append(f"{field} = ?")
+                values.append(data[field])
+        
+        for field in json_fields:
+            if field in data:
+                updates.append(f"{field} = ?")
+                values.append(json.dumps(data[field]))
+        
+        if not updates:
+            return jsonify({"success": False, "error": "No fields to update"}), 400
+        
+        values.append(candidate_id)
+        query = f"UPDATE candidates SET {', '.join(updates)} WHERE id = ?"
+        
+        c.execute(query, values)
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "message": "Candidate updated successfully"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route('/api/jobs/<int:job_id>', methods=['PUT'])
 def update_job(job_id):
     data = request.json
