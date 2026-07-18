@@ -3672,16 +3672,35 @@ function copyPreviewText() {
         };
     };
     
-    window.openDocModal = function(id) { currentCandidateId = id; document.getElementById('docModal').style.display = 'block'; };
-    document.getElementById('uploadDocBtn').onclick = async function() {
-        const file = document.getElementById('docFile').files[0];
+    // Document upload - with null checks
+window.openDocModal = function(id) { 
+    currentCandidateId = id; 
+    const docModal = document.getElementById('docModal');
+    if (docModal) docModal.style.display = 'block'; 
+};
+
+const uploadDocBtn = document.getElementById('uploadDocBtn');
+if (uploadDocBtn) {
+    uploadDocBtn.onclick = async function() {
+        const docFile = document.getElementById('docFile');
+        if (!docFile) return;
+        const file = docFile.files[0];
         if (!file || !currentCandidateId) return;
-        const fd = new FormData(); fd.append('document', file); fd.append('candidate_id', currentCandidateId);
-        document.getElementById('docUploadStatus').innerHTML = '<div class="spinner"></div>';
+        const fd = new FormData(); 
+        fd.append('document', file); 
+        fd.append('candidate_id', currentCandidateId);
+        const docUploadStatus = document.getElementById('docUploadStatus');
+        if (docUploadStatus) docUploadStatus.innerHTML = '<div class="spinner"></div>';
         const res = await fetch('/api/candidates/upload-document', { method: 'POST', body: fd });
-       if (res.ok) { toastSuccess('Uploaded!'); closeDocModal(); viewCandidate(currentCandidateId); }
-        document.getElementById('docUploadStatus').innerHTML = '';
+        if (res.ok) { 
+            toastSuccess('Uploaded!'); 
+            const closeDocModal = window.closeDocModal;
+            if (closeDocModal) closeDocModal(); 
+            viewCandidate(currentCandidateId); 
+        }
+        if (docUploadStatus) docUploadStatus.innerHTML = '';
     };
+}
     
     document.getElementById('exportBtn').onclick = () => window.location.href = '/api/export-candidates';
     
