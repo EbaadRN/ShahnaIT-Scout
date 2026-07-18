@@ -856,24 +856,32 @@ def save_candidate_to_db(candidate_data):
     skills = json.dumps(candidate_data.get('core_skills', []))
     work_exp = json.dumps(candidate_data.get('work_experience', []))
     certs = json.dumps(candidate_data.get('certifications', []))
+    attachments = json.dumps(candidate_data.get('attachments', []))
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO candidates 
         (first_name, last_name, middle_name, phone, email, address, linkedin,
-         current_role, current_ctc, expected_ctc,
+         current_role, current_ctc, expected_ctc, designation, location, years_of_experience,
          employment_status, notice_period_days, work_experience, certifications,
          core_skills, education, notes, resume_text, resume_filename, uploaded_by,
-         resume_file_path, resume_original_filename)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+         resume_file_path, resume_original_filename,
+         proposed_client, proposed_requirement, stage, attachments,
+         analysis_summary, matched_jd, uploaded_by_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (candidate_data.get('first_name'), candidate_data.get('last_name'), candidate_data.get('middle_name'),
          candidate_data.get('phone'), candidate_data.get('email'), candidate_data.get('address'), candidate_data.get('linkedin'),
          candidate_data.get('current_role'), candidate_data.get('current_ctc'), candidate_data.get('expected_ctc'),
+         candidate_data.get('designation'), candidate_data.get('location'), candidate_data.get('years_of_experience'),
          candidate_data.get('employment_status'), candidate_data.get('notice_period_days', 0),
          work_exp, certs, skills, candidate_data.get('education'), candidate_data.get('notes'), 
          candidate_data.get('resume_text'), candidate_data.get('resume_filename'),
          candidate_data.get('uploaded_by', 'ShahnaIT'),
-         candidate_data.get('permanent_file_path'), candidate_data.get('original_filename')))
+         candidate_data.get('permanent_file_path'), candidate_data.get('original_filename'),
+         candidate_data.get('proposed_client'), candidate_data.get('proposed_requirement'),
+         candidate_data.get('stage', 'new'), attachments,
+         candidate_data.get('analysis_summary'), candidate_data.get('matched_jd'),
+         candidate_data.get('uploaded_by_name', 'ShahnaIT HR')))
     
     candidate_id = c.lastrowid
     conn.commit()
