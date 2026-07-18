@@ -2391,22 +2391,397 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
         }
     });
 });
-// VIEW CANDIDATE - MINIMAL VERSION
+// ============================================
+// VIEW CANDIDATE - FULL MODAL VERSION
 // ============================================
 window.viewCandidate = function(id) {
-    console.log('View Candidate ID:', id);
-    alert('You clicked on candidate ID: ' + id);
+    console.log('Opening candidate:', id);
+    currentCandidateId = id;
     
-    // Find the candidate data
     const candidate = allCandidates.find(c => c.id == id);
-    if (candidate) {
-        console.log('Candidate Name:', candidate.first_name);
-        alert('Candidate: ' + candidate.first_name + ' ' + candidate.last_name);
-    } else {
-        console.log('Candidate not found in allCandidates');
+    if (!candidate) {
+        toastError('Candidate not found');
+        return;
     }
+    
+    currentCandidateData = candidate;
+    
+    // Set HR name in header
+    document.getElementById('modalHRName').innerHTML = '<i class="fas fa-user-circle"></i> Uploaded by: ' + escapeHtml(String(candidate.uploaded_by_name || 'ShahnaIT HR'));
+    document.getElementById('modalCandidateName').textContent = (candidate.first_name || '') + ' ' + (candidate.last_name || '');
+    
+    // AI Summary
+    if (candidate.analysis_summary) {
+        document.getElementById('aiSummarySection').style.display = 'block';
+        document.getElementById('aiSummaryText').textContent = candidate.analysis_summary;
+        document.getElementById('aiMatchedJD').textContent = candidate.matched_jd || 'Analysis';
+    } else {
+        document.getElementById('aiSummarySection').style.display = 'none';
+    }
+    
+    // Basic Info
+    document.getElementById('edit_first_name').value = candidate.first_name || '';
+    document.getElementById('edit_last_name').value = candidate.last_name || '';
+    document.getElementById('edit_email').value = candidate.email || '';
+    document.getElementById('edit_phone').value = candidate.phone || '';
+    document.getElementById('edit_designation').value = candidate.designation || candidate.current_role || '';
+    document.getElementById('edit_linkedin').value = candidate.linkedin || '';
+    document.getElementById('edit_location').value = candidate.location || candidate.address || '';
+    document.getElementById('edit_years_exp').value = candidate.years_of_experience || '';
+    
+    // Compensation
+    document.getElementById('edit_current_ctc').value = candidate.current_ctc || '';
+    document.getElementById('edit_expected_ctc').value = candidate.expected_ctc || '';
+    
+    // Proposed
+    document.getElementById('edit_proposed_client').value = candidate.proposed_client || '';
+    document.getElementById('edit_proposed_requirement').value = candidate.proposed_requirement || '';
+    
+    // Stage
+    document.getElementById('edit_stage').value = candidate.stage || 'new';
+    updateStageColor();
+    
+    // Skills
+    renderSkills(candidate.core_skills);
+    
+    // Work History
+    renderWorkHistory(candidate.work_experience);
+    
+    // Certifications
+    renderCertifications(candidate.certifications);
+    
+    // Attachments
+    renderAttachments(candidate.attachments);
+    
+    // Resume - FULL TEXT, NO TRUNCATION
+    const resumeText = candidate.resume_text || '';
+    document.getElementById('resumeFullText').textContent = resumeText;
+    
+    // Notes
+    document.getElementById('edit_notes').value = candidate.notes || '';
+    
+    // Show modal
+    document.getElementById('candidateModal').style.display = 'block';
 };
-console.log('✅ viewCandidate defined');
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+function escapeHtml(str) {
+    str = String(str || '');
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function renderSkills(skillsData) {
+    const container = document.getElementById('skillsContainer');
+    container.innerHTML = '';
+    let skills = [];
+    try {
+        skills = typeof skillsData === 'string' ? JSON.parse(skillsData) : (skillsData || []);
+    } catch(e) { skills = []; }
+    
+    if (!Array.isArray(skills) || skills.length === 0) {
+        container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No skills added</span>';
+        return;
+    }
+    
+    skills.forEach((skill, index) => {
+        const tag = document.createElement('span');
+        tag.className = 'skill-tag editable-skill';
+        tag.innerHTML = escapeHtml(String(skill)) + ' <i class="fas fa-times" style="cursor:pointer;margin-left:4px;font-size:10px;" onclick="removeSkill(' + index + ')"></i>';
+        container.appendChild(tag);
+    });
+}
+
+function renderWorkHistory(workData) {
+    const container = document.getElementById('workHistoryContainer');
+    container.innerHTML = '';
+    let work = [];
+    try {
+        work = typeof workData === 'string' ? JSON.parse(workData) : (workData || []);
+    } catch(e) { work = []; }
+    
+    if (!Array.isArray(work) || work.length === 0) {
+        container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No work history</span>';
+        return;
+    }
+    
+    work.forEach((w, index) => {
+        const div = document.createElement('div');
+        div.className = 'company-item';
+        div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+        div.innerHTML = '<span><strong>' + escapeHtml(String(w.company || w || '')) + '</strong></span>' +
+            '<i class="fas fa-times" style="cursor:pointer;color:#C42020;font-size:12px;" onclick="removeWorkEntry(' + index + ')"></i>';
+        container.appendChild(div);
+    });
+}
+
+function renderCertifications(certsData) {
+    const container = document.getElementById('certificationsContainer');
+    container.innerHTML = '';
+    let certs = [];
+    try {
+        certs = typeof certsData === 'string' ? JSON.parse(certsData) : (certsData || []);
+    } catch(e) { certs = []; }
+    
+    if (!Array.isArray(certs) || certs.length === 0) {
+        container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No certifications</span>';
+        return;
+    }
+    
+    certs.forEach((cert, index) => {
+        const div = document.createElement('div');
+        div.className = 'company-item';
+        div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+        div.innerHTML = '<span>📜 ' + escapeHtml(String(cert)) + '</span>' +
+            '<i class="fas fa-times" style="cursor:pointer;color:#C42020;font-size:12px;" onclick="removeCertification(' + index + ')"></i>';
+        container.appendChild(div);
+    });
+}
+
+function renderAttachments(attachmentsData) {
+    const container = document.getElementById('attachmentsList');
+    container.innerHTML = '';
+    let attachments = [];
+    try {
+        attachments = typeof attachmentsData === 'string' ? JSON.parse(attachmentsData) : (attachmentsData || []);
+    } catch(e) { attachments = []; }
+    
+    if (!Array.isArray(attachments) || attachments.length === 0) {
+        container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No attachments</span>';
+        return;
+    }
+    
+    attachments.forEach((att, index) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;';
+        div.innerHTML = '<span>📎 ' + escapeHtml(String(att.filename || att)) + '</span>' +
+            '<i class="fas fa-times" style="cursor:pointer;color:#C42020;" onclick="removeAttachment(' + index + ')"></i>';
+        container.appendChild(div);
+    });
+}
+
+function updateStageColor() {
+    const stage = document.getElementById('edit_stage').value;
+    const colorBar = document.getElementById('stageColorBar');
+    const colors = {
+        'new': '#1B5F8C',
+        'proposed': '#6B4CB8',
+        'screening': '#B85C00',
+        'technical_l1': '#0D7B4A',
+        'technical_l2': '#0D7B4A',
+        'technical_l3': '#0A5C35',
+        'rejected': '#C42020',
+        'shortlisted': '#D4A800',
+        'offer_letter_shared': '#2C7A4A',
+        'onboarded': '#1B5F8C'
+    };
+    colorBar.style.background = colors[stage] || '#1B2A4A';
+}
+
+// Skill Management
+function addSkillToCandidate() {
+    const input = document.getElementById('newSkillInput');
+    const skill = input.value.trim();
+    if (!skill) return;
+    
+    let skills = [];
+    try {
+        skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
+    } catch(e) { skills = []; }
+    
+    skills.push(skill);
+    currentCandidateData.core_skills = skills;
+    renderSkills(skills);
+    input.value = '';
+}
+
+function removeSkill(index) {
+    let skills = [];
+    try {
+        skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
+    } catch(e) { skills = []; }
+    skills.splice(index, 1);
+    currentCandidateData.core_skills = skills;
+    renderSkills(skills);
+}
+
+function addWorkEntry() {
+    const company = prompt('Enter company name:');
+    if (!company) return;
+    let work = [];
+    try {
+        work = typeof currentCandidateData.work_experience === 'string' ? JSON.parse(currentCandidateData.work_experience) : (currentCandidateData.work_experience || []);
+    } catch(e) { work = []; }
+    work.push({company: company});
+    currentCandidateData.work_experience = work;
+    renderWorkHistory(work);
+}
+
+function removeWorkEntry(index) {
+    let work = [];
+    try {
+        work = typeof currentCandidateData.work_experience === 'string' ? JSON.parse(currentCandidateData.work_experience) : (currentCandidateData.work_experience || []);
+    } catch(e) { work = []; }
+    work.splice(index, 1);
+    currentCandidateData.work_experience = work;
+    renderWorkHistory(work);
+}
+
+function addCertification() {
+    const cert = prompt('Enter certification name:');
+    if (!cert) return;
+    let certs = [];
+    try {
+        certs = typeof currentCandidateData.certifications === 'string' ? JSON.parse(currentCandidateData.certifications) : (currentCandidateData.certifications || []);
+    } catch(e) { certs = []; }
+    certs.push(cert);
+    currentCandidateData.certifications = certs;
+    renderCertifications(certs);
+}
+
+function removeCertification(index) {
+    let certs = [];
+    try {
+        certs = typeof currentCandidateData.certifications === 'string' ? JSON.parse(currentCandidateData.certifications) : (currentCandidateData.certifications || []);
+    } catch(e) { certs = []; }
+    certs.splice(index, 1);
+    currentCandidateData.certifications = certs;
+    renderCertifications(certs);
+}
+
+function removeAttachment(index) {
+    let attachments = [];
+    try {
+        attachments = typeof currentCandidateData.attachments === 'string' ? JSON.parse(currentCandidateData.attachments) : (currentCandidateData.attachments || []);
+    } catch(e) { attachments = []; }
+    attachments.splice(index, 1);
+    currentCandidateData.attachments = attachments;
+    renderAttachments(attachments);
+}
+
+function uploadAttachments() {
+    toastInfo('Attachment upload will be implemented with backend support');
+}
+
+// Save Changes
+async function saveCandidateChanges() {
+    if (!currentCandidateId) return;
+    
+    const data = {
+        first_name: document.getElementById('edit_first_name').value,
+        last_name: document.getElementById('edit_last_name').value,
+        email: document.getElementById('edit_email').value,
+        phone: document.getElementById('edit_phone').value,
+        designation: document.getElementById('edit_designation').value,
+        linkedin: document.getElementById('edit_linkedin').value,
+        location: document.getElementById('edit_location').value,
+        years_of_experience: document.getElementById('edit_years_exp').value,
+        current_ctc: document.getElementById('edit_current_ctc').value,
+        expected_ctc: document.getElementById('edit_expected_ctc').value,
+        proposed_client: document.getElementById('edit_proposed_client').value,
+        proposed_requirement: document.getElementById('edit_proposed_requirement').value,
+        stage: document.getElementById('edit_stage').value,
+        notes: document.getElementById('edit_notes').value,
+        core_skills: currentCandidateData.core_skills,
+        work_experience: currentCandidateData.work_experience,
+        certifications: currentCandidateData.certifications,
+        attachments: currentCandidateData.attachments
+    };
+    
+    try {
+        const response = await fetch('/api/candidates/' + currentCandidateId, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        if (result.success) {
+            toastSuccess('Candidate updated successfully!');
+            closeModal();
+            loadCandidates();
+        } else {
+            toastError(result.error || 'Update failed');
+        }
+    } catch(e) {
+        toastError('Error: ' + e.message);
+    }
+}
+
+// PDF Generation
+function generateCandidatePDF() {
+    const candidate = currentCandidateData;
+    if (!candidate) return;
+    
+    let html = '<html><head><meta charset="UTF-8"><style>';
+    html += 'body{font-family:"Times New Roman",serif;font-size:12pt;color:#000;padding:40px;line-height:1.6;}';
+    html += 'h1{font-size:20pt;color:#1B2A4A;border-bottom:2px solid #1B2A4A;padding-bottom:10px;}';
+    html += 'h2{font-size:14pt;color:#1B2A4A;margin-top:20px;}';
+    html += 'table{width:100%;border-collapse:collapse;margin:10px 0;}';
+    html += 'td{padding:6px 10px;border:1px solid #ccc;}';
+    html += 'td:first-child{font-weight:bold;background:#f5f5f5;width:30%;}';
+    html += '.skill-tag{display:inline-block;background:#E8EDF5;color:#1B2A4A;padding:3px 10px;margin:3px;border-radius:12px;font-size:10pt;}';
+    html += '.section{margin:15px 0;}';
+    html += '</style></head><body>';
+    
+    html += '<h1>Candidate Profile: ' + escapeHtml(String(candidate.first_name + ' ' + candidate.last_name)) + '</h1>';
+    
+    html += '<h2>Basic Information</h2><table>';
+    html += '<tr><td>Name</td><td>' + escapeHtml(String(candidate.first_name + ' ' + candidate.last_name)) + '</td></tr>';
+    html += '<tr><td>Email</td><td>' + escapeHtml(String(candidate.email || 'N/A')) + '</td></tr>';
+    html += '<tr><td>Phone</td><td>' + escapeHtml(String(candidate.phone || 'N/A')) + '</td></tr>';
+    html += '<tr><td>Designation</td><td>' + escapeHtml(String(candidate.designation || candidate.current_role || 'N/A')) + '</td></tr>';
+    html += '<tr><td>LinkedIn</td><td>' + escapeHtml(String(candidate.linkedin || 'N/A')) + '</td></tr>';
+    html += '<tr><td>Location</td><td>' + escapeHtml(String(candidate.location || candidate.address || 'N/A')) + '</td></tr>';
+    html += '<tr><td>Experience</td><td>' + escapeHtml(String(candidate.years_of_experience || 'N/A')) + '</td></tr>';
+    html += '<tr><td>Current CTC</td><td>' + escapeHtml(String(candidate.current_ctc || 'N/A')) + '</td></tr>';
+    html += '<tr><td>Expected CTC</td><td>' + escapeHtml(String(candidate.expected_ctc || 'N/A')) + '</td></tr>';
+    html += '<tr><td>Stage</td><td>' + escapeHtml(String(candidate.stage || 'new')) + '</td></tr>';
+    html += '</table>';
+    
+    // Skills
+    let skills = [];
+    try { skills = typeof candidate.core_skills === 'string' ? JSON.parse(candidate.core_skills) : (candidate.core_skills || []); } catch(e) {}
+    if (skills.length > 0) {
+        html += '<h2>Skills</h2><div>';
+        skills.forEach(s => { html += '<span class="skill-tag">' + escapeHtml(String(s)) + '</span>'; });
+        html += '</div>';
+    }
+    
+    html += '<h2>Notes</h2><p>' + escapeHtml(String(candidate.notes || 'No notes')) + '</p>';
+    html += '<p style="margin-top:30px;font-size:9pt;color:#666;">Generated by ShahnaIT Scout</p>';
+    html += '</body></html>';
+    
+    const blob = new Blob([html], {type: 'text/html'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    toastSuccess('PDF report opened in new tab. Use Ctrl+P to save as PDF.');
+}
+
+function runAIAnalysis() {
+    toastInfo('AI Analysis will run against the selected JD');
+}
+
+function copyResumeText() {
+    const text = document.getElementById('resumeFullText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        toastSuccess('Resume text copied!');
+    }).catch(() => {
+        toastError('Failed to copy');
+    });
+}
+
+function closeModal() {
+    document.getElementById('candidateModal').style.display = 'none';
+    currentCandidateId = null;
+    currentCandidateData = null;
+}
+
+console.log('✅ viewCandidate (full modal) defined');
+console.log('✅ Stage colors:', typeof updateStageColor);
+console.log('✅ Skills renderer:', typeof renderSkills);
 // LOAD CANDIDATES
 // ============================================
 async function loadCandidates() {
