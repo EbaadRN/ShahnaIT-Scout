@@ -477,6 +477,43 @@ def init_db():
     print("✅ Database initialized")
 
 init_db()
+# ============ STEP 1: DATABASE MIGRATION - ADD NEW COLUMNS ============
+def migrate_database():
+    """Add new columns for enhanced candidate profile"""
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Get existing columns
+    c.execute("PRAGMA table_info(candidates)")
+    existing_columns = [col[1] for col in c.fetchall()]
+    
+    new_columns = {
+        'designation': 'TEXT',
+        'location': 'TEXT',
+        'years_of_experience': 'TEXT',
+        'proposed_client': 'TEXT',
+        'proposed_requirement': 'TEXT',
+        'stage': "TEXT DEFAULT 'new'",
+        'attachments': 'TEXT',  # JSON array
+        'analysis_summary': 'TEXT',
+        'matched_jd': 'TEXT',
+        'uploaded_by_name': 'TEXT DEFAULT \'ShahnaIT HR\''
+    }
+    
+    for col_name, col_type in new_columns.items():
+        if col_name not in existing_columns:
+            try:
+                c.execute(f"ALTER TABLE candidates ADD COLUMN {col_name} {col_type}")
+                print(f"✅ Added column: {col_name}")
+            except Exception as e:
+                print(f"⚠️ Error adding {col_name}: {e}")
+    
+    conn.commit()
+    conn.close()
+    print("✅ Database migration complete!")
+
+# Call migration at startup
+migrate_database()
 
 # ============ GROQ API SETUP ============
 
