@@ -858,6 +858,15 @@ def save_candidate_to_db(candidate_data):
     certs = json.dumps(candidate_data.get('certifications', []))
     attachments = json.dumps(candidate_data.get('attachments', []))
     
+    # Fix: Convert dict/list to JSON string for these fields
+    education = candidate_data.get('education', '')
+    if isinstance(education, (dict, list)):
+        education = json.dumps(education)
+    
+    resume_text = candidate_data.get('resume_text', '')
+    if isinstance(resume_text, (dict, list)):
+        resume_text = json.dumps(resume_text)
+    
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO candidates 
@@ -869,19 +878,36 @@ def save_candidate_to_db(candidate_data):
          proposed_client, proposed_requirement, stage, attachments,
          analysis_summary, matched_jd, uploaded_by_name)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-        (candidate_data.get('first_name'), candidate_data.get('last_name'), candidate_data.get('middle_name'),
-         candidate_data.get('phone'), candidate_data.get('email'), candidate_data.get('address'), candidate_data.get('linkedin'),
-         candidate_data.get('current_role'), candidate_data.get('current_ctc'), candidate_data.get('expected_ctc'),
-         candidate_data.get('designation'), candidate_data.get('location'), candidate_data.get('years_of_experience'),
-         candidate_data.get('employment_status'), candidate_data.get('notice_period_days', 0),
-         work_exp, certs, skills, candidate_data.get('education'), candidate_data.get('notes'), 
-         candidate_data.get('resume_text'), candidate_data.get('resume_filename'),
-         candidate_data.get('uploaded_by', 'ShahnaIT'),
-         candidate_data.get('permanent_file_path'), candidate_data.get('original_filename'),
-         candidate_data.get('proposed_client'), candidate_data.get('proposed_requirement'),
-         candidate_data.get('stage', 'new'), attachments,
-         candidate_data.get('analysis_summary'), candidate_data.get('matched_jd'),
-         candidate_data.get('uploaded_by_name', 'ShahnaIT HR')))
+        (str(candidate_data.get('first_name') or ''),
+         str(candidate_data.get('last_name') or ''),
+         str(candidate_data.get('middle_name') or ''),
+         str(candidate_data.get('phone') or ''),
+         str(candidate_data.get('email') or ''),
+         str(candidate_data.get('address') or ''),
+         str(candidate_data.get('linkedin') or ''),
+         str(candidate_data.get('current_role') or ''),
+         str(candidate_data.get('current_ctc') or ''),
+         str(candidate_data.get('expected_ctc') or ''),
+         str(candidate_data.get('designation') or ''),
+         str(candidate_data.get('location') or ''),
+         str(candidate_data.get('years_of_experience') or ''),
+         str(candidate_data.get('employment_status') or ''),
+         candidate_data.get('notice_period_days', 0),
+         work_exp, certs, skills,
+         education,
+         str(candidate_data.get('notes') or ''),
+         resume_text,
+         str(candidate_data.get('resume_filename') or ''),
+         str(candidate_data.get('uploaded_by', 'ShahnaIT')),
+         str(candidate_data.get('permanent_file_path') or ''),
+         str(candidate_data.get('original_filename') or ''),
+         str(candidate_data.get('proposed_client') or ''),
+         str(candidate_data.get('proposed_requirement') or ''),
+         str(candidate_data.get('stage', 'new')),
+         attachments,
+         str(candidate_data.get('analysis_summary') or ''),
+         str(candidate_data.get('matched_jd') or ''),
+         str(candidate_data.get('uploaded_by_name', 'ShahnaIT HR'))))
     
     candidate_id = c.lastrowid
     conn.commit()
