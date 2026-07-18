@@ -2793,7 +2793,7 @@ async function loadCandidates() {
         
         // Update the candidate cards with IDs
         document.querySelectorAll('.candidate-card').forEach(function(card) {
-            const id = card.dataset.id;
+            const id = card.getAttribute('data-id');
             if (id) {
                 card.onclick = function() {
                     viewCandidate(parseInt(id));
