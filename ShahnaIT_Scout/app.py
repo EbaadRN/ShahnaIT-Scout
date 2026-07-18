@@ -4249,25 +4249,6 @@ def create_candidate():
     
     return jsonify({'message': 'Candidate saved', 'id': candidate_id})
 
-@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
-def update_candidate(candidate_id):
-    data = request.json
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''UPDATE candidates SET 
-        first_name=?, middle_name=?, last_name=?, email=?, phone=?, address=?, linkedin=?,
-        current_role=?, current_ctc=?, expected_ctc=?,
-        employment_status=?, notice_period_days=?, education=?,
-        core_skills=?, certifications=?
-        WHERE id=?''',
-        (data.get('first_name'), data.get('middle_name'), data.get('last_name'),
-         data.get('email'), data.get('phone'), data.get('address'), data.get('linkedin'),
-         data.get('current_role'), data.get('current_ctc'), data.get('expected_ctc'),
-         data.get('employment_status'), data.get('notice_period_days', 0),
-         data.get('education'), data.get('core_skills'), data.get('certifications'), candidate_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Candidate updated'})
 # ============================================
 # DELETE CANDIDATE ENDPOINT
 # ============================================
