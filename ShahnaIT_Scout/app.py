@@ -2674,10 +2674,11 @@ function renderCertifications(certsData) {
         container.appendChild(div);
     });
 }
-
 function renderAttachments(attachmentsData) {
     const container = document.getElementById('attachmentsList');
+    if (!container) return;
     container.innerHTML = '';
+    
     let attachments = [];
     try {
         attachments = typeof attachmentsData === 'string' ? JSON.parse(attachmentsData) : (attachmentsData || []);
@@ -2689,12 +2690,45 @@ function renderAttachments(attachmentsData) {
     }
     
     attachments.forEach((att, index) => {
+        const filename = att.filename || att.original_name || att;
         const div = document.createElement('div');
-        div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;';
-        div.innerHTML = '<span>📎 ' + escapeHtml(String(att.filename || att)) + '</span>' +
-            '<i class="fas fa-times" style="cursor:pointer;color:#C42020;" onclick="removeAttachment(' + index + ')"></i>';
+        div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid #E2E8F0;';
+        div.innerHTML = '<span>📎 ' + escapeHtml(String(filename)) + '</span>' +
+            '<div style="display:flex;gap:8px;">' +
+            '<i class="fas fa-download" style="cursor:pointer;color:#1B2A4A;" onclick="downloadAttachment(\'' + escapeHtml(String(filename)) + '\')" title="Download"></i>' +
+            '<i class="fas fa-trash" style="cursor:pointer;color:#C42020;" onclick="deleteAttachment(\'' + escapeHtml(String(filename)) + '\')" title="Delete"></i>' +
+            '</div>';
         container.appendChild(div);
     });
+}
+
+function downloadAttachment(filename) {
+    if (!currentCandidateId) return;
+    window.open('/api/candidates/' + currentCandidateId + '/attachments/' + filename, '_blank');
+}
+
+async function deleteAttachment(filename) {
+    if (!currentCandidateId) return;
+    if (!confirm('Delete "' + filename + '"?')) return;
+    
+    try {
+        const res = await fetch('/api/candidates/' + currentCandidateId + '/attachments/' + filename, {
+            method: 'DELETE'
+        });
+        const result = await res.json();
+        
+        if (result.success) {
+            toastSuccess('File deleted');
+            const candidateRes = await fetch('/api/candidates/' + currentCandidateId);
+            const candidate = await candidateRes.json();
+            currentCandidateData = candidate;
+            renderAttachments(candidate.attachments);
+        } else {
+            toastError('Failed to delete');
+        }
+    } catch(e) {
+        toastError('Error: ' + e.message);
+    }
 }
 
 function updateStageColor() {
@@ -2800,8 +2834,54 @@ function removeAttachment(index) {
     renderAttachments(attachments);
 }
 
-function uploadAttachments() {
-    toastInfo('Attachment upload will be implemented with backend support');
+async function uploadAttachments() {
+    const fileInput = document.getElementById('attachmentFileInput');
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+        toastError('Please select files first');
+        return;
+    }
+    
+    const files = fileInput.files;
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        try {
+            const res = await fetch('/api/candidates/' + currentCandidateId + '/attachments', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+            
+            if (result.success) {
+                successCount++;
+                // Update attachments in current data
+                currentCandidateData.attachments = result.attachments;
+            } else {
+                failCount++;
+            }
+        } catch(e) {
+            failCount++;
+        }
+    }
+    
+    // Refresh the attachments list
+    renderAttachments(currentCandidateData.attachments);
+    
+    // Reset file input
+    fileInput.value = '';
+    
+    if (successCount > 0) {
+        toastSuccess(successCount + ' file(s) uploaded!');
+    }
+    if (failCount > 0) {
+        toastError(failCount + ' file(s) failed');
+    }
+}
 }
 
 // Save Changes
