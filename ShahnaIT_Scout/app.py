@@ -2806,6 +2806,11 @@ function copyResumeText() {
     });
 }
 
+function downloadOriginalResume(candidateId) {
+    if (!candidateId) return;
+    window.open('/api/candidates/' + candidateId + '/download-resume', '_blank');
+}
+
 function closeModal() {
     document.getElementById('candidateModal').style.display = 'none';
     currentCandidateId = null;
