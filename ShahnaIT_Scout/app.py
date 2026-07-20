@@ -2616,23 +2616,25 @@ function addSkillToCandidate() {
     const skill = input.value.trim();
     if (!skill) return;
     
-    let skills = [];
-    try {
-        skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
-    } catch(e) { skills = []; }
-    
-    skills.push(skill);
+let skills = [];
+try {
+    skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
+} catch(e) { skills = []; }
+if (!Array.isArray(skills)) skills = [];
+
+skills.push(skill);
     currentCandidateData.core_skills = skills;
     renderSkills(skills);
     input.value = '';
 }
 
 function removeSkill(index) {
-    let skills = [];
-    try {
-        skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
-    } catch(e) { skills = []; }
-    skills.splice(index, 1);
+let skills = [];
+try {
+    skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
+} catch(e) { skills = []; }
+if (!Array.isArray(skills)) skills = [];
+skills.splice(index, 1);
     currentCandidateData.core_skills = skills;
     renderSkills(skills);
 }
@@ -2640,11 +2642,12 @@ function removeSkill(index) {
 function addWorkEntry() {
     const company = prompt('Enter company name:');
     if (!company) return;
-    let work = [];
-    try {
-        work = typeof currentCandidateData.work_experience === 'string' ? JSON.parse(currentCandidateData.work_experience) : (currentCandidateData.work_experience || []);
-    } catch(e) { work = []; }
-    work.push({company: company});
+let work = [];
+try {
+    work = typeof currentCandidateData.work_experience === 'string' ? JSON.parse(currentCandidateData.work_experience) : (currentCandidateData.work_experience || []);
+} catch(e) { work = []; }
+if (!Array.isArray(work)) work = [];
+work.push({company: company});
     currentCandidateData.work_experience = work;
     renderWorkHistory(work);
 }
@@ -2662,11 +2665,12 @@ function removeWorkEntry(index) {
 function addCertification() {
     const cert = prompt('Enter certification name:');
     if (!cert) return;
-    let certs = [];
-    try {
-        certs = typeof currentCandidateData.certifications === 'string' ? JSON.parse(currentCandidateData.certifications) : (currentCandidateData.certifications || []);
-    } catch(e) { certs = []; }
-    certs.push(cert);
+let certs = [];
+try {
+    certs = typeof currentCandidateData.certifications === 'string' ? JSON.parse(currentCandidateData.certifications) : (currentCandidateData.certifications || []);
+} catch(e) { certs = []; }
+if (!Array.isArray(certs)) certs = [];
+certs.push(cert);
     currentCandidateData.certifications = certs;
     renderCertifications(certs);
 }
