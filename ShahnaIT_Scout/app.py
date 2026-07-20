@@ -2993,8 +2993,83 @@ function generateCandidatePDF() {
     toastSuccess('PDF report opened in new tab. Use Ctrl+P to save as PDF.');
 }
 
-function runAIAnalysis() {
-    toastInfo('AI Analysis will run against the selected JD');
+async function runAIAnalysis() {
+    if (!currentCandidateId || !currentCandidateData) {
+        toastError('No candidate selected');
+        return;
+    }
+    
+    const requirementId = document.getElementById('edit_proposed_requirement').value;
+    if (!requirementId) {
+        toastError('Please select a Requirement/Job ID first');
+        return;
+    }
+    
+    try {
+        const reqRes = await fetch('/api/requirements');
+        const requirements = await reqRes.json();
+        const selectedReq = requirements.find(r => r.requirement_id === requirementId);
+        
+        if (!selectedReq) {
+            toastError('Requirement not found');
+            return;
+        }
+        
+        const jobsRes = await fetch('/api/jobs');
+        const jobs = await jobsRes.json();
+        const job = jobs.find(j => (j.requirement_id === requirementId || j.title === selectedReq.title));
+        
+        const jdText = (job ? job.description : '') || selectedReq.title || '';
+        const resumeText = currentCandidateData.resume_text || '';
+        
+        if (!resumeText) {
+            toastError('No resume text available');
+            return;
+        }
+        
+        toastInfo('Running AI Analysis...');
+        
+        const analysisRes = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                resume_text: resumeText,
+                jd_text: jdText,
+                candidate_id: currentCandidateId
+            })
+        });
+        
+        const result = await analysisRes.json();
+        
+        if (result.match_score !== undefined) {
+            document.getElementById('aiSummarySection').style.display = 'block';
+            document.getElementById('aiSummaryText').textContent = result.executive_summary || 'Analysis complete';
+            document.getElementById('aiMatchedJD').textContent = requirementId;
+            
+            currentCandidateData.analysis_summary = result.executive_summary;
+            currentCandidateData.match_score = result.match_score;
+            currentCandidateData.matched_jd = requirementId;
+            
+            await fetch('/api/candidates/' + currentCandidateId, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    analysis_summary: result.executive_summary,
+                    match_score: result.match_score,
+                    matched_jd: requirementId,
+                    proposed_requirement: requirementId
+                })
+            });
+            
+            toastSuccess('Analysis complete! Match: ' + result.match_score + '%');
+            closeModal();
+            loadCandidates();
+        } else {
+            toastError('Analysis failed');
+        }
+    } catch(e) {
+        toastError('Error: ' + e.message);
+    }
 }
 
 function copyResumeText() {
