@@ -1021,8 +1021,9 @@ def delete_attachment(candidate_id, filename):
         
         return jsonify({"success": True, "message": "File deleted"})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-        @app.route('/api/requirements', methods=['GET'])
+       return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/requirements', methods=['GET'])
 def get_requirements():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -1031,7 +1032,7 @@ def get_requirements():
     requirements = [dict(row) for row in c.fetchall()]
     conn.close()
     return jsonify(requirements)
-# ============ HTML TEMPLATE ============
+        # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
