@@ -2542,7 +2542,9 @@ window.viewCandidate = function(id) {
     currentCandidateData = candidate;
     
     // Set HR name in header
-    document.getElementById('modalHRName').innerHTML = '<i class="fas fa-user-circle"></i> Uploaded by: ' + escapeHtml(String(candidate.uploaded_by_name || 'ShahnaIT HR'));
+    document.getElementById('modalHRName').innerHTML = 
+    '<span style="background:#fff;color:#1B2A4A;padding:3px 12px;border-radius:14px;font-weight:700;font-size:13px;margin-right:12px;">SIT-C-' + String(candidate.id).padStart(3,'0') + '</span>' +
+    '<i class="fas fa-user-circle"></i> Uploaded by: ' + escapeHtml(String(candidate.uploaded_by_name || 'ShahnaIT HR'));
     document.getElementById('modalCandidateName').textContent = (candidate.first_name || '') + ' ' + (candidate.last_name || '');
     
     // AI Summary
