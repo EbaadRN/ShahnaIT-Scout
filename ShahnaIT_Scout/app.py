@@ -515,6 +515,23 @@ def migrate_database():
 # Call migration at startup
 migrate_database()
 
+def create_requirement_tables():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS requirements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        requirement_id TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        client_name TEXT,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    conn.commit()
+    conn.close()
+    print("✅ Requirements table ready!")
+
+create_requirement_tables()
+
 # ============ GROQ API SETUP ============
 
 # ============ GROQ API SETUP ============
