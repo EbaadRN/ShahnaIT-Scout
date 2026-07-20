@@ -3259,7 +3259,13 @@ function renderCandidates(candidates) {
     
     container.innerHTML = candidates.map(c => {
         const name = (c.first_name + ' ' + c.last_name).trim() || 'Unknown';
-        const skills = c.core_skills ? JSON.parse(c.core_skills) : [];
+        let skills = [];
+try {
+    if (c.core_skills) {
+        skills = typeof c.core_skills === 'string' ? JSON.parse(c.core_skills) : c.core_skills;
+    }
+} catch(e) { skills = []; }
+if (!Array.isArray(skills)) skills = [];
         const matchScore = c.match_score || 0;
         const matchClass = matchScore >= 70 ? 'match-high' : (matchScore >= 40 ? 'match-medium' : 'match-low');
         const status = c.employment_status || 'new';
