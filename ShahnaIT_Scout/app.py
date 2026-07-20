@@ -3302,7 +3302,7 @@ function renderCandidates(candidates) {
             <div class="card-body">
                 <div class="candidate-skills">
                     ${skills.length > 0 ? skills.slice(0,5).map(s => 
-                        `<span class="skill-tag">${escapeHtml(s.skill)}</span>`
+    `<span class="skill-tag">${escapeHtml(typeof s === 'object' ? (s.skill || s.name || '') : s)}</span>`
                     ).join('') : '<span class="no-skills">No skills listed</span>'}
                     ${skills.length > 5 ? `<span class="skill-tag more">+${skills.length - 5}</span>` : ''}
                 </div>
@@ -3742,7 +3742,7 @@ if (parseBtn) parseBtn.onclick = async function() {
         const res = await fetch('/api/parse-resume', { method: 'POST', body: fd });
         const result = await res.json();
         if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
-        div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name||'')} ${escapeHtml(result.last_name||'')}</p><p><strong>Email:</strong> ${escapeHtml(result.email||'')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone||'')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(s.skill)}</span>`).join('') : 'None'}</p><button id="saveBtn">💾 Save</button></div>`;
+        div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name||'')} ${escapeHtml(result.last_name||'')}</p><p><strong>Email:</strong> ${escapeHtml(result.email||'')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone||'')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(typeof s === 'object' ? (s.skill || s.name || '') : s)}</span>`).join('') : 'None'}</p><button id="saveBtn">💾 Save</button></div>`;
                const saveBtn = document.getElementById('saveBtn'); if (saveBtn) saveBtn.onclick = async function() {
             // Ask for uploader name
             const uploaded_by = prompt('Enter your name (for tracking):', 'HR Team');
@@ -4404,7 +4404,7 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         }
         
         // Take top 15 skills
-        const topSkills = skills.slice(0, 15);
+        // Normalize skills - handle both string and object formats const normalizedSkills = skills.map(s => typeof s === 'object' ? {skill: s.skill || s.name || s, count: s.count || 1} : {skill: s, count: 1}); const topSkills = normalizedSkills.slice(0, 15);
         const maxCount = topSkills[0]?.count || 1;
         
         container.innerHTML = topSkills.map(s => {
@@ -4419,7 +4419,7 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                 border: 1px solid #ddd;
                 opacity: ${opacity};
                 font-weight: ${s.count > maxCount/2 ? 'bold' : 'normal'};
-            ">${escapeHtml(s.skill)} (${s.count})</span>`;
+           ">${escapeHtml(typeof s === 'object' ? (s.skill || s.name || '') : s)} (${s.count})</span>`;
         }).join('');
     }
     
@@ -4530,11 +4530,11 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         const container = document.getElementById('skillsCloud');
         if (!container) return;
         if (!skills || skills.length === 0) { container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>'; return; }
-        const topSkills = skills.slice(0, 15);
+        // Normalize skills - handle both string and object formats const normalizedSkills = skills.map(s => typeof s === 'object' ? {skill: s.skill || s.name || s, count: s.count || 1} : {skill: s, count: 1}); const topSkills = normalizedSkills.slice(0, 15);
         const maxCount = topSkills[0]?.count || 1;
         container.innerHTML = topSkills.map(s => {
             const size = 12 + (s.count / maxCount) * 20;
-            return `<span style="font-size:${size}px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:${0.6+(s.count/maxCount)*0.4};">${escapeHtml(s.skill)}</span>`;
+            return `<span style="font-size:${size}px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:${0.6+(s.count/maxCount)*0.4};">${escapeHtml(typeof s === 'object' ? (s.skill || s.name || '') : s)}</span>`;
         }).join('');
     }
     
