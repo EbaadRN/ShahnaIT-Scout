@@ -4373,46 +4373,62 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         });
     }
     
-    function renderPipelineChart(pipeline) {
-        const ctx = document.getElementById('pipelineChart').getContext('2d');
-        const labels = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'];
-        const values = [
-            pipeline.new || 0,
-            pipeline.screening || 0,
-            pipeline.interview || 0,
-            pipeline.offer || 0,
-            pipeline.hired || 0,
-            pipeline.rejected || 0
-        ];
-        const colors = ['#2196F3', '#FF9800', '#FF5722', '#9C27B0', '#4CAF50', '#F44336'];
-        
-        if (pipelineChartInstance) {
-            pipelineChartInstance.destroy();
+function renderPipelineChart(pipeline) {
+    const canvas = document.getElementById('pipelineChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    
+    const labels = ['New', 'Proposed', 'Screening', 'Tech L1', 'Tech L2', 'Tech L3', 'Rejected', 'Shortlisted', 'Offer Shared', 'Onboarded'];
+    const values = [
+        pipeline.new || 0,
+        pipeline.proposed || 0,
+        pipeline.screening || 0,
+        pipeline.technical_l1 || 0,
+        pipeline.technical_l2 || 0,
+        pipeline.technical_l3 || 0,
+        pipeline.rejected || 0,
+        pipeline.shortlisted || 0,
+        pipeline.offer_letter_shared || 0,
+        pipeline.onboarded || 0
+    ];
+    const colors = [
+        '#1B5F8C',  // New - Blue
+        '#6B4CB8',  // Proposed - Purple
+        '#B85C00',  // Screening - Orange
+        '#0D7B4A',  // Tech L1 - Green
+        '#0D7B4A',  // Tech L2 - Green
+        '#0A5C35',  // Tech L3 - Dark Green
+        '#C42020',  // Rejected - Red
+        '#D4A800',  // Shortlisted - Gold
+        '#2C7A4A',  // Offer Shared - Green
+        '#1B5F8C'   // Onboarded - Blue
+    ];
+    
+    if (pipelineChartInstance) pipelineChartInstance.destroy();
+    
+    pipelineChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: { 
+            labels: labels, 
+            datasets: [{ 
+                data: values, 
+                backgroundColor: colors, 
+                borderColor: '#fff', 
+                borderWidth: 2 
+            }] 
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: true, 
+            plugins: { 
+                legend: { 
+                    position: 'right', 
+                    labels: { boxWidth: 12, font: { size: 10 } } 
+                } 
+            } 
         }
-        
-        pipelineChartInstance = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: values,
-                    backgroundColor: colors,
-                    borderColor: '#fff',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: { boxWidth: 12, font: { size: 10 } }
-                    }
-                }
-            }
-        });
-    }
+    });
+}
     
     function renderSkillsCloud(skills) {
     const container = document.getElementById('skillsCloud');
