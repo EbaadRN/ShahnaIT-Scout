@@ -2504,9 +2504,12 @@ function renderSkills(skillsData) {
     const container = document.getElementById('skillsContainer');
     container.innerHTML = '';
     let skills = [];
-    try {
-        skills = typeof skillsData === 'string' ? JSON.parse(skillsData) : (skillsData || []);
-    } catch(e) { skills = []; }
+try {
+    if (skillsData) {
+        skills = typeof skillsData === 'string' ? JSON.parse(skillsData) : skillsData;
+    }
+} catch(e) { skills = []; }
+if (!Array.isArray(skills)) skills = [];
     
     if (!Array.isArray(skills) || skills.length === 0) {
         container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No skills added</span>';
@@ -2516,7 +2519,7 @@ function renderSkills(skillsData) {
     skills.forEach((skill, index) => {
         const tag = document.createElement('span');
         tag.className = 'skill-tag editable-skill';
-        tag.innerHTML = escapeHtml(String(skill)) + ' <i class="fas fa-times" style="cursor:pointer;margin-left:4px;font-size:10px;" onclick="removeSkill(' + index + ')"></i>';
+        tag.innerHTML = escapeHtml(String(typeof skill === 'object' ? (skill.skill || skill.name || '') : skill)) + ' <i class="fas fa-times" style="cursor:pointer;margin-left:4px;font-size:10px;" onclick="removeSkill(' + index + ')"></i>';
         container.appendChild(tag);
     });
 }
@@ -5149,156 +5152,120 @@ def update_candidate_status(candidate_id):
 def export_candidate_pdf(candidate_id):
     """Export candidate profile as PDF with full details"""
     try:
-        # Get candidate from database
-        conn = get_db_connection()
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
         candidate = conn.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,)).fetchone()
         
         if not candidate:
             conn.close()
             return jsonify({'error': 'Candidate not found'}), 404
         
-        # Get notes for this candidate
+        candidate = dict(candidate)
+        
+        # Parse JSON fields
+        skills = []
+        try:
+            raw_skills = candidate.get('core_skills', '[]')
+            skills = json.loads(raw_skills) if isinstance(raw_skills, str) else raw_skills
+        except: pass
+        
+        work_exp = []
+        try:
+            raw_work = candidate.get('work_experience', '[]')
+            work_exp = json.loads(raw_work) if isinstance(raw_work, str) else raw_work
+        except: pass
+        
         notes = conn.execute(
-            'SELECT note, created_at FROM candidate_notes WHERE candidate_id = ? ORDER BY created_at DESC',
+            'SELECT note_text, created_at FROM candidate_notes WHERE candidate_id = ? ORDER BY created_at DESC',
             (candidate_id,)
         ).fetchall()
         conn.close()
         
-        # Create PDF in memory
+        # Build full name
+        full_name = f"{candidate.get('first_name', '')} {candidate.get('last_name', '')}".strip() or 'Unknown'
+        candidate_id_display = f"SIT-C-{candidate['id']:03d}"
+        
+        # Create PDF
         buffer = io.BytesIO()
-        
-        # Use SimpleDocTemplate for better formatting
         doc = SimpleDocTemplate(buffer, pagesize=letter,
-                               rightMargin=72, leftMargin=72,
-                               topMargin=72, bottomMargin=72)
+                               rightMargin=50, leftMargin=50,
+                               topMargin=50, bottomMargin=50)
         
-        # Styles
         styles = getSampleStyleSheet()
-        title_style = ParagraphStyle(
-            'CustomTitle',
-            parent=styles['Heading1'],
-            fontSize=24,
-            textColor=colors.HexColor('#1a237e'),
-            spaceAfter=30,
-            alignment=TA_CENTER
-        )
-        heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=styles['Heading2'],
-            fontSize=16,
-            textColor=colors.HexColor('#0d47a1'),
-            spaceAfter=12,
-            spaceBefore=20
-        )
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=22, textColor=colors.HexColor('#1B2A4A'), spaceAfter=20, alignment=TA_CENTER)
+        heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=14, textColor=colors.HexColor('#1B2A4A'), spaceAfter=10, spaceBefore=18)
         normal_style = styles['Normal']
-        normal_style.fontSize = 11
-        normal_style.spaceAfter = 6
+        normal_style.fontSize = 10
+        normal_style.fontName = 'Times-Roman'
         
-        # Build content
         story = []
         
-        # Title
-        story.append(Paragraph(f"👤 Candidate Profile: {candidate['name']}", title_style))
-        story.append(Spacer(1, 12))
+        # Header
+        story.append(Paragraph(f"Candidate Profile", title_style))
+        story.append(Paragraph(f"<b>{full_name}</b> | {candidate_id_display}", normal_style))
+        story.append(Spacer(1, 15))
         
-        # Personal Information
-        story.append(Paragraph("📋 Personal Information", heading_style))
-        story.append(Paragraph(f"<b>Name:</b> {candidate['name']}", normal_style))
-        story.append(Paragraph(f"<b>Email:</b> {candidate['email']}", normal_style))
-        story.append(Paragraph(f"<b>Phone:</b> {candidate.get('phone', 'N/A')}", normal_style))
-        story.append(Paragraph(f"<b>Status:</b> {candidate.get('status', 'New')}", normal_style))
-        story.append(Paragraph(f"<b>Uploaded:</b> {candidate.get('uploaded_at', 'N/A')}", normal_style))
-        story.append(Spacer(1, 12))
+        # Basic Info
+        story.append(Paragraph("Basic Information", heading_style))
+        info_data = [
+            ('Name', full_name),
+            ('Candidate ID', candidate_id_display),
+            ('Email', candidate.get('email', 'N/A')),
+            ('Phone', candidate.get('phone', 'N/A')),
+            ('Designation', candidate.get('designation') or candidate.get('current_role', 'N/A')),
+            ('LinkedIn', candidate.get('linkedin', 'N/A')),
+            ('Location', candidate.get('location') or candidate.get('address', 'N/A')),
+            ('Experience', candidate.get('years_of_experience', 'N/A')),
+            ('Current CTC', candidate.get('current_ctc', 'N/A')),
+            ('Expected CTC', candidate.get('expected_ctc', 'N/A')),
+            ('Stage', candidate.get('stage', 'new')),
+            ('Status', candidate.get('employment_status', 'N/A')),
+        ]
+        for label, value in info_data:
+            story.append(Paragraph(f"<b>{label}:</b> {value}", normal_style))
+        story.append(Spacer(1, 10))
         
         # Skills
-        skills = candidate.get('skills', 'N/A')
-        story.append(Paragraph("🛠️ Skills", heading_style))
-        if skills and skills != 'N/A':
-            skill_list = skills.split(',') if isinstance(skills, str) else skills
-            for skill in skill_list[:10]:  # Show top 10 skills
-                story.append(Paragraph(f"• {skill.strip()}", normal_style))
+        story.append(Paragraph("Skills", heading_style))
+        if skills:
+            skill_text = ', '.join([s.get('skill', s) if isinstance(s, dict) else str(s) for s in skills])
+            story.append(Paragraph(skill_text, normal_style))
         else:
             story.append(Paragraph("No skills listed", normal_style))
-        story.append(Spacer(1, 12))
+        story.append(Spacer(1, 10))
         
         # Match Score
-        match_score = candidate.get('match_score', 0)
-        story.append(Paragraph("🎯 Match Score", heading_style))
+        match_score = candidate.get('match_score', 0) or 0
+        story.append(Paragraph("Match Score", heading_style))
         score_color = '#4caf50' if match_score >= 70 else '#ff9800' if match_score >= 40 else '#f44336'
-        story.append(Paragraph(
-            f'<font color="{score_color}" size="18"><b>{match_score}%</b></font>',
-            normal_style
-        ))
-        story.append(Spacer(1, 12))
+        story.append(Paragraph(f'<font color="{score_color}" size="16"><b>{match_score}%</b></font>', normal_style))
+        story.append(Spacer(1, 10))
         
-        # Analysis
-        analysis = candidate.get('analysis', '')
+        # Analysis Summary
+        analysis = candidate.get('analysis_summary', '') or candidate.get('detailed_analysis', '')
         if analysis:
-            story.append(Paragraph("📊 AI Analysis", heading_style))
-            try:
-                # Parse analysis if it's JSON
-                if isinstance(analysis, str):
-                    analysis_data = json.loads(analysis)
-                    if isinstance(analysis_data, dict):
-                        # Summary
-                        if 'summary' in analysis_data:
-                            story.append(Paragraph(f"<b>Summary:</b> {analysis_data['summary']}", normal_style))
-                        # Strengths
-                        if 'strengths' in analysis_data and analysis_data['strengths']:
-                            story.append(Paragraph("<b>Strengths:</b>", normal_style))
-                            for strength in analysis_data['strengths'][:5]:
-                                story.append(Paragraph(f"✓ {strength}", normal_style))
-                        # Weaknesses
-                        if 'weaknesses' in analysis_data and analysis_data['weaknesses']:
-                            story.append(Paragraph("<b>Areas for Improvement:</b>", normal_style))
-                            for weakness in analysis_data['weaknesses'][:5]:
-                                story.append(Paragraph(f"○ {weakness}", normal_style))
-                    else:
-                        story.append(Paragraph(str(analysis)[:500], normal_style))
-                else:
-                    story.append(Paragraph(str(analysis)[:500], normal_style))
-            except:
-                story.append(Paragraph(str(analysis)[:500], normal_style))
-        story.append(Spacer(1, 12))
+            story.append(Paragraph("AI Analysis", heading_style))
+            story.append(Paragraph(str(analysis)[:1000], normal_style))
+        story.append(Spacer(1, 10))
         
         # Notes
-        story.append(Paragraph("📝 Notes", heading_style))
+        story.append(Paragraph("Notes", heading_style))
         if notes:
             for note in notes:
-                note_text = note['note'][:200]
-                if len(note['note']) > 200:
-                    note_text += '...'
-                story.append(Paragraph(f"• {note_text}", normal_style))
-                story.append(Paragraph(
-                    f"<i style='color: #666;'>{note['created_at']}</i>",
-                    normal_style
-                ))
-                story.append(Spacer(1, 6))
+                story.append(Paragraph(f"• {note['note_text'][:200]}", normal_style))
         else:
-            story.append(Paragraph("No notes available", normal_style))
+            story.append(Paragraph("No notes", normal_style))
         
         # Footer
-        story.append(Spacer(1, 30))
-        story.append(Paragraph(
-            f"<i style='color: #999; font-size: 8pt;'>Generated by ShahnaIT Scout on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</i>",
-            normal_style
-        ))
+        story.append(Spacer(1, 25))
+        story.append(Paragraph(f"<i>Generated by ShahnaIT Scout | {datetime.now().strftime('%Y-%m-%d %H:%M')}</i>", normal_style))
         
-        # Build PDF
         doc.build(story)
         buffer.seek(0)
         
-        # Send file
-        return send_file(
-            buffer,
-            as_attachment=True,
-            download_name=f"{candidate['name']}_profile.pdf",
-            mimetype='application/pdf'
-        )
+        return send_file(buffer, as_attachment=True, download_name=f"{full_name}_profile.pdf", mimetype='application/pdf')
         
     except Exception as e:
-        app.logger.error(f"PDF Export Error: {str(e)}")
-        app.logger.error(traceback.format_exc())
         return jsonify({'error': f'PDF export failed: {str(e)}'}), 500
 # ========== DASHBOARD API ==========
 @app.route('/api/dashboard-data', methods=['GET'])
