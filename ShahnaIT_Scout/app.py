@@ -2176,17 +2176,21 @@ HTML_TEMPLATE = '''
         <!-- Search Box -->
         <input type="text" id="searchBox" placeholder="🔍 Search name, email, skills..." style="flex: 2; min-width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
         
-        <!-- Status Filter -->
-        <select id="statusFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
-            <option value="all">All Status</option>
-            <option value="new">🟢 New</option>
-            <option value="screening">🔵 Screening</option>
-            <option value="interview">🟠 Interview</option>
-            <option value="offer">🟣 Offer</option>
-            <option value="hired">✅ Hired</option>
-            <option value="rejected">❌ Rejected</option>
-        </select>
-        
+<!-- Status Filter -->
+<select id="statusFilter" style="padding: 8px; border: 2px solid #D0D8E4; border-radius: 8px; font-weight:500;">
+    <option value="all">📋 All Status</option>
+    <option value="new">🆕 New</option>
+    <option value="proposed">📋 Proposed</option>
+    <option value="screening">🔍 Screening</option>
+    <option value="technical_l1">💻 Technical L1</option>
+    <option value="technical_l2">💻 Technical L2</option>
+    <option value="technical_l3">💻 Technical L3</option>
+    <option value="rejected">❌ Rejected</option>
+    <option value="shortlisted">⭐ Shortlisted</option>
+    <option value="offer_letter_shared">📄 Offer Shared</option>
+    <option value="onboarded">✅ Onboarded</option>
+</select>
+       
         <!-- Score Filter -->
         <select id="scoreFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
             <option value="all">All Scores</option>
@@ -3144,16 +3148,50 @@ loadCandidates();
     if(panel === 'dashboard') document.getElementById('tabDashboard').classList.add('active');
 }
     
-    async function loadJobs() {
-        const res = await fetch('/api/jobs');
-        allJobs = await res.json();
-        const container = document.getElementById('jobsList');
-        if(!allJobs.length) { container.innerHTML = '<div class="card no-click">No jobs yet</div>'; return; }
-        container.innerHTML = allJobs.map(j => `<div class="card" onclick="editJob(${j.id})"><h3>${escapeHtml(j.title)}</h3>${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}<small>${new Date(j.created_at).toLocaleDateString()}</small></div>`).join('');
-        document.getElementById('jobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
-        document.getElementById('batchJobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
+async function loadJobs() {
+    const res = await fetch('/api/jobs');
+    allJobs = await res.json();
+    const container = document.getElementById('jobsList');
+    if(!allJobs.length) { container.innerHTML = '<div class="card no-click">No jobs yet</div>'; return; }
+    
+    container.innerHTML = allJobs.map(j => {
+        const requirementId = j.requirement_id || ('SIT-R-' + String(j.id).padStart(3,'0'));
+        return `<div class="card" style="cursor:pointer;">
+            <div onclick="viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="flex:1;">
+                <h3>${escapeHtml(j.title)} <span style="font-size:12px;background:#1B2A4A;color:#fff;padding:2px 8px;border-radius:10px;">${escapeHtml(requirementId)}</span></h3>
+                ${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}
+                <small>${new Date(j.created_at).toLocaleDateString()}</small>
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button>
+            <button class="btn btn-sm" onclick="event.stopPropagation(); viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="margin-top:8px;">👥 View Candidates</button>
+        </div>`;
+    }).join('');
+    
+    document.getElementById('jobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
+    document.getElementById('batchJobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
+}
+async function viewCandidatesForRequirement(requirementId) {
+    // Filter candidates by this requirement
+    const matched = allCandidates.filter(c => {
+        return c.proposed_requirement === requirementId;
+    });
+    
+    if (matched.length === 0) {
+        toastInfo('No candidates linked to ' + requirementId);
+        return;
     }
     
+    // Switch to candidates panel
+    showPanel('candidates');
+    
+    // Set the requirement as a filter
+    // Display only matched candidates
+    renderCandidates(matched);
+    
+    // Show count
+    toastSuccess('Found ' + matched.length + ' candidate(s) for ' + requirementId);
+}
+   
    async function loadCandidates() {
     const res = await fetch('/api/candidates');
     allCandidates = await res.json();
@@ -3311,7 +3349,7 @@ function filterCandidates() {
     
     // 2. Status filter
     if (statusFilter !== 'all') {
-        filtered = filtered.filter(c => (c.employment_status || 'new') === statusFilter);
+        filtered = filtered.filter(c => (c.stage || c.employment_status || 'new') === statusFilter);
     }
     
     // 3. Score filter
@@ -3336,7 +3374,7 @@ function filterCandidates() {
     } else if (sortBy === 'date') {
         filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     } else if (sortBy === 'status') {
-        filtered.sort((a, b) => (a.employment_status || '').localeCompare(b.employment_status || ''));
+        filtered.sort((a, b) => (a.stage || a.employment_status || '').localeCompare(b.stage || b.employment_status || ''));
     } else if (sortBy === 'uploader') {
         filtered.sort((a, b) => (a.uploaded_by || 'ShahnaIT').localeCompare(b.uploaded_by || 'ShahnaIT'));
     }
@@ -3476,7 +3514,7 @@ try {
 if (!Array.isArray(skills)) skills = [];
         const matchScore = c.match_score || 0;
         const matchClass = matchScore >= 70 ? 'match-high' : (matchScore >= 40 ? 'match-medium' : 'match-low');
-        const status = c.employment_status || 'new';
+        const status = c.stage || c.employment_status || 'new';
         
         // Status colors
         const statusColors = {
