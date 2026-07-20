@@ -913,6 +913,111 @@ def save_candidate_to_db(candidate_data):
     conn.commit()
     conn.close()
     return candidate_id
+    # ============ ATTACHMENT UPLOAD ============
+UPLOAD_FOLDER = 'attachments'
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+@app.route('/api/candidates/<int:candidate_id>/attachments', methods=['POST'])
+def upload_candidate_attachment(candidate_id):
+    """Upload attachment for a candidate"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No file provided"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"success": False, "error": "No file selected"}), 400
+        
+        # Create candidate folder
+        candidate_folder = os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
+        if not os.path.exists(candidate_folder):
+            os.makedirs(candidate_folder)
+        
+        # Secure filename and save
+        filename = secure_filename(file.filename)
+        # Add timestamp to avoid duplicates
+        name, ext = os.path.splitext(filename)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_filename = f"{name}_{timestamp}{ext}"
+        file_path = os.path.join(candidate_folder, unique_filename)
+        file.save(file_path)
+        
+        # Get existing attachments
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        c.execute('SELECT attachments FROM candidates WHERE id = ?', (candidate_id,))
+        row = c.fetchone()
+        
+        attachments = []
+        if row and row['attachments']:
+            try:
+                attachments = json.loads(row['attachments']) if isinstance(row['attachments'], str) else row['attachments']
+            except:
+                attachments = []
+        
+        # Add new attachment
+        attachments.append({
+            'filename': unique_filename,
+            'original_name': filename,
+            'path': file_path,
+            'uploaded_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'size': os.path.getsize(file_path)
+        })
+        
+        c.execute('UPDATE candidates SET attachments = ? WHERE id = ?', 
+                  (json.dumps(attachments), candidate_id))
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            "success": True, 
+            "message": "File uploaded",
+            "attachments": attachments
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/candidates/<int:candidate_id>/attachments/<filename>', methods=['GET'])
+def download_attachment(candidate_id, filename):
+    """Download a candidate attachment"""
+    candidate_folder = os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
+    file_path = os.path.join(candidate_folder, filename)
+    
+    if os.path.exists(file_path):
+        return send_file(file_path, as_attachment=True, download_name=filename)
+    return jsonify({"error": "File not found"}), 404
+
+@app.route('/api/candidates/<int:candidate_id>/attachments/<filename>', methods=['DELETE'])
+def delete_attachment(candidate_id, filename):
+    """Delete a candidate attachment"""
+    try:
+        candidate_folder = os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
+        file_path = os.path.join(candidate_folder, filename)
+        
+        # Delete file
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        
+        # Update database
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('SELECT attachments FROM candidates WHERE id = ?', (candidate_id,))
+        row = c.fetchone()
+        
+        if row and row[0]:
+            attachments = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+            attachments = [a for a in attachments if a.get('filename') != filename]
+            c.execute('UPDATE candidates SET attachments = ? WHERE id = ?', 
+                      (json.dumps(attachments), candidate_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "message": "File deleted"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
