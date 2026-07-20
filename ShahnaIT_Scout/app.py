@@ -5344,12 +5344,21 @@ def get_dashboard_data():
         elif status == 'rejected':
             rejected += 1
         
-        # Skills
-        skills = json.loads(candidate.get('core_skills', '[]'))
-        for skill in skills:
-            skill_name = skill.get('skill', '').strip()
-            if skill_name:
-                skills_count[skill_name] = skills_count.get(skill_name, 0) + 1
+        # Skills handle both string and object formats
+        try:
+            raw_skills = candidate.get('core_skills', '[]')
+            skills = json.loads(raw_skills) if isinstance(raw_skills, str) else raw_skills
+        except:
+            skills = []
+        
+        if isinstance(skills, list):
+            for skill in skills:
+                if isinstance(skill, dict):
+                    skill_name = skill.get('skill', '').strip()
+                else:
+                    skill_name = str(skill).strip()
+                if skill_name:
+                    skills_count[skill_name] = skills_count.get(skill_name, 0) + 1
         
         # Trend (by date)
         date = candidate.get('created_at', '')[:10]  # YYYY-MM-DD
