@@ -2882,7 +2882,6 @@ async function uploadAttachments() {
         toastError(failCount + ' file(s) failed');
     }
 }
-}
 
 // Save Changes
 async function saveCandidateChanges() {
