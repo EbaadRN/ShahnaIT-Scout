@@ -2695,8 +2695,8 @@ function renderAttachments(attachmentsData) {
         div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid #E2E8F0;';
         div.innerHTML = '<span>📎 ' + escapeHtml(String(filename)) + '</span>' +
             '<div style="display:flex;gap:8px;">' +
-            '<i class="fas fa-download" style="cursor:pointer;color:#1B2A4A;" onclick="downloadAttachment(\'' + escapeHtml(String(filename)) + '\')" title="Download"></i>' +
-            '<i class="fas fa-trash" style="cursor:pointer;color:#C42020;" onclick="deleteAttachment(\'' + escapeHtml(String(filename)) + '\')" title="Delete"></i>' +
+'<i class="fas fa-download" style="cursor:pointer;color:#1B2A4A;" onclick="downloadAttachment(&quot;' + escapeHtml(String(filename)) + '&quot;)" title="Download"></i>' +
+'<i class="fas fa-trash" style="cursor:pointer;color:#C42020;" onclick="deleteAttachment(&quot;' + escapeHtml(String(filename)) + '&quot;)" title="Delete"></i>' +
             '</div>';
         container.appendChild(div);
     });
