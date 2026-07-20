@@ -981,11 +981,15 @@ def upload_candidate_attachment(candidate_id):
 
 @app.route('/api/candidates/<int:candidate_id>/attachments/<filename>', methods=['GET'])
 def download_attachment(candidate_id, filename):
-    """Download a candidate attachment"""
+    """Download or view a candidate attachment"""
     candidate_folder = os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
     file_path = os.path.join(candidate_folder, filename)
     
     if os.path.exists(file_path):
+        # If ?view=1 is in URL, open in browser instead of downloading
+        view_mode = request.args.get('view', '0')
+        if view_mode == '1':
+            return send_file(file_path)
         return send_file(file_path, as_attachment=True, download_name=filename)
     return jsonify({"error": "File not found"}), 404
 
