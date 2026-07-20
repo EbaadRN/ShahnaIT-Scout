@@ -4415,31 +4415,24 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
     }
     
     function renderSkillsCloud(skills) {
-        const container = document.getElementById('skillsCloud');
-        if (!skills || skills.length === 0) {
-            container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>';
-            return;
-        }
-        
-        // Take top 15 skills
-        // Normalize skills - handle both string and object formats const normalizedSkills = skills.map(s => typeof s === 'object' ? {skill: s.skill || s.name || s, count: s.count || 1} : {skill: s, count: 1}); const topSkills = normalizedSkills.slice(0, 15);
-        const maxCount = topSkills[0]?.count || 1;
-        
-        container.innerHTML = topSkills.map(s => {
-            const size = 12 + (s.count / maxCount) * 20; // 12-32px
-            const opacity = 0.6 + (s.count / maxCount) * 0.4;
-            return `<span style="
-                font-size: ${size}px;
-                color: #1A4D4A;
-                background: #F5F0E8;
-                padding: 4px 12px;
-                border-radius: 20px;
-                border: 1px solid #ddd;
-                opacity: ${opacity};
-                font-weight: ${s.count > maxCount/2 ? 'bold' : 'normal'};
-           ">${escapeHtml(typeof s === 'object' ? (s.skill || s.name || '') : s)} (${s.count})</span>`;
-        }).join('');
+    const container = document.getElementById('skillsCloud');
+    if (!container) return;
+    if (!skills || skills.length === 0) { 
+        container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>'; 
+        return; 
     }
+    
+    const normalizedSkills = skills.map(s => 
+        typeof s === 'object' ? {skill: s.skill || s.name || '', count: s.count || 1} : {skill: String(s), count: 1}
+    );
+    const topSkills = normalizedSkills.slice(0, 15);
+    const maxCount = topSkills[0]?.count || 1;
+    
+    container.innerHTML = topSkills.map(s => {
+        const size = 12 + (s.count / maxCount) * 20;
+        return '<span style="font-size:' + size + 'px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:' + (0.6 + (s.count / maxCount) * 0.4) + ';">' + escapeHtml(s.skill) + '</span>';
+    }).join('');
+}
     
     function renderTrendChart(trend) {
         const ctx = document.getElementById('trendChart').getContext('2d');
@@ -4544,17 +4537,25 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
         });
     }
     
-    function renderSkillsCloud(skills) {
-        const container = document.getElementById('skillsCloud');
-        if (!container) return;
-        if (!skills || skills.length === 0) { container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>'; return; }
-        // Normalize skills - handle both string and object formats const normalizedSkills = skills.map(s => typeof s === 'object' ? {skill: s.skill || s.name || s, count: s.count || 1} : {skill: s, count: 1}); const topSkills = normalizedSkills.slice(0, 15);
-        const maxCount = topSkills[0]?.count || 1;
-        container.innerHTML = topSkills.map(s => {
-            const size = 12 + (s.count / maxCount) * 20;
-            return `<span style="font-size:${size}px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:${0.6+(s.count/maxCount)*0.4};">${escapeHtml(typeof s === 'object' ? (s.skill || s.name || '') : s)}</span>`;
-        }).join('');
+   function renderSkillsCloud(skills) {
+    const container = document.getElementById('skillsCloud');
+    if (!container) return;
+    if (!skills || skills.length === 0) { 
+        container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>'; 
+        return; 
     }
+    
+    const normalizedSkills = skills.map(s => 
+        typeof s === 'object' ? {skill: s.skill || s.name || '', count: s.count || 1} : {skill: String(s), count: 1}
+    );
+    const topSkills = normalizedSkills.slice(0, 15);
+    const maxCount = topSkills[0]?.count || 1;
+    
+    container.innerHTML = topSkills.map(s => {
+        const size = 12 + (s.count / maxCount) * 20;
+        return '<span style="font-size:' + size + 'px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:' + (0.6 + (s.count / maxCount) * 0.4) + ';">' + escapeHtml(s.skill) + '</span>';
+    }).join('');
+}
     
     function renderTrendChart(trend) {
         const canvas = document.getElementById('trendChart');
