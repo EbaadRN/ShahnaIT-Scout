@@ -3384,21 +3384,23 @@ loadCandidates();
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     
-    function showPanel(panel) {
-    document.getElementById('jobsPanel').style.display = 'none';
-    document.getElementById('candidatesPanel').style.display = 'none';
-    document.getElementById('uploadPanel').style.display = 'none';
-    document.getElementById('createJobPanel').style.display = 'none';
-    document.getElementById('analyzePanel').style.display = 'none';
-    document.getElementById('dashboardPanel').style.display = 'none';
-    document.getElementById(panel + 'Panel').style.display = 'block';
+   function showPanel(panel) {
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'analyzePanel', 'dashboardPanel'];
+    allPanels.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    
+    const target = document.getElementById(panel + 'Panel');
+    if (target) target.style.display = 'block';
+    
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    if(panel === 'jobs') document.getElementById('tabJobs').classList.add('active');
-    if(panel === 'candidates') document.getElementById('tabCandidates').classList.add('active');
-    if(panel === 'upload') document.getElementById('tabUpload').classList.add('active');
-    if(panel === 'createJob') document.getElementById('tabCreateJob').classList.add('active');
-    if(panel === 'analyze') document.getElementById('tabAnalyze').classList.add('active');
-    if(panel === 'dashboard') document.getElementById('tabDashboard').classList.add('active');
+    const tabMap = {
+        'jobs': 'tabJobs', 'candidates': 'tabCandidates', 'upload': 'tabUpload',
+        'createJob': 'tabCreateJob', 'analyze': 'tabAnalyze', 'dashboard': 'tabDashboard'
+    };
+    const tab = document.getElementById(tabMap[panel]);
+    if (tab) tab.classList.add('active');
 }
     
 async function loadJobs() {
