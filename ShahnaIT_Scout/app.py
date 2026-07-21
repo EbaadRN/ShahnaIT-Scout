@@ -5734,9 +5734,10 @@ def get_dashboard_data():
             match_distribution['0-20'] += 1
         
         # Pipeline
+        # Pipeline
         status = candidate.get('stage', candidate.get('employment_status', 'new'))
-if status in pipeline:
-    pipeline[status] += 1
+        if status in pipeline:
+            pipeline[status] += 1
         
         # Count matched (70%+)
         if score >= 70:
