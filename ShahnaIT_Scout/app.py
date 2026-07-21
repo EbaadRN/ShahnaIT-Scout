@@ -4303,7 +4303,8 @@ if (parseJDBtn) parseJDBtn.onclick = async function() {
 };
 
 // Create job button
-document.getElementById('createJobBtn').onclick = async function() {
+const createJobBtn = document.getElementById('createJobBtn');
+if (createJobBtn) createJobBtn.onclick = async function() {
     const data = {
         title: document.getElementById('jobTitle').value,
         company: document.getElementById('jobCompany').value,
