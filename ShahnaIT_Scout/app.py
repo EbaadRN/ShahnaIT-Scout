@@ -4270,7 +4270,7 @@ if (parseBtn) parseBtn.onclick = async function() {
         };
     };
     
-    const createJobBtn = const parseJDBtn = document.getElementById('parseJDBtn');
+   const parseJDBtn = document.getElementById('parseJDBtn');
 if (parseJDBtn) parseJDBtn.onclick = async function() {
     const fileInput = document.getElementById('jdFileInput');
     const file = fileInput.files[0];
