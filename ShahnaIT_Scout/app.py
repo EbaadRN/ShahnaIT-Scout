@@ -2426,27 +2426,25 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <div class="modal-section">
             <h3 class="modal-section-title"><i class="fas fa-building"></i> Proposed To</h3>
             <div class="form-row">
+<div class="form-group">
+    <label>Client</label>
+    <div style="display:flex;gap:4px;align-items:center;">
+        <select id="edit_proposed_client" class="form-input" style="flex:1;min-width:0;" onchange="loadRequirementsForClient()">
+            <option value="">-- Select Client --</option>
+        </select>
+        <button class="btn btn-sm" onclick="addNewClient()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+    </div>
+</div>
                 <div class="form-group">
-                    <label>Client</label>
-                    <div style="display:flex;gap:5px;">
-                        <select id="edit_proposed_client" class="form-input" style="flex:1;" onchange="loadRequirementsForClient()">
-                            <option value="">-- Select Client --</option>
-                        </select>
-                        <button class="btn btn-sm" onclick="addNewClient()" style="white-space:nowrap;">+</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Requirement</label>
-                    <div style="display:flex;gap:5px;">
-                        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;" 
-                               list="requirementList" placeholder="Search SIT-R-XXX..." 
-                               oninput="filterRequirementDropdown()" autocomplete="off">
-                        <datalist id="requirementList"></datalist>
-                        <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;">+</button>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <label>Requirement</label>
+    <div style="display:flex;gap:4px;align-items:center;">
+        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;min-width:0;" 
+               list="requirementList" placeholder="Search SIT-R-XXX..." 
+               oninput="filterRequirementDropdown()" autocomplete="off">
+        <datalist id="requirementList"></datalist>
+        <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+    </div>
+</div>
         
         <!-- Candidate Stage -->
         <div class="modal-section">
