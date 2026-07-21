@@ -2404,9 +2404,10 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
             
             <!-- Main Content Grid -->
 <!-- Main Content -->
-<div class="modal-grid">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;">
+    
     <!-- LEFT COLUMN -->
-    <div>
+    <div style="min-width:0;">
         <!-- Basic Info -->
         <div class="modal-section">
             <h3 class="modal-section-title"><i class="fas fa-user"></i> Basic Information</h3>
@@ -2437,29 +2438,42 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
             </div>
         </div>
         
+        <!-- Skills -->
+        <div class="modal-section">
+            <h3 class="modal-section-title"><i class="fas fa-code"></i> Skill Sets</h3>
+            <div id="skillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;min-height:30px;"></div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+                <input type="text" id="newSkillInput" class="form-input" placeholder="Add skill..." style="flex:1;">
+                <button class="btn btn-sm" onclick="addSkillToCandidate()">+</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- RIGHT COLUMN -->
+    <div style="min-width:0;">
         <!-- Proposed Info -->
         <div class="modal-section">
             <h3 class="modal-section-title"><i class="fas fa-building"></i> Proposed To</h3>
             <div class="form-row">
-<div class="form-group">
-    <label>Client</label>
-    <div style="display:flex;gap:4px;align-items:center;">
-        <select id="edit_proposed_client" class="form-input" style="flex:1;min-width:0;" onchange="loadRequirementsForClient()">
-            <option value="">-- Select Client --</option>
-        </select>
-        <button class="btn btn-sm" onclick="addNewClient()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
-    </div>
-</div>
                 <div class="form-group">
-    <label>Requirement</label>
-    <div style="display:flex;gap:4px;align-items:center;">
-        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;min-width:0;" 
-               list="requirementList" placeholder="Search SIT-R-XXX..." 
-               oninput="filterRequirementDropdown()" autocomplete="off">
-        <datalist id="requirementList"></datalist>
-        <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
-    </div>
-</div>
+                    <label>Client</label>
+                    <div style="display:flex;gap:4px;align-items:center;">
+                        <select id="edit_proposed_client" class="form-input" style="flex:1;min-width:0;" onchange="loadRequirementsForClient()">
+                            <option value="">-- Select Client --</option>
+                        </select>
+                        <button class="btn btn-sm" onclick="addNewClient()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Requirement</label>
+                    <div style="display:flex;gap:4px;align-items:center;">
+                        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;min-width:0;" list="requirementList" placeholder="Search SIT-R-XXX..." oninput="filterRequirementDropdown()" autocomplete="off">
+                        <datalist id="requirementList"></datalist>
+                        <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <!-- Candidate Stage -->
         <div class="modal-section">
@@ -2478,32 +2492,19 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
             </select>
             <div id="stageColorBar" style="height:6px;border-radius:3px;margin-top:6px;"></div>
         </div>
-    </div>
-    
-    <!-- RIGHT COLUMN -->
-    <div>
-        <!-- Skills -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-code"></i> Skill Sets</h3>
-            <div id="skillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;min-height:30px;"></div>
-            <div style="display:flex;gap:6px;margin-top:8px;">
-                <input type="text" id="newSkillInput" class="form-input" placeholder="Add skill..." style="flex:1;">
-                <button class="btn btn-sm" onclick="addSkillToCandidate()">+</button>
-            </div>
-        </div>
         
         <!-- Work History -->
         <div class="modal-section">
             <h3 class="modal-section-title"><i class="fas fa-briefcase"></i> Work History</h3>
             <div id="workHistoryContainer"></div>
-            <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add Work Entry</button>
+            <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add</button>
         </div>
         
         <!-- Certifications -->
         <div class="modal-section">
             <h3 class="modal-section-title"><i class="fas fa-certificate"></i> Certifications</h3>
             <div id="certificationsContainer"></div>
-            <button class="btn btn-sm btn-secondary" onclick="addCertification()" style="margin-top:6px;">+ Add Certification</button>
+            <button class="btn btn-sm btn-secondary" onclick="addCertification()" style="margin-top:6px;">+ Add</button>
         </div>
         
         <!-- Attachments -->
