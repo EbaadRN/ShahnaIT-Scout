@@ -2949,7 +2949,7 @@ async function saveCandidateChanges() {
         current_ctc: document.getElementById('edit_current_ctc').value,
         expected_ctc: document.getElementById('edit_expected_ctc').value,
         proposed_client: document.getElementById('edit_proposed_client').value,
-        proposed_requirement: (document.getElementById('edit_proposed_requirement').value || '').split(' - ')[0].trim(), || '').split(' - ')[0].trim(),,
+        proposed_requirement: (document.getElementById('edit_proposed_requirement').value || '').split(' - ')[0].trim(),,
         stage: document.getElementById('edit_stage').value,
         notes: document.getElementById('edit_notes').value,
         core_skills: currentCandidateData.core_skills,
