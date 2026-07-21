@@ -2412,6 +2412,33 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
             <div id="bulkUploadResult"></div>
         </div>
     </div>
+
+<div id="createJobPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>➕ Create Job / Requirement</h3>
+        
+        <!-- Upload JD File -->
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>📄 Upload JD File (PDF/DOCX)</strong>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <input type="file" id="jdFileInput" accept=".pdf,.docx" style="flex:1;">
+                <button id="parseJDBtn" class="btn btn-secondary" style="white-space:nowrap;">🔍 Parse JD</button>
+            </div>
+            <div id="jdParseStatus" style="margin-top:6px;font-size:12px;"></div>
+        </div>
+        
+        <div style="text-align:center;margin:10px 0;color:#94A3B8;">— OR enter manually —</div>
+        
+        <div class="form-group"><label>Requirement Title *</label><input type="text" id="jobTitle" class="form-input" placeholder="e.g. Senior Python Developer"></div>
+        <div class="form-group"><label>Client / Company</label><input type="text" id="jobCompany" class="form-input" placeholder="e.g. TCS"></div>
+        <div class="form-group"><label>Roles & Responsibilities</label><textarea id="jobRoles" class="form-input" rows="4" placeholder="Key responsibilities..."></textarea></div>
+        <div class="form-group"><label>Qualifications</label><textarea id="jobQualifications" class="form-input" rows="3" placeholder="Required qualifications..."></textarea></div>
+        <div class="form-group"><label>Required Skills (comma separated)</label><input type="text" id="jobSkills" class="form-input" placeholder="Python, AWS, Docker..."></div>
+        <div class="form-group"><label>Job Description</label><textarea id="jobDesc" class="form-input" rows="3" placeholder="Full job description..."></textarea></div>
+        
+        <button id="createJobBtn" class="btn btn-primary">💾 Create Requirement</button>
+    </div>
+</div>
     
     <div id="analyzePanel" style="display:none;">
     <div class="card no-click">
