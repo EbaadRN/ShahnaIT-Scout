@@ -4335,13 +4335,6 @@ document.getElementById('createJobBtn').onclick = async function() {
         toastError('Error creating requirement'); 
     }
 };
-
-        const data = { title: document.getElementById('jobTitle').value, company: document.getElementById('jobCompany').value, description: document.getElementById('jobDesc').value };
-        if(!data.title) return;
-        const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-        if(res.ok) { toastSuccess('Job created!'); document.getElementById('jobTitle').value = ''; document.getElementById('jobCompany').value = ''; document.getElementById('jobDesc').value = ''; showPanel('jobs'); loadJobs(); }
-        else alert('Error');
-    };
     
     const analyzeBtn = document.getElementById('analyzeBtn'); if (analyzeBtn) analyzeBtn.onclick = async function() {
     const jobId = document.getElementById('jobSelect').value;
