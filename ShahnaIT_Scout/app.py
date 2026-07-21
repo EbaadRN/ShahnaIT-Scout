@@ -2092,6 +2092,23 @@ HTML_TEMPLATE = '''
             margin: 30px auto;
         }
     }
+    /* ===== MODAL FORM LAYOUT ===== */
+.modal-section { margin-bottom: 14px; background: #FAFBFC; border: 2px solid #E2E8F0; border-radius: 10px; padding: 14px; min-height: 100px; max-height: 250px; overflow-y: auto; }
+.modal-section-title { font-size: 14px; font-weight: 700; color: #1B2A4A; margin: 0 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #E2E8F0; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.form-group { display: flex; flex-direction: column; }
+.form-group label { font-size: 12px; font-weight: 600; color: #2C3E5A; margin-bottom: 3px; }
+.form-input { width: 100%; padding: 8px 10px; border: 2px solid #D0D8E4; border-radius: 6px; font-size: 13px; background: #FFFFFF; color: #0F1D33; box-sizing: border-box; }
+.form-input:focus { border-color: #1B2A4A; outline: none; box-shadow: 0 0 0 3px rgba(27,42,74,0.1); }
+.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+.modal-grid > div { display: flex; flex-direction: column; }
+#skillsContainer, #workHistoryContainer, #certificationsContainer, #attachmentsList { min-height: 36px; max-height: 130px; overflow-y: auto; }
+body.dark-mode .modal-section { background: #0F1829; border-color: #2A3A5C; }
+body.dark-mode .modal-section-title { color: #E8ECF2; border-bottom-color: #2A3A5C; }
+body.dark-mode .form-group label { color: #A8B8D4; }
+body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: #2A3A5C; }
+@media screen and (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+@media screen and (max-width: 900px) { .modal-grid { grid-template-columns: 1fr; } }
 </style>
     
 </head>
