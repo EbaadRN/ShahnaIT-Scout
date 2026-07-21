@@ -1582,14 +1582,15 @@ HTML_TEMPLATE = '''
         backdrop-filter: blur(6px);
     }
     .modal-content {
-        background: var(--color-white);
-        margin: 50px auto;
-        border-radius: var(--radius-xl);
-        max-width: 720px;
-        width: 90%;
-        box-shadow: var(--shadow-xl);
-        border: 2px solid var(--color-border-strong);
-    }
+    background: var(--color-white);
+    margin: 30px auto;
+    border-radius: var(--radius-xl);
+    max-width: 1000px;
+    width: 95%;
+    box-shadow: var(--shadow-xl);
+    border: 2px solid var(--color-border-strong);
+    overflow: hidden;
+}
     .modal-header {
         background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-primary) 100%);
         color: #FFFFFF;
@@ -1607,11 +1608,11 @@ HTML_TEMPLATE = '''
         letter-spacing: -0.3px;
     }
     .modal-body { 
-        padding: 26px 22px; 
-        max-height: 60vh; 
-        overflow-y: auto; 
-        background: var(--color-white);
-    }
+    padding: 0; 
+    max-height: 70vh; 
+    overflow-y: auto; 
+    background: var(--color-white);
+}
     .close { 
         cursor: pointer; 
         font-size: 30px; 
@@ -2095,12 +2096,26 @@ HTML_TEMPLATE = '''
     /* ===== MODAL FORM LAYOUT ===== */
 .modal-section { margin-bottom: 14px; background: #FAFBFC; border: 2px solid #E2E8F0; border-radius: 10px; padding: 14px; min-height: 100px; max-height: 250px; overflow-y: auto; }
 .modal-section-title { font-size: 14px; font-weight: 700; color: #1B2A4A; margin: 0 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #E2E8F0; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 6px;
+}
 .form-group { display: flex; flex-direction: column; }
 .form-group label { font-size: 12px; font-weight: 600; color: #2C3E5A; margin-bottom: 3px; }
 .form-input { width: 100%; padding: 8px 10px; border: 2px solid #D0D8E4; border-radius: 6px; font-size: 13px; background: #FFFFFF; color: #0F1D33; box-sizing: border-box; }
 .form-input:focus { border-color: #1B2A4A; outline: none; box-shadow: 0 0 0 3px rgba(27,42,74,0.1); }
-.modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+.modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 16px;
+}
+.modal-grid > div {
+    min-width: 0;
+    overflow: hidden;
+}
 .modal-grid > div { display: flex; flex-direction: column; }
 #skillsContainer, #workHistoryContainer, #certificationsContainer, #attachmentsList { min-height: 36px; max-height: 130px; overflow-y: auto; }
 body.dark-mode .modal-section { background: #0F1829; border-color: #2A3A5C; }
