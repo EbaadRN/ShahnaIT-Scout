@@ -1049,6 +1049,110 @@ def get_requirements():
     requirements = [dict(row) for row in c.fetchall()]
     conn.close()
     return jsonify(requirements)
+
+@app.route('/api/jobs/parse-jd', methods=['POST'])
+def parse_jd_file():
+    """Parse uploaded JD file (PDF/DOCX)"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No file provided"}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"success": False, "error": "No file selected"}), 400
+        
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Extract text based on file type
+        text = ""
+        if filename.endswith('.pdf'):
+            pdf_reader = PyPDF2.PdfReader(filepath)
+            for page in pdf_reader.pages:
+                text += page.extract_text() or ""
+        elif filename.endswith('.docx'):
+            doc = docx.Document(filepath)
+            for para in doc.paragraphs:
+                text += para.text + "\n"
+        else:
+            os.remove(filepath)
+            return jsonify({"success": False, "error": "Only PDF and DOCX supported"}), 400
+        
+        os.remove(filepath)
+        
+        if not text.strip():
+            return jsonify({"success": False, "error": "Could not extract text"}), 400
+        
+        # Parse JD text
+        parsed = parse_jd_text(text)
+        
+        return jsonify({"success": True, "text": text, "parsed": parsed})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+def parse_jd_text(text):
+    """Extract key details from JD text"""
+    result = {
+        "title": "",
+        "roles_responsibilities": "",
+        "qualifications": "",
+        "required_skills": []
+    }
+    
+    lines = text.split('\n')
+    
+    # Try to find title (usually first few lines)
+    for line in lines[:5]:
+        line = line.strip()
+        if line and len(line) > 5:
+            result["title"] = line[:100]
+            break
+    
+    # Find roles/responsibilities section
+    in_roles = False
+    roles_text = []
+    for line in lines:
+        lower = line.lower().strip()
+        if any(kw in lower for kw in ['responsibilities', 'role', 'job description', 'what you will do', 'key responsibilities']):
+            in_roles = True
+            continue
+        if in_roles:
+            if any(kw in lower for kw in ['qualification', 'requirement', 'skill', 'what you need', 'education']):
+                in_roles = False
+                continue
+            if line.strip():
+                roles_text.append(line.strip())
+    result["roles_responsibilities"] = '\n'.join(roles_text[:20])
+    
+    # Find qualifications section
+    in_qual = False
+    qual_text = []
+    for line in lines:
+        lower = line.lower().strip()
+        if any(kw in lower for kw in ['qualification', 'requirement', 'what you need', 'education', 'experience']):
+            in_qual = True
+            continue
+        if in_qual:
+            if any(kw in lower for kw in ['skill', 'responsibilities', 'about us', 'benefit']):
+                in_qual = False
+                continue
+            if line.strip():
+                qual_text.append(line.strip())
+    result["qualifications"] = '\n'.join(qual_text[:20])
+    
+    # Extract skills
+    tech_skills = [
+        'python', 'java', 'javascript', 'react', 'angular', 'node', 'sql', 'mongodb',
+        'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'linux',
+        'salesforce', 'apex', 'tableau', 'powerbi', 'excel', 'r', 'tensorflow',
+        'pytorch', 'nlp', 'machine learning', 'data science', 'agile', 'scrum',
+        'api', 'rest', 'graphql', 'typescript', 'c++', 'c#', '.net', 'php'
+    ]
+    text_lower = text.lower()
+    result["required_skills"] = [s for s in tech_skills if s in text_lower]
+    
+    return result
         # ============ HTML TEMPLATE ============
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -4166,7 +4270,73 @@ if (parseBtn) parseBtn.onclick = async function() {
         };
     };
     
-    const createJobBtn = document.getElementById('createJobBtn'); if (createJobBtn) createJobBtn.onclick = async function() {
+    const createJobBtn = const parseJDBtn = document.getElementById('parseJDBtn');
+if (parseJDBtn) parseJDBtn.onclick = async function() {
+    const fileInput = document.getElementById('jdFileInput');
+    const file = fileInput.files[0];
+    if (!file) { toastError('Please select a file'); return; }
+    
+    const status = document.getElementById('jdParseStatus');
+    status.innerHTML = '<div class="spinner"></div> Parsing...';
+    
+    const fd = new FormData();
+    fd.append('file', file);
+    
+    try {
+        const res = await fetch('/api/jobs/parse-jd', { method: 'POST', body: fd });
+        const result = await res.json();
+        
+        if (result.success && result.parsed) {
+            const p = result.parsed;
+            document.getElementById('jobTitle').value = p.title || '';
+            document.getElementById('jobRoles').value = p.roles_responsibilities || '';
+            document.getElementById('jobQualifications').value = p.qualifications || '';
+            document.getElementById('jobSkills').value = (p.required_skills || []).join(', ');
+            document.getElementById('jobDesc').value = result.text || '';
+            status.innerHTML = '✅ JD parsed successfully!';
+            toastSuccess('JD parsed!');
+        } else {
+            status.innerHTML = '❌ ' + (result.error || 'Parse failed');
+        }
+    } catch(e) {
+        status.innerHTML = '❌ Error: ' + e.message;
+    }
+};
+
+// Create job button
+document.getElementById('createJobBtn').onclick = async function() {
+    const data = {
+        title: document.getElementById('jobTitle').value,
+        company: document.getElementById('jobCompany').value,
+        roles_responsibilities: document.getElementById('jobRoles').value,
+        qualifications: document.getElementById('jobQualifications').value,
+        required_skills: document.getElementById('jobSkills').value,
+        description: document.getElementById('jobDesc').value
+    };
+    
+    if (!data.title) { toastError('Title is required'); return; }
+    
+    const res = await fetch('/api/jobs', { 
+        method: 'POST', 
+        headers: {'Content-Type':'application/json'}, 
+        body: JSON.stringify(data) 
+    });
+    
+    if (res.ok) { 
+        toastSuccess('Requirement created!'); 
+        document.getElementById('jobTitle').value = '';
+        document.getElementById('jobCompany').value = '';
+        document.getElementById('jobRoles').value = '';
+        document.getElementById('jobQualifications').value = '';
+        document.getElementById('jobSkills').value = '';
+        document.getElementById('jobDesc').value = '';
+        showPanel('jobs'); 
+        loadJobs(); 
+    } else { 
+        toastError('Error creating requirement'); 
+    }
+};
+
         const data = { title: document.getElementById('jobTitle').value, company: document.getElementById('jobCompany').value, description: document.getElementById('jobDesc').value };
         if(!data.title) return;
         const res = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
