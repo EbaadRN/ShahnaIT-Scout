@@ -2409,9 +2409,16 @@ HTML_TEMPLATE = '''
                         <h3 class="modal-section-title"><i class="fas fa-building"></i> Proposed To</h3>
                         <div class="form-row">
                             <div class="form-group"><label>Client</label><input type="text" id="edit_proposed_client" class="form-input"></div>
-                            <div class="form-group"><label>Requirement</label><input type="text" id="edit_proposed_requirement" class="form-input"></div>
-                        </div>
-                    </div>
+                           <div class="form-group">
+    <label>Requirement</label>
+    <div style="display:flex;gap:5px;">
+        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;" 
+               list="requirementList" placeholder="Type to search SIT-R-XXX..." 
+               oninput="filterRequirementDropdown()" autocomplete="off">
+        <datalist id="requirementList"></datalist>
+        <button class="btn btn-sm" onclick="addNewRequirement()" title="Add New Requirement" style="white-space:nowrap;">+ New</button>
+    </div>
+</div>
                     
                     <!-- Candidate Stage -->
                     <div class="modal-section">
@@ -2603,7 +2610,7 @@ window.viewCandidate = function(id) {
     
     // Proposed
     document.getElementById('edit_proposed_client').value = candidate.proposed_client || '';
-    document.getElementById('edit_proposed_requirement').value = candidate.proposed_requirement || '';
+    // Requirement will be set by loadRequirementsForClient(), just store the ID document.getElementById('edit_proposed_requirement').setAttribute('data-saved-id', candidate.proposed_requirement || '');
     
     // Stage
     document.getElementById('edit_stage').value = candidate.stage || 'new';
@@ -2942,7 +2949,7 @@ async function saveCandidateChanges() {
         current_ctc: document.getElementById('edit_current_ctc').value,
         expected_ctc: document.getElementById('edit_expected_ctc').value,
         proposed_client: document.getElementById('edit_proposed_client').value,
-        proposed_requirement: document.getElementById('edit_proposed_requirement').value,
+        proposed_requirement: (document.getElementById('edit_proposed_requirement').value || '').split(' - ')[0].trim(), || '').split(' - ')[0].trim(),,
         stage: document.getElementById('edit_stage').value,
         notes: document.getElementById('edit_notes').value,
         core_skills: currentCandidateData.core_skills,
@@ -3026,7 +3033,7 @@ async function runAIAnalysis() {
         return;
     }
     
-    const requirementId = document.getElementById('edit_proposed_requirement').value;
+    const requirementId = (document.getElementById('edit_proposed_requirement').value || '').split(' - ')[0].trim();
     if (!requirementId) {
         toastError('Please select a Requirement/Job ID first');
         return;
