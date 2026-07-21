@@ -2413,7 +2413,6 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         </div>
     </div>
     
-    <div id="createJobPanel" style="display:none;"><div class="card no-click"><h3>➕ Create Job</h3><input type="text" id="jobTitle" placeholder="Job Title *"><input type="text" id="jobCompany" placeholder="Company"><textarea id="jobDesc" rows="4" placeholder="Job Description"></textarea><button id="createJobBtn">Create Job</button></div></div>
     <div id="analyzePanel" style="display:none;">
     <div class="card no-click">
         <h3>🔍 AI Match Analysis - Single Candidate</h3>
