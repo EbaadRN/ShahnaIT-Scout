@@ -470,7 +470,7 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     
-      c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
+    c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         job_id INTEGER,
         filename TEXT,
