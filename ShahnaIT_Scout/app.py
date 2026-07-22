@@ -4466,13 +4466,32 @@ if (parseJDBtn) parseJDBtn.onclick = async function() {
 };
 
 // Create job button
+// Show/hide hybrid days based on working mode
+const jobWorkingMode = document.getElementById('jobWorkingMode');
+const hybridDaysGroup = document.getElementById('hybridDaysGroup');
+if (jobWorkingMode && hybridDaysGroup) {
+    jobWorkingMode.addEventListener('change', function() {
+        hybridDaysGroup.style.display = this.value === 'Hybrid' ? 'block' : 'none';
+    });
+}
+
+// Create job button
 const createJobBtn = document.getElementById('createJobBtn');
 if (createJobBtn) createJobBtn.onclick = async function() {
     const data = {
         title: document.getElementById('jobTitle').value,
         company: document.getElementById('jobCompany').value,
+        working_mode: document.getElementById('jobWorkingMode').value,
+        hybrid_days: parseInt(document.getElementById('jobHybridDays').value) || 0,
+        business_model: document.getElementById('jobBusinessModel').value,
+        payroll_company: document.getElementById('jobPayroll').value,
+        end_client: document.getElementById('jobEndClient').value,
+        years_of_experience: parseInt(document.getElementById('jobExperience').value) || 0,
+        budget: document.getElementById('jobBudget').value,
+        headcount: parseInt(document.getElementById('jobHeadcount').value) || 1,
         roles_responsibilities: document.getElementById('jobRoles').value,
         qualifications: document.getElementById('jobQualifications').value,
+        certifications_required: document.getElementById('jobCertifications').value,
         required_skills: document.getElementById('jobSkills').value,
         description: document.getElementById('jobDesc').value
     };
@@ -4489,10 +4508,20 @@ if (createJobBtn) createJobBtn.onclick = async function() {
         toastSuccess('Requirement created!'); 
         document.getElementById('jobTitle').value = '';
         document.getElementById('jobCompany').value = '';
+        document.getElementById('jobWorkingMode').value = 'Not Specified';
+        document.getElementById('jobHybridDays').value = '0';
+        document.getElementById('jobBusinessModel').value = 'Not Specified';
+        document.getElementById('jobPayroll').value = '';
+        document.getElementById('jobEndClient').value = '';
+        document.getElementById('jobExperience').value = '0';
+        document.getElementById('jobBudget').value = '';
+        document.getElementById('jobHeadcount').value = '1';
         document.getElementById('jobRoles').value = '';
         document.getElementById('jobQualifications').value = '';
+        document.getElementById('jobCertifications').value = '';
         document.getElementById('jobSkills').value = '';
         document.getElementById('jobDesc').value = '';
+        if (hybridDaysGroup) hybridDaysGroup.style.display = 'none';
         showPanel('jobs'); 
         loadJobs(); 
     } else { 
