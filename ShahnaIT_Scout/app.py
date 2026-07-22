@@ -5455,8 +5455,32 @@ def create_job():
     data = request.json
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('INSERT INTO jobs (title, company, description) VALUES (?, ?, ?)',
-              (data.get('title'), data.get('company'), data.get('description', '')))
+    c.execute('''INSERT INTO jobs (
+        title, company, description, roles_responsibilities, qualifications,
+        required_skills, certifications_required, requirement_id,
+        working_mode, hybrid_days, business_model,
+        payroll_company, client_name, end_client,
+        years_of_experience, budget, headcount
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+    (
+        data.get('title'),
+        data.get('company'),
+        data.get('description', ''),
+        data.get('roles_responsibilities', ''),
+        data.get('qualifications', ''),
+        data.get('required_skills', ''),
+        data.get('certifications_required', ''),
+        data.get('requirement_id', ''),
+        data.get('working_mode', 'Not Specified'),
+        data.get('hybrid_days', 0),
+        data.get('business_model', 'Not Specified'),
+        data.get('payroll_company', ''),
+        data.get('client_name', data.get('company', '')),
+        data.get('end_client', ''),
+        data.get('years_of_experience', 0),
+        data.get('budget', ''),
+        data.get('headcount', 1)
+    ))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Job created'})
