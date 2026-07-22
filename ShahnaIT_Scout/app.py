@@ -5649,6 +5649,7 @@ def parse_resume():
     # Save to permanent location
     permanent_filename = secure_filename(f"{datetime.now().timestamp()}_{original_filename}")
     permanent_path = os.path.join(app.config['DOCUMENTS_FOLDER'], permanent_filename)
+   os.makedirs(os.path.dirname(permanent_path), exist_ok=True)
     shutil.move(temp_filepath, permanent_path)
     parsed['permanent_file_path'] = permanent_path
     parsed['permanent_filename'] = permanent_filename
