@@ -448,9 +448,11 @@ def init_db():
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
     
-   c.execute('''CREATE TABLE IF NOT EXISTS jobs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
-        company TEXT, description TEXT, 
+    c.execute('''CREATE TABLE IF NOT EXISTS jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        company TEXT,
+        description TEXT,
         roles_responsibilities TEXT,
         qualifications TEXT,
         required_skills TEXT,
@@ -468,7 +470,7 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     
-    c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
+      c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         job_id INTEGER,
         filename TEXT,
