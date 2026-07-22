@@ -411,15 +411,15 @@ CORS(app)
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
-app.config['UPLOAD_FOLDER'] = '/tmp'
-app.config['DOCUMENTS_FOLDER'] = '/tmp/candidate_docs'
-app.config['JOB_DOCUMENTS_FOLDER'] = '/tmp/job_docs'
+app.config['UPLOAD_FOLDER'] = '/data/tmp'
+app.config['DOCUMENTS_FOLDER'] = '/data/candidate_docs'
+app.config['JOB_DOCUMENTS_FOLDER'] = '/data/job_docs'
 
-os.makedirs(app.config['DOCUMENTS_FOLDER'], exist_ok=True)
-os.makedirs(app.config['JOB_DOCUMENTS_FOLDER'], exist_ok=True)
+os.makedirs('/data/attachments', exist_ok=True)
+os.makedirs('/data/tmp', exist_ok=True)
 
 # ============ DATABASE SETUP ============
-DB_PATH = 'shahnai.db'
+DB_PATH = '/data/shahnai.db'
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
@@ -931,7 +931,7 @@ def save_candidate_to_db(candidate_data):
     conn.close()
     return candidate_id
     # ============ ATTACHMENT UPLOAD ============
-UPLOAD_FOLDER = 'attachments'
+UPLOAD_FOLDER = '/data/attachments'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
