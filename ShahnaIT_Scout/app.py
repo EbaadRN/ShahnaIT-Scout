@@ -2509,10 +2509,64 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         
         <div style="text-align:center;margin:10px 0;color:#94A3B8;">— OR enter manually —</div>
         
-        <div class="form-group"><label>Requirement Title *</label><input type="text" id="jobTitle" class="form-input" placeholder="e.g. Senior Python Developer"></div>
-        <div class="form-group"><label>Client / Company</label><input type="text" id="jobCompany" class="form-input" placeholder="e.g. TCS"></div>
+        <!-- Row 1: Title & Client -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Requirement Title *</label><input type="text" id="jobTitle" class="form-input" placeholder="e.g. Senior Python Developer"></div>
+            <div class="form-group"><label>Client / Company</label><input type="text" id="jobCompany" class="form-input" placeholder="e.g. TCS"></div>
+        </div>
+        
+        <!-- Row 2: Working Mode & Business Model -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+                <label>Working Mode</label>
+                <select id="jobWorkingMode" class="form-input">
+                    <option value="Not Specified">Not Specified</option>
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Business Model</label>
+                <select id="jobBusinessModel" class="form-input">
+                    <option value="Not Specified">Not Specified</option>
+                    <option value="C2C">C2C</option>
+                    <option value="C2H">C2H</option>
+                    <option value="Permanent">Permanent</option>
+                    <option value="Contract">Contract</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Hybrid Days (shown conditionally) -->
+        <div class="form-group" id="hybridDaysGroup" style="display:none;">
+            <label>Hybrid Days (per week)</label>
+            <input type="number" id="jobHybridDays" class="form-input" value="0" min="0" max="7">
+        </div>
+        
+        <!-- Row 3: Payroll & End Client -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Payroll Company</label><input type="text" id="jobPayroll" class="form-input" placeholder="e.g. Randstad"></div>
+            <div class="form-group"><label>End Client</label><input type="text" id="jobEndClient" class="form-input" placeholder="e.g. Microsoft"></div>
+        </div>
+        
+        <!-- Row 4: Experience, Budget, Headcount -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Years of Experience</label><input type="number" id="jobExperience" class="form-input" value="0" min="0"></div>
+            <div class="form-group"><label>Budget</label><input type="text" id="jobBudget" class="form-input" placeholder="e.g. 15-20 LPA"></div>
+            <div class="form-group"><label>Headcount</label><input type="number" id="jobHeadcount" class="form-input" value="1" min="1"></div>
+        </div>
+        
+        <!-- Roles & Responsibilities -->
         <div class="form-group"><label>Roles & Responsibilities</label><textarea id="jobRoles" class="form-input" rows="4" placeholder="Key responsibilities..."></textarea></div>
-        <div class="form-group"><label>Qualifications</label><textarea id="jobQualifications" class="form-input" rows="3" placeholder="Required qualifications..."></textarea></div>
+        
+        <!-- Row 5: Qualifications & Certifications -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Qualifications</label><textarea id="jobQualifications" class="form-input" rows="3" placeholder="Required qualifications..."></textarea></div>
+            <div class="form-group"><label>Certifications Required</label><input type="text" id="jobCertifications" class="form-input" placeholder="e.g. AWS Certified, PMP..."></div>
+        </div>
+        
+        <!-- Skills & Description -->
         <div class="form-group"><label>Required Skills (comma separated)</label><input type="text" id="jobSkills" class="form-input" placeholder="Python, AWS, Docker..."></div>
         <div class="form-group"><label>Job Description</label><textarea id="jobDesc" class="form-input" rows="3" placeholder="Full job description..."></textarea></div>
         
