@@ -448,9 +448,24 @@ def init_db():
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
     
-    c.execute('''CREATE TABLE IF NOT EXISTS jobs (
+   c.execute('''CREATE TABLE IF NOT EXISTS jobs (
         id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL,
-        company TEXT, description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        company TEXT, description TEXT, 
+        roles_responsibilities TEXT,
+        qualifications TEXT,
+        required_skills TEXT,
+        certifications_required TEXT,
+        requirement_id TEXT,
+        working_mode TEXT DEFAULT 'Not Specified',
+        hybrid_days INTEGER DEFAULT 0,
+        business_model TEXT DEFAULT 'Not Specified',
+        payroll_company TEXT,
+        client_name TEXT,
+        end_client TEXT,
+        years_of_experience INTEGER DEFAULT 0,
+        budget TEXT,
+        headcount INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS job_documents (
@@ -1097,60 +1112,123 @@ def parse_jd_text(text):
         "title": "",
         "roles_responsibilities": "",
         "qualifications": "",
-        "required_skills": []
+        "required_skills": [],
+        "certifications_required": [],
+        "working_mode": "Not Specified",
+        "hybrid_days": 0,
+        "business_model": "Not Specified",
+        "payroll_company": "",
+        "client_name": "",
+        "end_client": "",
+        "years_of_experience": 0,
+        "budget": "",
+        "headcount": 1
     }
     
     lines = text.split('\n')
+    text_lower = text.lower()
+    import re
     
-    # Try to find title (usually first few lines)
-    for line in lines[:5]:
+    # Find title
+    for line in lines[:10]:
         line = line.strip()
-        if line and len(line) > 5:
-            result["title"] = line[:100]
+        if line and len(line) > 5 and not line.startswith('http'):
+            result["title"] = line[:150]
             break
     
-    # Find roles/responsibilities section
+    # Working mode
+    if any(kw in text_lower for kw in ['work from home', 'remote', 'wfh']):
+        result["working_mode"] = "Remote"
+    elif any(kw in text_lower for kw in ['hybrid']):
+        result["working_mode"] = "Hybrid"
+        days_match = re.search(r'(\d+)\s*day', text_lower)
+        if days_match:
+            result["hybrid_days"] = int(days_match.group(1))
+    elif any(kw in text_lower for kw in ['work from office', 'wfo', 'onsite', 'on-site']):
+        result["working_mode"] = "WFO"
+    
+    # Business model
+    if any(kw in text_lower for kw in ['c2c', 'corp to corp']):
+        result["business_model"] = "C2C"
+    elif any(kw in text_lower for kw in ['c2h', 'contract to hire']):
+        result["business_model"] = "C2H"
+    elif any(kw in text_lower for kw in ['fte', 'full time', 'permanent']):
+        result["business_model"] = "FTE"
+    
+    # Years of experience
+    exp_match = re.search(r'(\d+)[\+-]?\s*(?:years?|yrs?)\s*(?:of)?\s*experience', text_lower)
+    if exp_match:
+        result["years_of_experience"] = int(exp_match.group(1))
+    
+    # Budget
+    for pattern in [r'(?:budget|salary|ctc)[:\s]*([\d,.]+\s*(?:lakh|lpa|cr|crore|k)?)', r'([\d,]+\s*(?:lakh|lpa|cr|crore))']:
+        m = re.search(pattern, text_lower)
+        if m:
+            result["budget"] = m.group(0)
+            break
+    
+    # Roles
     in_roles = False
     roles_text = []
     for line in lines:
         lower = line.lower().strip()
-        if any(kw in lower for kw in ['responsibilities', 'role', 'job description', 'what you will do', 'key responsibilities']):
+        if any(kw in lower for kw in ['responsibilities', 'role', 'what you will do', 'key responsibilities', 'job duties']):
             in_roles = True
             continue
         if in_roles:
-            if any(kw in lower for kw in ['qualification', 'requirement', 'skill', 'what you need', 'education']):
+            if any(kw in lower for kw in ['qualification', 'requirement', 'skill', 'what you need', 'education', 'certification']):
                 in_roles = False
                 continue
             if line.strip():
                 roles_text.append(line.strip())
-    result["roles_responsibilities"] = '\n'.join(roles_text[:20])
+    result["roles_responsibilities"] = '\n'.join(roles_text[:25])
     
-    # Find qualifications section
+    # Qualifications
     in_qual = False
     qual_text = []
     for line in lines:
         lower = line.lower().strip()
-        if any(kw in lower for kw in ['qualification', 'requirement', 'what you need', 'education', 'experience']):
+        if any(kw in lower for kw in ['qualification', 'requirement', 'what you need', 'education', 'must have']):
             in_qual = True
             continue
         if in_qual:
-            if any(kw in lower for kw in ['skill', 'responsibilities', 'about us', 'benefit']):
+            if any(kw in lower for kw in ['skill', 'responsibilities', 'about us', 'benefit', 'certification', 'preferred']):
                 in_qual = False
                 continue
             if line.strip():
                 qual_text.append(line.strip())
-    result["qualifications"] = '\n'.join(qual_text[:20])
+    result["qualifications"] = '\n'.join(qual_text[:25])
     
-    # Extract skills
+    # Skills
     tech_skills = [
-        'python', 'java', 'javascript', 'react', 'angular', 'node', 'sql', 'mongodb',
+        'python', 'java', 'javascript', 'react', 'angular', 'node.js', 'node', 'sql', 'mongodb',
         'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'linux',
-        'salesforce', 'apex', 'tableau', 'powerbi', 'excel', 'r', 'tensorflow',
+        'salesforce', 'apex', 'tableau', 'powerbi', 'power bi', 'excel', 'r', 'tensorflow',
         'pytorch', 'nlp', 'machine learning', 'data science', 'agile', 'scrum',
-        'api', 'rest', 'graphql', 'typescript', 'c++', 'c#', '.net', 'php'
+        'api', 'rest', 'graphql', 'typescript', 'c++', 'c#', '.net', 'php',
+        'html', 'css', 'bootstrap', 'tailwind', 'redux', 'vue', 'svelte',
+        'devops', 'ci/cd', 'terraform', 'ansible', 'prometheus', 'grafana',
+        'spark', 'hadoop', 'kafka', 'airflow', 'snowflake', 'databricks'
     ]
-    text_lower = text.lower()
-    result["required_skills"] = [s for s in tech_skills if s in text_lower]
+    result["required_skills"] = list(set([s for s in tech_skills if s in text_lower]))
+    
+    # Certifications
+    certs = ['aws certified', 'azure certified', 'pmp', 'scrum master', 'csm', 
+             'salesforce certified', 'google certified', 'comptia', 'cissp', 'ceh',
+             'itil', 'six sigma', 'pmi', 'safe', 'cka', 'ckad']
+    result["certifications_required"] = list(set([c for c in certs if c in text_lower]))
+    
+    # Client
+    for line in lines[:20]:
+        lower = line.lower().strip()
+        if 'client' in lower and ':' in lower:
+            parts = line.split(':', 1)
+            if len(parts) > 1 and 'end' not in lower:
+                result["client_name"] = parts[1].strip()[:100]
+        if 'end client' in lower and ':' in lower:
+            parts = line.split(':', 1)
+            if len(parts) > 1:
+                result["end_client"] = parts[1].strip()[:100]
     
     return result
         # ============ HTML TEMPLATE ============
