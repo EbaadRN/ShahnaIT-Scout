@@ -628,6 +628,7 @@ RESUME:
     return None
 
 def analyze_match_with_groq(resume_text, jd_text):
+    """Analyze resume vs JD match with detailed scoring"""
     if not GROQ_ENABLED:
         return None
     prompt = f"""You are an expert recruitment analyst. Analyze this resume against the job description with extreme precision. Return ONLY valid JSON.
@@ -638,35 +639,76 @@ JOB DESCRIPTION:
 RESUME:
 {resume_text[:3500]}
 
-Provide a detailed analysis with the following structure. Be extremely critical and precise.
+Provide a detailed analysis. Be extremely critical and precise. Do not inflate scores.
 
 Return EXACTLY this JSON format:
 {{
     "match_score": 0-100 integer,
-    "recommendation": "hire" or "interview" or "reject",
+    "recommendation": "Shortlisted / Strong Match / Moderate Match / Low Match / Not Recommended",
     "category_scores": {{
         "skills_match": 0-100,
         "experience_match": 0-100,
         "education_match": 0-100,
-        "certifications_match": 0-100
+        "certifications_match": 0-100,
+        "overall_fit": 0-100
     }},
     "matching_skills": ["skill1", "skill2"],
     "missing_skills": ["skill1", "skill2"],
     "strengths": ["strength1", "strength2"],
     "weaknesses": ["weakness1", "weakness2"],
-    "executive_summary": "2-3 sentence summary",
+    "detailed_analysis": "Detailed paragraph explaining the match reasoning with specific examples",
     "pre_screening_questions": ["Q1", "Q2", "Q3"]
 }}
 
 Scoring Guidelines:
-- 90-100: Perfect fit, hire immediately
-- 70-89: Strong match, schedule interview
-- 50-69: Partial match, consider for interview
-- 30-49: Weak match, reject
-- 0-29: No match, reject
+- 90-100: Perfect fit
+- 70-89: Strong match
+- 50-69: Moderate match
+- 30-49: Weak match
+- 0-29: No match
 
-Be harsh and realistic. Do not inflate scores."""
+Be harsh and realistic."""
     response = call_groq_api(prompt, max_tokens=2000)
+    if response:
+        try:
+            return json.loads(response)
+        except:
+            return None
+    return None
+
+
+def analyze_genuineness(resume_text, candidate_name=""):
+    """Detect if a resume appears fake, AI-generated, or embellished"""
+    if not GROQ_ENABLED:
+        return None
+    prompt = f"""You are an expert in detecting fake, AI-generated, or embellished resumes. Analyze this resume.
+
+Check for:
+1. AI-generated patterns (repetitive phrasing, overly perfect formatting, generic statements)
+2. Inconsistencies in experience timeline
+3. Unrealistic skill combinations for experience level
+4. Vague or unverifiable claims
+5. Keyword stuffing
+6. Missing specific details real professionals would include
+7. Unusual job hopping patterns
+
+Return ONLY valid JSON:
+{{
+    "genuineness_score": 0-100 (100 = completely genuine),
+    "ai_generated_probability": 0-100 (probability this was AI-written),
+    "verdict": "Genuine / Possibly Embellished / Likely Fake / AI-Generated / Needs Verification",
+    "red_flags": ["flag1", "flag2"],
+    "positive_indicators": ["indicator1", "indicator2"],
+    "detailed_analysis": "Paragraph explaining the reasoning",
+    "suggested_verification_steps": ["step1", "step2"]
+}}
+
+CANDIDATE: {candidate_name}
+
+RESUME:
+{resume_text[:4000]}
+"""
+    response = call_groq_api(prompt, max_tokens=1500)
     if response:
         try:
             return json.loads(response)
@@ -6024,22 +6066,68 @@ def analyze_match():
     resume_text = data.get('resume_text', '')
     jd_text = data.get('jd_text', '')
     candidate_id = data.get('candidate_id')
+    candidate_name = data.get('candidate_name', '')
+    job_title = data.get('job_title', '')
     
     if not resume_text or not jd_text:
         return jsonify({'error': 'Missing text'}), 400
     
-       # Use LOCAL open-source analysis (no API key needed!)
-    result = analyze_resume_locally(resume_text, jd_text)
+    result = None
     
-    # ADD SKILL GAP ANALYSIS
-    skill_gap = analyze_skill_gap(resume_text, jd_text)
-    result['skill_gap'] = skill_gap
+    # Try AI analysis first
+    if GROQ_ENABLED:
+        # Run match analysis
+        match_result = analyze_match_with_groq(resume_text, jd_text)
+        # Run genuineness check
+        genuineness_result = analyze_genuineness(resume_text, candidate_name)
+        
+        if match_result:
+            result = {
+                'match_score': match_result.get('match_score', 0),
+                'recommendation': match_result.get('recommendation', 'review'),
+                'category_scores': match_result.get('category_scores', {}),
+                'matching_skills': match_result.get('matching_skills', []),
+                'missing_skills': match_result.get('missing_skills', []),
+                'strengths': match_result.get('strengths', []),
+                'weaknesses': match_result.get('weaknesses', []),
+                'detailed_analysis': match_result.get('detailed_analysis', ''),
+                'executive_summary': match_result.get('detailed_analysis', match_result.get('executive_summary', '')),
+                'pre_screening_questions': match_result.get('pre_screening_questions', []),
+                'ai_used': True
+            }
+            
+            # Add genuineness data
+            if genuineness_result:
+                result['genuineness_score'] = genuineness_result.get('genuineness_score', 50)
+                result['ai_generated_probability'] = genuineness_result.get('ai_generated_probability', 50)
+                result['red_flags'] = genuineness_result.get('red_flags', [])
+                result['genuineness_verdict'] = genuineness_result.get('verdict', '')
+                result['genuineness_analysis'] = genuineness_result.get('detailed_analysis', '')
+            
+            # Add skill gap
+            skill_gap = analyze_skill_gap(resume_text, jd_text)
+            result['skill_gap'] = skill_gap
+            
+            # Generate interview questions
+            missing_skills = skill_gap.get('missing_skills', [])
+            interview_questions = generate_interview_questions(jd_text, resume_text, missing_skills)
+            result['interview_questions'] = interview_questions
     
-    # ADD INTERVIEW QUESTIONS
-    missing_skills = skill_gap.get('missing_skills', [])
-    interview_questions = generate_interview_questions(jd_text, resume_text, missing_skills)
-    result['interview_questions'] = interview_questions
+    # Fallback to local analysis if AI failed
+    if not result:
+        result = analyze_resume_locally(resume_text, jd_text)
+        result['ai_used'] = False
+        
+        # Add skill gap
+        skill_gap = analyze_skill_gap(resume_text, jd_text)
+        result['skill_gap'] = skill_gap
+        
+        # Add interview questions
+        missing_skills = skill_gap.get('missing_skills', [])
+        interview_questions = generate_interview_questions(jd_text, resume_text, missing_skills)
+        result['interview_questions'] = interview_questions
     
+    # Save to database if candidate_id provided
     if result and candidate_id:
         detailed_json = json.dumps(result, indent=2)
         conn = sqlite3.connect(DB_PATH)
@@ -6048,8 +6136,8 @@ def analyze_match():
                   (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, candidate_id))
         conn.commit()
         conn.close()
-        return jsonify(result)
-    elif result:
+    
+    if result:
         return jsonify(result)
     
     return jsonify({'error': 'Analysis failed'}), 500
