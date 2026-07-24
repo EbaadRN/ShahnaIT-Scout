@@ -1878,36 +1878,38 @@ HTML_TEMPLATE = '''
     .stat-change.negative { background: var(--color-error-bg); color: var(--color-error); border-color: #F0B8B8; }
     .stat-change.neutral { background: var(--color-off-white); color: var(--color-text-secondary); border-color: var(--color-border); }
 
-    /* ===== MATCH SCORES ===== */
+        /* ===== MATCH SCORES ===== */
     .match-high { 
-        background: var(--color-success); 
+        background: #10B981; 
         color: #FFFFFF; 
-        padding: 5px 16px; 
+        padding: 6px 18px; 
         border-radius: 20px; 
         display: inline-block; 
         font-weight: 800; 
         font-size: 17px; 
-        border: 2px solid #0A5C35;
+        border: 2px solid #059669;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
     .match-medium { 
-        background: var(--color-warning); 
-        color: #FFFFFF; 
-        padding: 5px 16px; 
+        background: #F59E0B; 
+        color: #1A1A1A; 
+        padding: 6px 18px; 
         border-radius: 20px; 
         display: inline-block; 
         font-weight: 800; 
         font-size: 17px; 
-        border: 2px solid #8C4400;
+        border: 2px solid #D97706;
     }
     .match-low { 
-        background: var(--color-error); 
+        background: #EF4444; 
         color: #FFFFFF; 
-        padding: 5px 16px; 
+        padding: 6px 18px; 
         border-radius: 20px; 
         display: inline-block; 
         font-weight: 800; 
         font-size: 17px; 
-        border: 2px solid #801515;
+        border: 2px solid #DC2626;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.2);
     }
 
     /* ===== ALERTS ===== */
