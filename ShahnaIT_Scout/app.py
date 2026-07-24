@@ -3092,8 +3092,9 @@ window.viewCandidate = function(id) {
     
     // Proposed
     document.getElementById('edit_proposed_client').value = candidate.proposed_client || '';
-    // Requirement will be set by loadRequirementsForClient(), just store the ID document.getElementById('edit_proposed_requirement').setAttribute('data-saved-id', candidate.proposed_requirement || '');
-    
+    // Requirement will be set by loadRequirementsForClient(), just store the ID
+    document.getElementById('edit_proposed_requirement').value = candidate.proposed_requirement || '';
+    document.getElementById('edit_proposed_requirement').setAttribute('data-saved-id', candidate.proposed_requirement || '');
     // Stage
     document.getElementById('edit_stage').value = candidate.stage || 'new';
     updateStageColor();
