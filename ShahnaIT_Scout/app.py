@@ -3571,17 +3571,41 @@ async function loadJobs() {
     if(!allJobs.length) { container.innerHTML = '<div class="card no-click">No jobs yet</div>'; return; }
     
     container.innerHTML = allJobs.map(j => {
-        const requirementId = j.requirement_id || ('SIT-R-' + String(j.id).padStart(3,'0'));
-        return `<div class="card" style="cursor:pointer;">
-            <div onclick="viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="flex:1;">
-                <h3>${escapeHtml(j.title)} <span style="font-size:12px;background:#1B2A4A;color:#fff;padding:2px 8px;border-radius:10px;">${escapeHtml(requirementId)}</span></h3>
-                ${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}
-                <small>${new Date(j.created_at).toLocaleDateString()}</small>
-            </div>
-            <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button>
-            <button class="btn btn-sm" onclick="event.stopPropagation(); viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="margin-top:8px;">👥 View Candidates</button>
-        </div>`;
-    }).join('');
+    const requirementId = j.requirement_id || ('SIT-R-' + String(j.id).padStart(3,'0'));
+    
+    // Build info badges
+    let badges = '';
+    if (j.working_mode && j.working_mode !== 'Not Specified') {
+        const modeColors = { 'Remote': '#10B981', 'Hybrid': '#F59E0B', 'Onsite': '#EF4444' };
+        const color = modeColors[j.working_mode] || '#6B7280';
+        badges += `<span style="background:${color};color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${escapeHtml(j.working_mode)}${j.working_mode === 'Hybrid' && j.hybrid_days ? ' (' + j.hybrid_days + 'd)' : ''}</span>`;
+    }
+    if (j.business_model && j.business_model !== 'Not Specified') {
+        badges += `<span style="background:#6366F1;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${escapeHtml(j.business_model)}</span>`;
+    }
+    if (j.years_of_experience) {
+        badges += `<span style="background:#8B5CF6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${j.years_of_experience}+ Yrs</span>`;
+    }
+    if (j.budget) {
+        badges += `<span style="background:#EC4899;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 ${escapeHtml(j.budget)}</span>`;
+    }
+    if (j.headcount && j.headcount > 1) {
+        badges += `<span style="background:#14B8A6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;">👥 ${j.headcount}</span>`;
+    }
+    
+    return `<div class="card" style="cursor:pointer;">
+        <div onclick="viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="flex:1;">
+            <h3>${escapeHtml(j.title)} <span style="font-size:12px;background:#1B2A4A;color:#fff;padding:2px 8px;border-radius:10px;">${escapeHtml(requirementId)}</span></h3>
+            ${j.company ? `<p>🏢 ${escapeHtml(j.company)}</p>` : ''}
+            ${j.end_client ? `<p style="font-size:13px;">🎯 End Client: ${escapeHtml(j.end_client)}</p>` : ''}
+            ${j.payroll_company ? `<p style="font-size:13px;">💼 Payroll: ${escapeHtml(j.payroll_company)}</p>` : ''}
+            ${badges ? `<div style="margin:8px 0;">${badges}</div>` : ''}
+            <small>📅 ${new Date(j.created_at).toLocaleDateString()}</small>
+        </div>
+        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button>
+        <button class="btn btn-sm" onclick="event.stopPropagation(); viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="margin-top:8px;">👥 View Candidates</button>
+    </div>`;
+}).join('');
     
     document.getElementById('jobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
     document.getElementById('batchJobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
