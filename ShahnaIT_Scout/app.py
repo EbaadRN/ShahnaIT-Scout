@@ -4199,7 +4199,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     toastSuccess('Filters cleared!');
 });
     
-    // Edit Job
+   // Edit Job
     window.editJob = async function(id) {
         const job = allJobs.find(j => j.id == id);
         const docRes = await fetch(`/api/jobs/${id}/documents`);
@@ -4210,25 +4210,97 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             documents.forEach(doc => { docsHtml += `<div class="file-list-item">📄 ${escapeHtml(doc.original_filename)} <span class="remove-file" onclick="deleteJobDocument(${doc.id}, ${id})">✕ Remove</span></div>`; });
             docsHtml += '</div>';
         }
-        document.getElementById('editJobModalBody').innerHTML = `<form id="editJobForm"><label>Job Title</label><input type="text" id="editJobTitle" value="${escapeHtml(job.title || '')}"><label>Company</label><input type="text" id="editJobCompany" value="${escapeHtml(job.company || '')}"><label>Description</label><textarea id="editJobDesc" rows="5">${escapeHtml(job.description || '')}</textarea><h4>Attach Document</h4><input type="file" id="jobDocFile"><button type="button" id="uploadJobDocBtn" class="btn btn-secondary">Upload</button><div id="jobDocUploadStatus"></div>${docsHtml}<div style="margin-top:20px;"><button type="submit" class="btn">Save</button><button type="button" class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button></div></form>`;
+        
+        const workingModeOptions = ['Not Specified', 'Remote', 'Hybrid', 'Onsite']
+            .map(m => `<option value="${m}" ${(job.working_mode || 'Not Specified') === m ? 'selected' : ''}>${m}</option>`).join('');
+        const businessModelOptions = ['Not Specified', 'C2C', 'C2H', 'Permanent', 'Contract']
+            .map(m => `<option value="${m}" ${(job.business_model || 'Not Specified') === m ? 'selected' : ''}>${m}</option>`).join('');
+        
+        document.getElementById('editJobModalBody').innerHTML = `<form id="editJobForm">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group"><label>Job Title</label><input type="text" id="editJobTitle" class="form-input" value="${escapeHtml(job.title || '')}"></div>
+                <div class="form-group"><label>Company</label><input type="text" id="editJobCompany" class="form-input" value="${escapeHtml(job.company || '')}"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group">
+                    <label>Working Mode</label>
+                    <select id="editJobWorkingMode" class="form-input">${workingModeOptions}</select>
+                </div>
+                <div class="form-group">
+                    <label>Business Model</label>
+                    <select id="editJobBusinessModel" class="form-input">${businessModelOptions}</select>
+                </div>
+            </div>
+            <div class="form-group" id="editHybridDaysGroup" style="display:${(job.working_mode === 'Hybrid') ? 'block' : 'none'};">
+                <label>Hybrid Days (per week)</label>
+                <input type="number" id="editJobHybridDays" class="form-input" value="${job.hybrid_days || 0}" min="0" max="7">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group"><label>Payroll Company</label><input type="text" id="editJobPayroll" class="form-input" value="${escapeHtml(job.payroll_company || '')}"></div>
+                <div class="form-group"><label>End Client</label><input type="text" id="editJobEndClient" class="form-input" value="${escapeHtml(job.end_client || '')}"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+                <div class="form-group"><label>Years of Experience</label><input type="number" id="editJobExperience" class="form-input" value="${job.years_of_experience || 0}" min="0"></div>
+                <div class="form-group"><label>Budget</label><input type="text" id="editJobBudget" class="form-input" value="${escapeHtml(job.budget || '')}"></div>
+                <div class="form-group"><label>Headcount</label><input type="number" id="editJobHeadcount" class="form-input" value="${job.headcount || 1}" min="1"></div>
+            </div>
+            <div class="form-group"><label>Roles & Responsibilities</label><textarea id="editJobRoles" class="form-input" rows="4">${escapeHtml(job.roles_responsibilities || '')}</textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-group"><label>Qualifications</label><textarea id="editJobQualifications" class="form-input" rows="3">${escapeHtml(job.qualifications || '')}</textarea></div>
+                <div class="form-group"><label>Certifications Required</label><input type="text" id="editJobCertifications" class="form-input" value="${escapeHtml(job.certifications_required || '')}"></div>
+            </div>
+            <div class="form-group"><label>Required Skills</label><input type="text" id="editJobSkills" class="form-input" value="${escapeHtml(job.required_skills || '')}"></div>
+            <div class="form-group"><label>Description</label><textarea id="editJobDesc" class="form-input" rows="5">${escapeHtml(job.description || '')}</textarea></div>
+            <h4>Attach Document</h4><input type="file" id="jobDocFile"><button type="button" id="uploadJobDocBtn" class="btn btn-secondary">Upload</button><div id="jobDocUploadStatus"></div>${docsHtml}
+            <div style="margin-top:20px;"><button type="submit" class="btn">Save</button><button type="button" class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button></div>
+        </form>`;
+        
         document.getElementById('editJobModal').style.display = 'block';
+        
+        // Show/hide hybrid days
+        const editWorkingMode = document.getElementById('editJobWorkingMode');
+        const editHybridGroup = document.getElementById('editHybridDaysGroup');
+        if (editWorkingMode && editHybridGroup) {
+            editWorkingMode.addEventListener('change', function() {
+                editHybridGroup.style.display = this.value === 'Hybrid' ? 'block' : 'none';
+            });
+        }
+        
         const uploadJobDocBtn = document.getElementById('uploadJobDocBtn');
-if (uploadJobDocBtn) uploadJobDocBtn.onclick = async function() {
+        if (uploadJobDocBtn) uploadJobDocBtn.onclick = async function() {
             const file = document.getElementById('jobDocFile').files[0];
             if (!file) return;
             const fd = new FormData(); fd.append('document', file); fd.append('job_id', id);
             document.getElementById('jobDocUploadStatus').innerHTML = '<div class="spinner"></div>';
             const res = await fetch('/api/jobs/upload-document', { method: 'POST', body: fd });
-           if (res.ok) { toastSuccess('Uploaded!'); editJob(id); }
+            if (res.ok) { toastSuccess('Uploaded!'); editJob(id); }
             document.getElementById('jobDocUploadStatus').innerHTML = '';
         };
+        
         document.getElementById('editJobForm').onsubmit = async (e) => {
             e.preventDefault();
-            const data = { title: document.getElementById('editJobTitle').value, company: document.getElementById('editJobCompany').value, description: document.getElementById('editJobDesc').value };
+            const data = {
+                title: document.getElementById('editJobTitle').value,
+                company: document.getElementById('editJobCompany').value,
+                working_mode: document.getElementById('editJobWorkingMode').value,
+                hybrid_days: parseInt(document.getElementById('editJobHybridDays').value) || 0,
+                business_model: document.getElementById('editJobBusinessModel').value,
+                payroll_company: document.getElementById('editJobPayroll').value,
+                end_client: document.getElementById('editJobEndClient').value,
+                years_of_experience: parseInt(document.getElementById('editJobExperience').value) || 0,
+                budget: document.getElementById('editJobBudget').value,
+                headcount: parseInt(document.getElementById('editJobHeadcount').value) || 1,
+                roles_responsibilities: document.getElementById('editJobRoles').value,
+                qualifications: document.getElementById('editJobQualifications').value,
+                certifications_required: document.getElementById('editJobCertifications').value,
+                required_skills: document.getElementById('editJobSkills').value,
+                description: document.getElementById('editJobDesc').value
+            };
             const res = await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
             if (res.ok) { toastSuccess('Job updated!'); closeEditJobModal(); loadJobs(); }
         };
     };
+
     
     window.deleteJobDocument = async function(docId, jobId) {
         if (confirm('Delete?')) { await fetch(`/api/jobs/documents/${docId}`, { method: 'DELETE' }); editJob(jobId); }
@@ -5560,8 +5632,32 @@ def update_job(job_id):
     data = request.json
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('UPDATE jobs SET title = ?, company = ?, description = ? WHERE id = ?',
-              (data.get('title'), data.get('company'), data.get('description', ''), job_id))
+    c.execute('''UPDATE jobs SET 
+        title = ?, company = ?, description = ?,
+        roles_responsibilities = ?, qualifications = ?,
+        required_skills = ?, certifications_required = ?,
+        working_mode = ?, hybrid_days = ?, business_model = ?,
+        payroll_company = ?, client_name = ?, end_client = ?,
+        years_of_experience = ?, budget = ?, headcount = ?
+    WHERE id = ?''', (
+        data.get('title'),
+        data.get('company'),
+        data.get('description', ''),
+        data.get('roles_responsibilities', ''),
+        data.get('qualifications', ''),
+        data.get('required_skills', ''),
+        data.get('certifications_required', ''),
+        data.get('working_mode', 'Not Specified'),
+        data.get('hybrid_days', 0),
+        data.get('business_model', 'Not Specified'),
+        data.get('payroll_company', ''),
+        data.get('client_name', data.get('company', '')),
+        data.get('end_client', ''),
+        data.get('years_of_experience', 0),
+        data.get('budget', ''),
+        data.get('headcount', 1),
+        job_id
+    ))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Job updated'})
