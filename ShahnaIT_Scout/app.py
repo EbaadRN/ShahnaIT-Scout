@@ -588,28 +588,37 @@ def call_groq_api(prompt, max_tokens=2500):
         return None
 
 def parse_resume_with_groq(resume_text):
-    prompt = f"""Parse this resume. Extract years of experience for each skill. Return ONLY valid JSON.
+    """Parse resume text into structured candidate fields using AI"""
+    prompt = f"""You are an expert resume parser. Extract ALL fields from this resume precisely. Return ONLY valid JSON, no explanations.
 
-RESUME: {resume_text[:3500]}
-
-Return: {{
-    "first_name": "",
-    "last_name": "",
+{{
+    "first_name": "First name",
+    "last_name": "Last name", 
     "middle_name": "",
-    "phone": "",
-    "email": "",
-    "address": "",
-    "linkedin": "",
-    "current_role": "",
-    "current_ctc": "",
-    "expected_ctc": "",
-    "employment_status": "working",
-    "notice_period_days": 0,
-    "work_experience": [],
-    "certifications": [],
-    "core_skills": [],
-    "education": ""
-}}"""
+    "phone": "phone number or empty",
+    "email": "email or empty",
+    "address": "full address or empty",
+    "linkedin": "LinkedIn URL or empty",
+    "current_role": "Current job title",
+    "designation": "Most recent designation",
+    "location": "City, State",
+    "current_ctc": "Current CTC if mentioned else empty",
+    "expected_ctc": "Expected CTC if mentioned else empty",
+    "years_of_experience": number,
+    "notice_period_days": number (30/60/90, 0 if not mentioned),
+    "employment_status": "Employed / Unemployed / Not Specified",
+    "core_skills": ["skill1", "skill2"],
+    "education": "Highest education",
+    "certifications": ["cert1", "cert2"],
+    "work_experience": [
+        {{"company": "name", "role": "title", "duration": "Jan 2020 - Present", "description": "key work"}}
+    ],
+    "summary": "2-line professional summary"
+}}
+
+RESUME:
+{resume_text[:5000]}
+"""
     response = call_groq_api(prompt, max_tokens=2500)
     if response:
         try:
@@ -1108,10 +1117,72 @@ def parse_jd_file():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+def parse_jd_with_groq(text):
+    """Use AI to parse JD text into structured fields"""
+    prompt = f"""Parse this job description. Extract ALL fields. Return ONLY valid JSON.
+
+{{
+    "title": "Job title",
+    "company": "Company name if mentioned, else empty",
+    "roles_responsibilities": "Key responsibilities as bullet points (use \\n for new lines)",
+    "qualifications": "Required qualifications as bullet points",
+    "required_skills": ["skill1", "skill2"],
+    "certifications_required": ["cert1", "cert2"],
+    "working_mode": "Remote / Hybrid / Onsite / Not Specified",
+    "hybrid_days": number or 0,
+    "business_model": "C2C / C2H / Permanent / Contract / Not Specified",
+    "payroll_company": "Payroll company or empty",
+    "client_name": "Client company or empty",
+    "end_client": "End client or empty",
+    "years_of_experience": number or 0,
+    "budget": "Budget/salary or empty",
+    "headcount": number or 1
+}}
+
+JOB DESCRIPTION:
+{text[:4000]}
+"""
+    response = call_groq_api(prompt, max_tokens=1500)
+    if response:
+        try:
+            return json.loads(response)
+        except:
+            return None
+    return None
+
+
 def parse_jd_text(text):
-    """Extract key details from JD text"""
+    """Extract key details from JD text - AI first, regex fallback"""
+    
+    # Try AI parsing first
+    try:
+        ai_result = parse_jd_with_groq(text)
+        if ai_result and ai_result.get('title'):
+            return {
+                "title": ai_result.get('title', ''),
+                "company": ai_result.get('company', ''),
+                "roles_responsibilities": ai_result.get('roles_responsibilities', ''),
+                "qualifications": ai_result.get('qualifications', ''),
+                "required_skills": ai_result.get('required_skills', []),
+                "certifications_required": ai_result.get('certifications_required', []),
+                "working_mode": ai_result.get('working_mode', 'Not Specified'),
+                "hybrid_days": ai_result.get('hybrid_days', 0),
+                "business_model": ai_result.get('business_model', 'Not Specified'),
+                "payroll_company": ai_result.get('payroll_company', ''),
+                "client_name": ai_result.get('client_name', ''),
+                "end_client": ai_result.get('end_client', ''),
+                "years_of_experience": ai_result.get('years_of_experience', 0),
+                "budget": ai_result.get('budget', ''),
+                "headcount": ai_result.get('headcount', 1)
+            }
+    except Exception as e:
+        print(f"AI JD parsing failed, using fallback: {e}")
+    
+    # Fallback: regex-based parsing
+    import re
     result = {
         "title": "",
+        "company": "",
         "roles_responsibilities": "",
         "qualifications": "",
         "required_skills": [],
@@ -1129,108 +1200,172 @@ def parse_jd_text(text):
     
     lines = text.split('\n')
     text_lower = text.lower()
-    import re
     
-    # Find title
-    for line in lines[:10]:
+    # Title
+    for line in lines[:15]:
         line = line.strip()
-        if line and len(line) > 5 and not line.startswith('http'):
-            result["title"] = line[:150]
-            break
+        if line and len(line) > 5 and not line.startswith('http') and not line.startswith('www'):
+            skip_words = ['job description', 'jd', 'confidential', 'about us', 'company']
+            if not any(line.lower().startswith(w) for w in skip_words):
+                result["title"] = line[:200]
+                break
     
     # Working mode
-    if any(kw in text_lower for kw in ['work from home', 'remote', 'wfh']):
+    if any(kw in text_lower for kw in ['work from home', 'remote', 'wfh', 'work remotely']):
         result["working_mode"] = "Remote"
     elif any(kw in text_lower for kw in ['hybrid']):
         result["working_mode"] = "Hybrid"
         days_match = re.search(r'(\d+)\s*day', text_lower)
         if days_match:
             result["hybrid_days"] = int(days_match.group(1))
-    elif any(kw in text_lower for kw in ['work from office', 'wfo', 'onsite', 'on-site']):
-        result["working_mode"] = "WFO"
+    elif any(kw in text_lower for kw in ['work from office', 'wfo', 'onsite', 'on-site', 'in office']):
+        result["working_mode"] = "Onsite"
     
     # Business model
-    if any(kw in text_lower for kw in ['c2c', 'corp to corp']):
+    if any(kw in text_lower for kw in ['c2c', 'corp to corp', 'corp-to-corp']):
         result["business_model"] = "C2C"
-    elif any(kw in text_lower for kw in ['c2h', 'contract to hire']):
+    elif any(kw in text_lower for kw in ['c2h', 'contract to hire', 'contract-to-hire']):
         result["business_model"] = "C2H"
-    elif any(kw in text_lower for kw in ['fte', 'full time', 'permanent']):
-        result["business_model"] = "FTE"
+    elif any(kw in text_lower for kw in ['fte', 'full time', 'full-time', 'permanent']):
+        result["business_model"] = "Permanent"
+    elif any(kw in text_lower for kw in ['contract', 'contractor']):
+        result["business_model"] = "Contract"
     
     # Years of experience
-    exp_match = re.search(r'(\d+)[\+-]?\s*(?:years?|yrs?)\s*(?:of)?\s*experience', text_lower)
-    if exp_match:
-        result["years_of_experience"] = int(exp_match.group(1))
-    
-    # Budget
-    for pattern in [r'(?:budget|salary|ctc)[:\s]*([\d,.]+\s*(?:lakh|lpa|cr|crore|k)?)', r'([\d,]+\s*(?:lakh|lpa|cr|crore))']:
-        m = re.search(pattern, text_lower)
-        if m:
-            result["budget"] = m.group(0)
+    exp_patterns = [
+        r'(\d+)[\+-]?\s*(?:to\s*\d+)?\s*(?:years?|yrs?)\s*(?:of)?\s*experience',
+        r'experience[:\s]*(\d+)[\+-]?\s*(?:to\s*\d+)?\s*(?:years?|yrs?)',
+        r'(\d+)\+?\s*(?:years?|yrs?)(?:\s*experience)?',
+        r'min(?:imum)?[:\s]*(\d+)\s*(?:years?|yrs?)',
+    ]
+    for pattern in exp_patterns:
+        exp_match = re.search(pattern, text_lower)
+        if exp_match:
+            result["years_of_experience"] = int(exp_match.group(1))
             break
     
+    # Budget
+    budget_patterns = [
+        r'(?:budget|salary|ctc|compensation)[:\s]*([\d,.]+)\s*(?:lakh|lpa|lacs|l|k|cr|crore)?',
+        r'up\s*to\s*([\d,.]+)\s*(?:lakh|lpa|lacs|l|k|cr|crore)',
+        r'([\d,.]+)\s*(?:lakh|lpa|lacs)\s*(?:per\s*annum)?',
+    ]
+    for pattern in budget_patterns:
+        m = re.search(pattern, text_lower)
+        if m:
+            result["budget"] = m.group(0).strip()
+            break
+    
+    # Headcount
+    hc_match = re.search(r'(?:headcount|positions?|openings?|vacancies?)[:\s]*(\d+)', text_lower)
+    if hc_match:
+        result["headcount"] = int(hc_match.group(1))
+    
     # Roles
+    roles_start = ['responsibilities', 'role', 'what you will do', 'key responsibilities', 'job duties', 'the role', 'job summary']
+    qual_start = ['qualification', 'requirement', 'what you need', 'what we are looking for', 'skills', 'education', 'certification', 'must have', 'required']
+    
     in_roles = False
     roles_text = []
     for line in lines:
         lower = line.lower().strip()
-        if any(kw in lower for kw in ['responsibilities', 'role', 'what you will do', 'key responsibilities', 'job duties']):
+        if not in_roles and any(kw in lower for kw in roles_start):
             in_roles = True
+            if ':' in line:
+                content = line.split(':', 1)[1].strip()
+                if content:
+                    roles_text.append(content)
             continue
         if in_roles:
-            if any(kw in lower for kw in ['qualification', 'requirement', 'skill', 'what you need', 'education', 'certification']):
+            if any(kw in lower for kw in qual_start):
                 in_roles = False
                 continue
-            if line.strip():
-                roles_text.append(line.strip())
-    result["roles_responsibilities"] = '\n'.join(roles_text[:25])
+            cleaned = line.strip().lstrip('•-–*·◦▪▸►').strip()
+            if cleaned:
+                roles_text.append(cleaned)
+    result["roles_responsibilities"] = '\n'.join(roles_text[:30])
     
     # Qualifications
     in_qual = False
     qual_text = []
     for line in lines:
         lower = line.lower().strip()
-        if any(kw in lower for kw in ['qualification', 'requirement', 'what you need', 'education', 'must have']):
+        if not in_qual and any(kw in lower for kw in ['qualification', 'requirement', 'what you need', 'what we are looking for', 'must have']):
             in_qual = True
+            if ':' in line:
+                content = line.split(':', 1)[1].strip()
+                if content:
+                    qual_text.append(content)
             continue
         if in_qual:
-            if any(kw in lower for kw in ['skill', 'responsibilities', 'about us', 'benefit', 'certification', 'preferred']):
+            if any(kw in lower for kw in ['responsibilities', 'about us', 'benefit', 'perks', 'preferred', 'nice to have', 'what we offer']):
                 in_qual = False
                 continue
-            if line.strip():
-                qual_text.append(line.strip())
+            cleaned = line.strip().lstrip('•-–*·◦▪▸►').strip()
+            if cleaned:
+                qual_text.append(cleaned)
     result["qualifications"] = '\n'.join(qual_text[:25])
     
     # Skills
     tech_skills = [
-        'python', 'java', 'javascript', 'react', 'angular', 'node.js', 'node', 'sql', 'mongodb',
-        'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'jenkins', 'git', 'linux',
-        'salesforce', 'apex', 'tableau', 'powerbi', 'power bi', 'excel', 'r', 'tensorflow',
-        'pytorch', 'nlp', 'machine learning', 'data science', 'agile', 'scrum',
-        'api', 'rest', 'graphql', 'typescript', 'c++', 'c#', '.net', 'php',
-        'html', 'css', 'bootstrap', 'tailwind', 'redux', 'vue', 'svelte',
-        'devops', 'ci/cd', 'terraform', 'ansible', 'prometheus', 'grafana',
-        'spark', 'hadoop', 'kafka', 'airflow', 'snowflake', 'databricks'
+        'python', 'java', 'javascript', 'typescript', 'react', 'angular', 'vue', 'svelte',
+        'node.js', 'nodejs', 'node', 'express', 'django', 'flask', 'fastapi', 'spring', 'spring boot',
+        'sql', 'mysql', 'postgresql', 'mongodb', 'oracle', 'nosql', 'redis', 'elasticsearch',
+        'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'k8s', 'jenkins',
+        'git', 'github', 'gitlab', 'bitbucket', 'linux', 'unix', 'bash',
+        'salesforce', 'apex', 'visualforce', 'lwc', 'soql', 'sales cloud', 'service cloud',
+        'tableau', 'powerbi', 'power bi', 'excel', 'looker', 'qlik',
+        'tensorflow', 'pytorch', 'scikit-learn', 'nlp', 'machine learning', 'data science',
+        'agile', 'scrum', 'kanban', 'jira', 'confluence',
+        'api', 'rest', 'graphql', 'soap', 'microservices',
+        'c++', 'c#', '.net', 'php', 'ruby', 'golang', 'go', 'rust', 'scala',
+        'html', 'css', 'sass', 'bootstrap', 'tailwind', 'material ui',
+        'redux', 'next.js', 'gatsby',
+        'devops', 'ci/cd', 'terraform', 'ansible', 'puppet', 'chef',
+        'prometheus', 'grafana', 'datadog', 'splunk', 'elk',
+        'spark', 'hadoop', 'kafka', 'airflow', 'snowflake', 'databricks',
+        'android', 'ios', 'swift', 'kotlin', 'flutter', 'react native',
+        'figma', 'sketch', 'adobe', 'photoshop',
+        'servicenow', 'sap', 'pega', 'appian', 'powerapps', 'sharepoint', 'dynamics', 'workday'
     ]
-    result["required_skills"] = list(set([s for s in tech_skills if s in text_lower]))
+    found_skills = []
+    for skill in tech_skills:
+        if skill in text_lower:
+            found_skills.append(skill)
+        elif ' ' in skill and all(w in text_lower for w in skill.split()):
+            found_skills.append(skill)
+    result["required_skills"] = list(set(found_skills))
     
     # Certifications
-    certs = ['aws certified', 'azure certified', 'pmp', 'scrum master', 'csm', 
-             'salesforce certified', 'google certified', 'comptia', 'cissp', 'ceh',
-             'itil', 'six sigma', 'pmi', 'safe', 'cka', 'ckad']
-    result["certifications_required"] = list(set([c for c in certs if c in text_lower]))
+    certs = [
+        'aws certified', 'aws solution architect', 'aws developer',
+        'azure certified', 'azure administrator', 'azure solutions architect',
+        'gcp certified', 'google cloud certified',
+        'pmp', 'prince2', 'scrum master', 'csm', 'psm', 'safe',
+        'salesforce certified', 'salesforce administrator', 'salesforce developer',
+        'comptia', 'cissp', 'ceh', 'security+', 'network+',
+        'itil', 'itil v4', 'six sigma', 'lean six sigma',
+        'pmi', 'pmi-acp', 'cka', 'ckad', 'cks',
+        'togaf', 'cobit', 'iso', 'cisa', 'cism',
+        'tableau certified', 'power bi certified',
+        'oracle certified', 'sap certified'
+    ]
+    found_certs = []
+    for cert in certs:
+        if cert in text_lower:
+            found_certs.append(cert)
+    result["certifications_required"] = list(set(found_certs))
     
-    # Client
-    for line in lines[:20]:
+    # Client & Payroll
+    for line in lines[:30]:
         lower = line.lower().strip()
-        if 'client' in lower and ':' in lower:
-            parts = line.split(':', 1)
-            if len(parts) > 1 and 'end' not in lower:
-                result["client_name"] = parts[1].strip()[:100]
-        if 'end client' in lower and ':' in lower:
-            parts = line.split(':', 1)
-            if len(parts) > 1:
-                result["end_client"] = parts[1].strip()[:100]
+        if 'end client' in lower:
+            if ':' in line:
+                result["end_client"] = line.split(':', 1)[1].strip()[:100]
+        elif 'client' in lower and ':' in line:
+            result["client_name"] = line.split(':', 1)[1].strip()[:100]
+        if 'payroll' in lower and ':' in line:
+            result["payroll_company"] = line.split(':', 1)[1].strip()[:100]
     
     return result
         # ============ HTML TEMPLATE ============
