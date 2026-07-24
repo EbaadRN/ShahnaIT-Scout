@@ -494,6 +494,20 @@ def init_db():
     print("✅ Database initialized")
 
 init_db()
+@app.route('/debug-db')
+def debug_db():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) FROM candidates")
+    candidate_count = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM jobs")
+    job_count = c.fetchone()[0]
+    conn.close()
+    return jsonify({
+        'db_path': DB_PATH,
+        'candidate_count': candidate_count,
+        'job_count': job_count
+    })
 # ============ STEP 1: DATABASE MIGRATION - ADD NEW COLUMNS ============
 def migrate_database():
     """Add new columns for enhanced candidate profile"""
