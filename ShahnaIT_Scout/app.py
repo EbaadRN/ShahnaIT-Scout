@@ -6303,17 +6303,21 @@ def debug_db():
     try:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM candidates")
+        candidate_count = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM jobs")
+        job_count = c.fetchone()[0]
         c.execute("PRAGMA table_info(candidates)")
-        columns = c.fetchall()
+        columns = [col[1] for col in c.fetchall()]
         conn.close()
         return jsonify({
-            'columns': [col[1] for col in columns],
-            'has_resume_file_path': 'resume_file_path' in [col[1] for col in columns],
-            'has_resume_original_filename': 'resume_original_filename' in [col[1] for col in columns]
+            'db_path': DB_PATH,
+            'candidate_count': candidate_count,
+            'job_count': job_count,
+            'columns': columns
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
