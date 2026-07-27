@@ -3827,6 +3827,150 @@ loadCandidates();
     const tab = document.getElementById(tabMap[panel]);
     if (tab) tab.classList.add('active');
 }
+// ============================================
+// INTERVIEW TRACKER FUNCTIONS
+// ============================================
+
+async function loadInterviews() {
+    const dateFilter = document.getElementById('intFilterDate').value || '';
+    const roundFilter = document.getElementById('intFilterRound').value || '';
+    const verdictFilter = document.getElementById('intFilterVerdict').value || '';
+    
+    let url = '/api/interviews?';
+    if (dateFilter) url += 'date=' + dateFilter + '&';
+    if (roundFilter) url += 'round=' + roundFilter + '&';
+    if (verdictFilter) url += 'verdict=' + verdictFilter + '&';
+    
+    const res = await fetch(url);
+    const interviews = await res.json();
+    const container = document.getElementById('interviewsList');
+    
+    if (!interviews.length) {
+        container.innerHTML = '<div class="card no-click" style="text-align:center;padding:40px;color:#94A3B8;">📅 No interviews found</div>';
+        return;
+    }
+    
+    container.innerHTML = interviews.map(i => {
+        const verdictColors = {
+            'Scheduled': '#2196F3', 'Selected': '#4CAF50', 'Rejected': '#F44336',
+            'Hold': '#FF9800', 'No Show': '#9E9E9E', 'Rescheduled': '#9C27B0'
+        };
+        const verdictColor = verdictColors[i.verdict] || '#2196F3';
+        
+        return `<div class="card" style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;">
+                <div style="flex:1;min-width:200px;">
+                    <h4 style="margin:0 0 5px 0;">
+                        <a href="javascript:void(0)" onclick="viewCandidate(${i.candidate_id})" style="color:#1B2A4A;text-decoration:underline;">${escapeHtml(i.candidate_name || 'Unknown')}</a>
+                    </h4>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:13px;color:#555;">
+                        <span>📅 ${i.interview_date} ${i.interview_time || ''}</span>
+                        <span style="background:#E3F2FD;padding:2px 10px;border-radius:12px;">🎯 ${escapeHtml(i.round)}</span>
+                        ${i.client_name ? `<span>🏢 ${escapeHtml(i.client_name)}</span>` : ''}
+                        ${i.requirement_id ? `<span>📋 ${escapeHtml(i.requirement_id)}</span>` : ''}
+                    </div>
+                    <div style="margin-top:8px;font-size:12px;color:#777;">
+                        ${i.resource_owner ? `👤 Owner: ${escapeHtml(i.resource_owner)}` : ''}
+                        ${i.client_poc ? ` | 📞 POC: ${escapeHtml(i.client_poc)}` : ''}
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <select onchange="updateInterviewVerdict(${i.id}, this.value)" style="background:${verdictColor};color:#fff;border:none;padding:6px 12px;border-radius:16px;font-weight:bold;cursor:pointer;font-size:13px;">
+                        <option value="Scheduled" ${i.verdict==='Scheduled'?'selected':''}>📋 Scheduled</option>
+                        <option value="Selected" ${i.verdict==='Selected'?'selected':''}>✅ Selected</option>
+                        <option value="Rejected" ${i.verdict==='Rejected'?'selected':''}>❌ Rejected</option>
+                        <option value="Hold" ${i.verdict==='Hold'?'selected':''}>⏸️ Hold</option>
+                        <option value="No Show" ${i.verdict==='No Show'?'selected':''}>🚫 No Show</option>
+                        <option value="Rescheduled" ${i.verdict==='Rescheduled'?'selected':''}>🔄 Rescheduled</option>
+                    </select>
+                </div>
+            </div>
+            ${i.feedback ? `<div style="margin-top:8px;padding:8px;background:#F5F5F5;border-radius:6px;font-size:13px;color:#555;">💬 ${escapeHtml(i.feedback)}</div>` : ''}
+        </div>`;
+    }).join('');
+    
+    const reqList = document.getElementById('intReqList');
+    if (reqList && allJobs.length) {
+        reqList.innerHTML = allJobs.map(j => `<option value="${escapeHtml(j.requirement_id || 'SIT-R-' + String(j.id).padStart(3,'0'))}">`).join('');
+    }
+}
+
+function searchInterviewCandidate() {
+    const search = document.getElementById('intCandidateSearch').value.toLowerCase();
+    const list = document.getElementById('intCandidateList');
+    if (!search || search.length < 2) { list.innerHTML = ''; return; }
+    const matches = allCandidates.filter(c => 
+        (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
+        ('SIT-C-' + String(c.id).padStart(3,'0')).includes(search)
+    );
+    list.innerHTML = matches.map(c => 
+        `<option value="${escapeHtml('SIT-C-' + String(c.id).padStart(3,'0') + ' - ' + (c.first_name||'') + ' ' + (c.last_name||''))}">`
+    ).join('');
+}
+
+async function scheduleInterview() {
+    const candidateVal = document.getElementById('intCandidateSearch').value;
+    const candidateId = candidateVal.split(' - ')[0].replace('SIT-C-', '').trim();
+    
+    if (!candidateId) { toastError('Please select a candidate'); return; }
+    
+    const data = {
+        candidate_id: parseInt(candidateId),
+        candidate_name: candidateVal.split(' - ').slice(1).join(' - ').trim(),
+        interview_date: document.getElementById('intDate').value,
+        interview_time: document.getElementById('intTime').value,
+        round: document.getElementById('intRound').value,
+        resource_owner: document.getElementById('intOwner').value,
+        client_name: document.getElementById('intClient').value,
+        client_poc: document.getElementById('intPOC').value,
+        requirement_id: document.getElementById('intRequirement').value,
+        scheduled_by: 'HR'
+    };
+    
+    if (!data.interview_date) { toastError('Please select a date'); return; }
+    
+    const res = await fetch('/api/interviews', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    if (res.ok) {
+        toastSuccess('Interview scheduled!');
+        document.getElementById('intCandidateSearch').value = '';
+        document.getElementById('intDate').value = '';
+        document.getElementById('intTime').value = '';
+        document.getElementById('intOwner').value = '';
+        document.getElementById('intClient').value = '';
+        document.getElementById('intPOC').value = '';
+        document.getElementById('intRequirement').value = '';
+        loadInterviews();
+    } else {
+        toastError('Failed to schedule interview');
+    }
+}
+
+async function updateInterviewVerdict(interviewId, verdict) {
+    const feedback = prompt('Add feedback (optional):', '');
+    const res = await fetch('/api/interviews/' + interviewId, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ verdict: verdict, feedback: feedback || '' })
+    });
+    if (res.ok) {
+        toastSuccess('Verdict updated!');
+        loadInterviews();
+    } else {
+        toastError('Failed to update verdict');
+    }
+}
+
+// Schedule button handler
+document.addEventListener('DOMContentLoaded', function() {
+    const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
+    if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
+});
+
     
 async function loadJobs() {
     const res = await fetch('/api/jobs');
@@ -6228,6 +6372,71 @@ def analyze_match():
         return jsonify(result)
     
     return jsonify({'error': 'Analysis failed'}), 500
+
+    return jsonify({'error': 'Analysis failed'}), 500
+
+# ============================================
+# INTERVIEW TRACKER ROUTES
+# ============================================
+
+@app.route('/api/interviews', methods=['GET'])
+def get_interviews():
+    date_filter = request.args.get('date', '')
+    round_filter = request.args.get('round', '')
+    verdict_filter = request.args.get('verdict', '')
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    query = 'SELECT * FROM interviews WHERE 1=1'
+    params = []
+    
+    if date_filter:
+        query += ' AND interview_date = ?'
+        params.append(date_filter)
+    if round_filter:
+        query += ' AND round = ?'
+        params.append(round_filter)
+    if verdict_filter:
+        query += ' AND verdict = ?'
+        params.append(verdict_filter)
+    
+    query += ' ORDER BY interview_date DESC, interview_time DESC'
+    c.execute(query, params)
+    interviews = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(interviews)
+
+@app.route('/api/interviews', methods=['POST'])
+def create_interview():
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''INSERT INTO interviews 
+        (candidate_id, candidate_name, resource_owner, interview_date, interview_time,
+         round, client_name, client_poc, requirement_id, scheduled_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (data.get('candidate_id'), data.get('candidate_name'), data.get('resource_owner'),
+         data.get('interview_date'), data.get('interview_time'), data.get('round', 'L1'),
+         data.get('client_name'), data.get('client_poc'), data.get('requirement_id'),
+         data.get('scheduled_by', 'HR')))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Interview scheduled'})
+
+@app.route('/api/interviews/<int:interview_id>', methods=['PUT'])
+def update_interview(interview_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('UPDATE interviews SET verdict = ?, feedback = ? WHERE id = ?',
+              (data.get('verdict'), data.get('feedback', ''), interview_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Interview updated'})
+
+@app.route('/api/export-candidates', methods=['GET'])
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
     conn = sqlite3.connect(DB_PATH)
