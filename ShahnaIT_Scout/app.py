@@ -3562,7 +3562,7 @@ async function runAIAnalysis() {
         
         if (result.match_score !== undefined) {
             document.getElementById('aiSummarySection').style.display = 'block';
-            document.getElementById('aiSummaryText').textContent = result.executive_summary || 'Analysis complete';
+            const summaryText = result.detailed_analysis || result.executive_summary || 'Analysis complete'; document.getElementById('aiSummaryText').textContent = summaryText;
             document.getElementById('aiMatchedJD').textContent = requirementId;
             
             currentCandidateData.analysis_summary = result.executive_summary;
