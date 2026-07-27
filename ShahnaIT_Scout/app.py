@@ -3912,7 +3912,11 @@ async function loadInterviews() {
                     </select>
                 </div>
             </div>
-            ${i.feedback ? `<div style="margin-top:8px;padding:8px;background:#F5F5F5;border-radius:6px;font-size:13px;color:#555;">💬 ${escapeHtml(i.feedback)}</div>` : ''}
+           ${i.feedback ? `<div style="margin-top:8px;padding:8px;background:#F5F5F5;border-radius:6px;font-size:13px;color:#555;">💬 ${escapeHtml(i.feedback)}</div>` : ''}
+            <div style="margin-top:8px;display:flex;gap:6px;">
+                <button class="btn btn-sm" onclick="sendInterviewEmail(${i.id}, 'invite')" style="font-size:11px;padding:4px 10px;">📧 Send Invite</button>
+                ${i.verdict !== 'Scheduled' ? `<button class="btn btn-sm btn-secondary" onclick="sendInterviewEmail(${i.id}, 'verdict')" style="font-size:11px;padding:4px 10px;">📨 Send Verdict</button>` : ''}
+            </div>
         </div>`;
     }).join('');
     
@@ -3974,6 +3978,23 @@ async function scheduleInterview() {
         loadInterviews();
     } else {
         toastError('Failed to schedule interview');
+    }
+}
+
+async function sendInterviewEmail(interviewId, type) {
+    if (!confirm('Send ' + (type === 'invite' ? 'interview invite' : 'verdict update') + ' email to candidate?')) return;
+    
+    const res = await fetch('/api/interviews/' + interviewId + '/send-email', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ type: type })
+    });
+    
+    if (res.ok) {
+        toastSuccess('Email sent!');
+    } else {
+        const result = await res.json();
+        toastError(result.error || 'Failed to send email');
     }
 }
 
@@ -6462,7 +6483,90 @@ def update_interview(interview_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Interview updated'})
-
+@app.route('/api/interviews/<int:interview_id>/send-email', methods=['POST'])
+def send_interview_email(interview_id):
+    data = request.json
+    email_type = data.get('type', 'invite')  # 'invite' or 'verdict'
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM interviews WHERE id = ?', (interview_id,))
+    interview = c.fetchone()
+    
+    if not interview:
+        conn.close()
+        return jsonify({'error': 'Interview not found'}), 404
+    
+    # Get candidate email
+    c.execute('SELECT email, first_name, last_name FROM candidates WHERE id = ?', (interview['candidate_id'],))
+    candidate = c.fetchone()
+    conn.close()
+    
+    if not candidate or not candidate['email']:
+        return jsonify({'error': 'Candidate email not found'}), 400
+    
+    candidate_name = f"{candidate['first_name'] or ''} {candidate['last_name'] or ''}".strip()
+    
+    if email_type == 'invite':
+        subject = f"Interview Invitation - {interview['round']} Round | {interview['client_name'] or 'Client'}"
+        body = f"""
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <h2 style="color:#1B2A4A;">📅 Interview Invitation</h2>
+            <p>Dear <strong>{candidate_name}</strong>,</p>
+            <p>Your interview has been scheduled. Here are the details:</p>
+            <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Date</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['interview_date']}</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Time</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['interview_time'] or 'TBD'}</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Round</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['round']}</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Client</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['client_name'] or 'N/A'}</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Requirement</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['requirement_id'] or 'N/A'}</td></tr>
+            </table>
+            <p>Please be available 5 minutes before the scheduled time.</p>
+            <p>Best regards,<br><strong>ShahnaIT Recruitment Team</strong></p>
+        </div>
+        """
+    else:  # verdict
+        verdict_emoji = {'Selected': '✅', 'Rejected': '❌', 'Hold': '⏸️', 'No Show': '🚫', 'Rescheduled': '🔄'}.get(interview['verdict'], '📋')
+        subject = f"Interview Update - {interview['verdict']} | {interview['client_name'] or 'Client'}"
+        body = f"""
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <h2 style="color:#1B2A4A;">{verdict_emoji} Interview Update</h2>
+            <p>Dear <strong>{candidate_name}</strong>,</p>
+            <p>Here is an update regarding your interview:</p>
+            <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Date</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['interview_date']}</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Round</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['round']}</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Verdict</strong></td><td style="padding:8px;border:1px solid #ddd;font-weight:bold;">{interview['verdict']}</td></tr>
+                <tr><td style="padding:8px;border:1px solid #ddd;background:#F5F5F5;"><strong>Feedback</strong></td><td style="padding:8px;border:1px solid #ddd;">{interview['feedback'] or 'N/A'}</td></tr>
+            </table>
+            <p>Best regards,<br><strong>ShahnaIT Recruitment Team</strong></p>
+        </div>
+        """
+    
+    success = send_email(candidate['email'], subject, body)
+    
+    if success:
+        # Log email in database
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('''CREATE TABLE IF NOT EXISTS email_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            interview_id INTEGER,
+            candidate_id INTEGER,
+            email_type TEXT,
+            sent_to TEXT,
+            subject TEXT,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+        c.execute('INSERT INTO email_logs (interview_id, candidate_id, email_type, sent_to, subject) VALUES (?, ?, ?, ?, ?)',
+                  (interview_id, interview['candidate_id'], email_type, candidate['email'], subject))
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Email sent successfully'})
+    
+    return jsonify({'error': 'Failed to send email'}), 500    
+        
 @app.route('/api/export-candidates', methods=['GET'])
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
