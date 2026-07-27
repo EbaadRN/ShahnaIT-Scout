@@ -3548,14 +3548,16 @@ async function runAIAnalysis() {
         
         toastInfo('Running AI Analysis...');
         
-        const analysisRes = await fetch('/api/analyze', {
+        const analysisRes = await fetch('/api/analyze-match', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                resume_text: resumeText,
-                jd_text: jdText,
-                candidate_id: currentCandidateId
-            })
+body: JSON.stringify({
+    resume_text: resumeText,
+    jd_text: jdText,
+    candidate_id: currentCandidateId,
+    candidate_name: (currentCandidateData.first_name || '') + ' ' + (currentCandidateData.last_name || ''),
+    job_title: job ? job.title : ''
+})
         });
         
         const result = await analysisRes.json();
