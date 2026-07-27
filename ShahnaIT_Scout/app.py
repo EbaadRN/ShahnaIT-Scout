@@ -4943,7 +4943,7 @@ if (result.weaknesses && result.weaknesses.length > 0) {
                 </div>
                 <div>
                     <div><strong>Recommendation:</strong> <span style="text-transform: uppercase; font-weight: bold;">${result.recommendation || 'Review'}</span></div>
-                    <div style="font-size: 13px; color: #555; margin-top: 5px;">${result.executive_summary ? escapeHtml(result.executive_summary) : ''}</div>
+                    <div style="font-size: 14px; color: #1A1A2E; margin-top: 8px; line-height: 1.7; background: #FFFFFF; padding: 12px 16px; border-radius: 8px; border: 1px solid #D0D8E4; max-height: 250px; overflow-y: auto; white-space: pre-wrap;">${result.detailed_analysis || result.executive_summary ? escapeHtml(result.detailed_analysis || result.executive_summary) : '<em style="color:#999;">No detailed analysis available</em>'}</div>
                 </div>
             </div>
             ${categoryHtml}
