@@ -70,6 +70,33 @@ from sentence_transformers import SentenceTransformer
 from textblob import TextBlob
 import nltk
 import re
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+def send_email(to_email, subject, body):
+    """Send email via Hostinger SMTP"""
+    smtp_email = os.environ.get('SMTP_EMAIL')
+    smtp_password = os.environ.get('SMTP_PASSWORD')
+    
+    if not smtp_email or not smtp_password:
+        print("⚠️ SMTP not configured")
+        return False
+    
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = smtp_email
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'html'))
+        
+        with smtplib.SMTP_SSL('smtp.hostinger.com', 465) as server:
+            server.login(smtp_email, smtp_password)
+            server.send_message(msg)
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
 
 # Download required NLTK data
 try:
