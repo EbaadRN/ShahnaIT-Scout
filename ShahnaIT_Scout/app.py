@@ -489,6 +489,24 @@ def init_db():
         FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
     )''')
     
+    c.execute('''CREATE TABLE IF NOT EXISTS interviews (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER,
+        candidate_name TEXT,
+        resource_owner TEXT,
+        interview_date DATE,
+        interview_time TIME,
+        round TEXT DEFAULT 'L1',
+        client_name TEXT,
+        client_poc TEXT,
+        requirement_id TEXT,
+        verdict TEXT DEFAULT 'Scheduled',
+        feedback TEXT,
+        scheduled_by TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id)
+    )''')
+    
     conn.commit()
     conn.close()
     print("✅ Database initialized")
@@ -2517,6 +2535,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <button class="tab-btn" id="tabCandidates" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Candidates</button>
         <button class="tab-btn" id="tabUpload" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📄 Upload Resume</button>
         <button class="tab-btn" id="tabCreateJob" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">➕ Create Job</button>
+        <button class="tab-btn" id="tabInterviews" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📅 Interviews</button>
         <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
         <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
     </div>
@@ -2752,6 +2771,69 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <button id="createJobBtn" class="btn btn-primary">💾 Create Requirement</button>
     </div>
 </div>
+    
+    <div id="interviewsPanel" style="display:none;">
+        <div class="card no-click">
+            <h3>📅 Interview Tracker</h3>
+            
+            <!-- Schedule New Interview -->
+            <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+                <strong>➕ Schedule Interview</strong>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                    <div><label style="font-size:12px;">Candidate ID</label><input type="text" id="intCandidateSearch" class="form-input" placeholder="SIT-C-001" oninput="searchInterviewCandidate()" list="intCandidateList"><datalist id="intCandidateList"></datalist></div>
+                    <div><label style="font-size:12px;">Date</label><input type="date" id="intDate" class="form-input"></div>
+                    <div><label style="font-size:12px;">Time</label><input type="time" id="intTime" class="form-input"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                    <div>
+                        <label style="font-size:12px;">Round</label>
+                        <select id="intRound" class="form-input">
+                            <option value="L1">L1 - Technical</option>
+                            <option value="L2">L2 - Technical</option>
+                            <option value="L3">L3 - Architect</option>
+                            <option value="Managerial">Managerial</option>
+                            <option value="HR">HR Discussion</option>
+                            <option value="Client">Client Round</option>
+                        </select>
+                    </div>
+                    <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="intOwner" class="form-input" placeholder="HR Name"></div>
+                    <div><label style="font-size:12px;">Client Name</label><input type="text" id="intClient" class="form-input" placeholder="Client"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                    <div><label style="font-size:12px;">Client POC</label><input type="text" id="intPOC" class="form-input" placeholder="Client Contact Person"></div>
+                    <div><label style="font-size:12px;">Requirement ID</label><input type="text" id="intRequirement" class="form-input" placeholder="SIT-R-001" list="intReqList"><datalist id="intReqList"></datalist></div>
+                </div>
+                <button id="scheduleInterviewBtn" class="btn btn-primary" style="margin-top:12px;">📅 Schedule Interview</button>
+            </div>
+            
+            <!-- Filters -->
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+                <input type="date" id="intFilterDate" class="form-input" style="width:160px;" onchange="loadInterviews()">
+                <select id="intFilterRound" class="form-input" style="width:150px;" onchange="loadInterviews()">
+                    <option value="">All Rounds</option>
+                    <option value="L1">L1</option>
+                    <option value="L2">L2</option>
+                    <option value="L3">L3</option>
+                    <option value="Managerial">Managerial</option>
+                    <option value="HR">HR</option>
+                    <option value="Client">Client</option>
+                </select>
+                <select id="intFilterVerdict" class="form-input" style="width:150px;" onchange="loadInterviews()">
+                    <option value="">All Verdicts</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Selected">Selected</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Hold">On Hold</option>
+                    <option value="No Show">No Show</option>
+                    <option value="Rescheduled">Rescheduled</option>
+                </select>
+                <button class="btn btn-secondary" onclick="document.getElementById('intFilterDate').value='';document.getElementById('intFilterRound').value='';document.getElementById('intFilterVerdict').value='';loadInterviews();">🔄 Clear Filters</button>
+            </div>
+            
+            <!-- Interview List -->
+            <div id="interviewsList"></div>
+        </div>
+    </div>
     
     <div id="analyzePanel" style="display:none;">
     <div class="card no-click">
@@ -3723,7 +3805,7 @@ loadCandidates();
     const tabJobs = document.getElementById('tabJobs'); if (tabJobs) tabJobs.onclick = function() { showPanel('jobs'); loadJobs(); };
     const tabCandidates = document.getElementById('tabCandidates'); if (tabCandidates) tabCandidates.onclick = function() { showPanel('candidates'); loadCandidates(); };
     const tabUpload = document.getElementById('tabUpload'); if (tabUpload) tabUpload.onclick = function() { showPanel('upload'); };
-    const tabCreateJob = document.getElementById('tabCreateJob'); if (tabCreateJob) tabCreateJob.onclick = function() { showPanel('createJob'); };
+    const tabCreateJob = document.getElementById('tabCreateJob'); const tabInterviews = document.getElementById('tabInterviews'); if (tabInterviews) tabInterviews.onclick = function() { showPanel('interviews'); loadInterviews(); }; if (tabCreateJob) tabCreateJob.onclick = function() { showPanel('createJob'); };
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     
