@@ -2842,7 +2842,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
                     <strong style="color:#1B2A4A;">AI Analysis Summary</strong>
                     <span id="aiMatchedJD" style="font-size:12px;background:#1B2A4A;color:#fff;padding:2px 10px;border-radius:12px;"></span>
                 </div>
-                <p id="aiSummaryText" style="margin:4px 0 0 0;font-size:13px;color:#2C3E5A;line-height:1.5;"></p>
+                <p id="aiSummaryText" style="margin:4px 0 0 0;font-size:14px;color:#0F1D33;line-height:1.7;max-height:300px;overflow-y:auto;white-space:pre-wrap;padding:8px 12px;background:#FFFFFF;border-radius:6px;border:1px solid #D0D8E4;"></p>
             </div>
             
             <!-- Main Content Grid -->
