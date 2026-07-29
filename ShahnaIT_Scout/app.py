@@ -2795,11 +2795,12 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <div class="form-group"><label>Required Skills (comma separated)</label><input type="text" id="jobSkills" class="form-input" placeholder="Python, AWS, Docker..."></div>
         <div class="form-group"><label>Job Description</label><textarea id="jobDesc" class="form-input" rows="3" placeholder="Full job description..."></textarea></div>
         
-        <button id="createJobBtn" class="btn btn-primary">💾 Create Requirement</button>
+               <button id="createJobBtn" class="btn btn-primary">💾 Create Requirement</button>
     </div>
 </div>
-    
-    <div id="interviewsPanel" style="display:none;">
+</div>   <!-- This closes createJobPanel -->
+
+<div id="interviewsPanel" style="display:none;">
         <div class="card no-click">
             <h3>📅 Interview Tracker</h3>
             
