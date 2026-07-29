@@ -2799,69 +2799,41 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     </div>
 </div>   <!-- This closes createJobPanel -->
 
+
 <div id="interviewsPanel" style="display:none;">
-        <div class="card no-click">
-            <h3>📅 Interview Tracker</h3>
-            
-            <!-- Schedule New Interview -->
-            <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
-                <strong>➕ Schedule Interview</strong>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
-                    <div><label style="font-size:12px;">Candidate ID</label><input type="text" id="intCandidateSearch" class="form-input" placeholder="SIT-C-001" oninput="searchInterviewCandidate()" list="intCandidateList"><datalist id="intCandidateList"></datalist></div>
-                    <div><label style="font-size:12px;">Date</label><input type="date" id="intDate" class="form-input"></div>
-                    <div><label style="font-size:12px;">Time</label><input type="time" id="intTime" class="form-input"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
-                    <div>
-                        <label style="font-size:12px;">Round</label>
-                        <select id="intRound" class="form-input">
-                            <option value="L1">L1 - Technical</option>
-                            <option value="L2">L2 - Technical</option>
-                            <option value="L3">L3 - Architect</option>
-                            <option value="Managerial">Managerial</option>
-                            <option value="HR">HR Discussion</option>
-                            <option value="Client">Client Round</option>
-                        </select>
-                    </div>
-                    <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="intOwner" class="form-input" placeholder="HR Name"></div>
-                    <div><label style="font-size:12px;">Client Name</label><input type="text" id="intClient" class="form-input" placeholder="Client"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-                    <div><label style="font-size:12px;">Client POC</label><input type="text" id="intPOC" class="form-input" placeholder="Client Contact Person"></div>
-                    <div><label style="font-size:12px;">Requirement ID</label><input type="text" id="intRequirement" class="form-input" placeholder="SIT-R-001" list="intReqList"><datalist id="intReqList"></datalist></div>
-                </div>
-                <button id="scheduleInterviewBtn" class="btn btn-primary" style="margin-top:12px;">📅 Schedule Interview</button>
+    <div class="card no-click">
+        <h3>📅 Interview Tracker</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Schedule Interview</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Candidate ID</label><input type="text" id="intCandidateSearch" class="form-input" placeholder="SIT-C-001" oninput="searchInterviewCandidate()" list="intCandidateList"><datalist id="intCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Date</label><input type="date" id="intDate" class="form-input"></div>
+                <div><label style="font-size:12px;">Time</label><input type="time" id="intTime" class="form-input"></div>
             </div>
-            
-            <!-- Filters -->
-            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
-                <input type="date" id="intFilterDate" class="form-input" style="width:160px;" onchange="loadInterviews()">
-                <select id="intFilterRound" class="form-input" style="width:150px;" onchange="loadInterviews()">
-                    <option value="">All Rounds</option>
-                    <option value="L1">L1</option>
-                    <option value="L2">L2</option>
-                    <option value="L3">L3</option>
-                    <option value="Managerial">Managerial</option>
-                    <option value="HR">HR</option>
-                    <option value="Client">Client</option>
-                </select>
-                <select id="intFilterVerdict" class="form-input" style="width:150px;" onchange="loadInterviews()">
-                    <option value="">All Verdicts</option>
-                    <option value="Scheduled">Scheduled</option>
-                    <option value="Selected">Selected</option>
-                    <option value="Rejected">Rejected</option>
-                    <option value="Hold">On Hold</option>
-                    <option value="No Show">No Show</option>
-                    <option value="Rescheduled">Rescheduled</option>
-                </select>
-                <button class="btn btn-secondary" onclick="document.getElementById('intFilterDate').value='';document.getElementById('intFilterRound').value='';document.getElementById('intFilterVerdict').value='';loadInterviews();">🔄 Clear Filters</button>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Round</label><select id="intRound" class="form-input"><option value="L1">L1 - Technical</option><option value="L2">L2 - Technical</option><option value="L3">L3 - Architect</option><option value="Managerial">Managerial</option><option value="HR">HR Discussion</option><option value="Client">Client Round</option></select></div>
+                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="intOwner" class="form-input" placeholder="HR Name"></div>
+                <div><label style="font-size:12px;">Client Name</label><input type="text" id="intClient" class="form-input" placeholder="Client"></div>
             </div>
-            
-            <!-- Interview List -->
-                        <div id="interviewsList"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Client POC</label><input type="text" id="intPOC" class="form-input" placeholder="Client Contact Person"></div>
+                <div><label style="font-size:12px;">Requirement ID</label><input type="text" id="intRequirement" class="form-input" placeholder="SIT-R-001" list="intReqList"><datalist id="intReqList"></datalist></div>
+            </div>
+            <button id="scheduleInterviewBtn" class="btn btn-primary" style="margin-top:12px;">📅 Schedule Interview</button>
         </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+            <input type="date" id="intFilterDate" class="form-input" style="width:160px;" onchange="loadInterviews()">
+            <select id="intFilterRound" class="form-input" style="width:150px;" onchange="loadInterviews()">
+                <option value="">All Rounds</option><option value="L1">L1</option><option value="L2">L2</option><option value="L3">L3</option><option value="Managerial">Managerial</option><option value="HR">HR</option><option value="Client">Client</option>
+            </select>
+            <select id="intFilterVerdict" class="form-input" style="width:150px;" onchange="loadInterviews()">
+                <option value="">All Verdicts</option><option value="Scheduled">Scheduled</option><option value="Selected">Selected</option><option value="Rejected">Rejected</option><option value="Hold">On Hold</option><option value="No Show">No Show</option><option value="Rescheduled">Rescheduled</option>
+            </select>
+            <button class="btn btn-secondary" onclick="document.getElementById('intFilterDate').value='';document.getElementById('intFilterRound').value='';document.getElementById('intFilterVerdict').value='';loadInterviews();">🔄 Clear Filters</button>
+        </div>
+        <div id="interviewsList"></div>
     </div>
-</div>   <!-- This closes interviewsPanel -->
+</div>
 
 <div id="analyzePanel" style="display:none;">
     <div class="card no-click">
