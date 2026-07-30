@@ -482,6 +482,13 @@ os.makedirs('/data/tmp', exist_ok=True)
 DB_PATH = '/data/shahnai.db'
 
 def init_db():
+    # TEMPORARY: Reset old admin
+conn = sqlite3.connect(DB_PATH)
+c = conn.cursor()
+c.execute("DELETE FROM users WHERE email = 'admin@shahnait.com'")
+conn.commit()
+conn.close()
+print("✅ Old admin cleaned")
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     
@@ -582,10 +589,10 @@ def init_db():
     c.execute('SELECT COUNT(*) FROM users')
     if c.fetchone()[0] == 0:
         import hashlib
-        default_password = hashlib.sha256('admin123'.encode()).hexdigest()
+        default_password = hashlib.sha256('Ibaadrn@shahnait@301'.encode()).hexdigest()
         c.execute('INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
-                  ('admin@shahnait.com', default_password, 'Admin', 'admin'))
-        print("✅ Default admin created: admin@shahnait.com / admin123")
+                  ('ibaadrn@shahnait.com', default_password, 'Ibaad RN', 'admin'))
+        print("✅ Default admin created: ibaadrn@shahnait.com")
     
     conn.commit()
     conn.close()
@@ -2721,11 +2728,11 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         </div>
         <div id="loginError" style="display:none;background:#FEE2E2;color:#991B1B;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;"></div>
         <form id="loginForm" onsubmit="handleLogin(event)">
-            <div class="form-group"><label>Email</label><input type="email" id="loginEmail" class="form-input" placeholder="admin@shahnait.com" required></div>
+            <div class="form-group"><label>Email</label><input type="email" id="loginEmail" class="form-input" placeholder="ibaadrn@shahnait.com" required></div>
             <div class="form-group"><label>Password</label><input type="password" id="loginPassword" class="form-input" placeholder="Enter password" required></div>
             <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;">🔐 Login</button>
         </form>
-        <p style="text-align:center;margin-top:16px;font-size:12px;color:#94A3B8;">Default: admin@shahnait.com / admin123</p>
+        <p style="text-align:center;margin-top:16px;font-size:12px;color:#94A3B8;">Default: ibaadrn@shahnait.com</p>
     </div>
 </div>
 
@@ -2751,7 +2758,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <div style="padding: 0 20px 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
             <div style="color: #C9A96E; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Menu</div>
         </div>
-        <button class="tab-btn active" id="tabJobs" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Jobs</button>
+        <!-- User Info -->         <div style="padding:10px 20px 12px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:6px;">             <div style="display:flex;align-items:center;gap:10px;">                 <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👤</div>                 <div style="flex:1;min-width:0;">                     <div id="userDisplayName" style="color:#FFFFFF;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">---</div>                     <div id="userDisplayRole" style="color:rgba(255,255,255,0.5);font-size:10px;">---</div>                 </div>                 <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:11px;flex-shrink:0;" title="Logout">🚪</button>             </div>         </div>         <button class="tab-btn active" id="tabJobs" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Jobs</button>
         <button class="tab-btn" id="tabCandidates" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Candidates</button>
         <button class="tab-btn" id="tabUpload" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📄 Upload Resume</button>
         <button class="tab-btn" id="tabCreateJob" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">➕ Create Job</button>
