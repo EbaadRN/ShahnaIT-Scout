@@ -6080,7 +6080,7 @@ function renderPipelineChart(pipeline) {
     const maxCount = topSkills[0]?.count || 1;
     
     container.innerHTML = topSkills.map(s => {
-        const size = 12 + (s.count / maxCount) * 20;
+        const size = 10 + (s.count / maxCount) * 8;
         return '<span style="font-size:' + size + 'px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:' + (0.6 + (s.count / maxCount) * 0.4) + ';">' + escapeHtml(s.skill) + '</span>';
     }).join('');
 }
