@@ -6143,9 +6143,10 @@ async function triggerBackup() {
     try {
         const res = await fetch('/api/admin/backup', { method: 'POST' });
         const data = await res.json();
-        if (data.success) {
-            div.innerHTML = `<span style="color:#10B981;">✅ Backup saved: ${data.filename}${data.drive_upload ? ' (Drive ✅)' : ''}</span>`;
-        } else {
+       if (data.success) {
+    const driveMsg = data.drive_upload ? '✅ Uploaded to Google Drive' : '⚠️ Local only (Drive upload failed)';
+    div.innerHTML = `<span style="color:#10B981;">✅ Backup saved: ${data.filename}</span><br><span style="color:${data.drive_upload?'#10B981':'#F59E0B'};">${driveMsg}</span>`;
+} else {
             div.innerHTML = `<span style="color:#EF4444;">❌ ${data.error}</span>`;
         }
     } catch(e) {
