@@ -3131,7 +3131,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 <div id="kanbanPanel" style="display:none;">
     <div class="card no-click">
         <h3>📋 Kanban Board</h3>
-        <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:12px;overflow-x:auto;padding-bottom:10px;"></div>
+        <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:10px;overflow-x:auto;padding:10px 0;max-height:70vh;"></div>
     </div>
 </div>
 
@@ -6225,7 +6225,7 @@ async function loadKanban() {
     board.innerHTML = kanbanStages.map(stage => {
         const stageCandidates = candidates.filter(c => (c.stage || 'new') === stage.id);
         return `
-            <div style="background:#F5F7FA;border-radius:10px;min-height:200px;min-width:220px;max-width:280px;display:flex;flex-direction:column;flex-shrink:0;">
+            <div style="background:#F5F7FA;border-radius:10px;min-height:150px;min-width:200px;max-width:240px;display:flex;flex-direction:column;flex-shrink:0;">
                 <div style="background:${stage.color};color:#fff;padding:10px 14px;border-radius:10px 10px 0 0;font-weight:bold;font-size:13px;display:flex;justify-content:space-between;">
                     <span>${stage.emoji} ${stage.name}</span>
                     <span style="background:rgba(255,255,255,0.3);padding:2px 8px;border-radius:10px;font-size:11px;">${stageCandidates.length}</span>
@@ -6234,12 +6234,12 @@ async function loadKanban() {
                      ondragover="event.preventDefault()" 
                      ondrop="dropCandidate(event, '${stage.id}')">
                     ${stageCandidates.map(c => `
-                        <div draggable="true" 
+                                                <div draggable="true" 
                              ondragstart="dragCandidate(event, ${c.id})" 
                              onclick="viewCandidate(${c.id})"
-                             style="background:#fff;padding:10px;margin-bottom:6px;border-radius:8px;border-left:3px solid ${stage.color};cursor:pointer;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-                            <strong>${escapeHtml(c.first_name || '')} ${escapeHtml(c.last_name || '')}</strong>
-                            <div style="color:#666;font-size:11px;">${escapeHtml(c.designation || c.current_role || '')}</div>
+                             style="background:#fff;padding:8px;margin-bottom:5px;border-radius:6px;border-left:3px solid ${stage.color};cursor:pointer;font-size:11px;box-shadow:0 1px 2px rgba(0,0,0,0.08);">
+                            <strong style="font-size:11px;">${escapeHtml(c.first_name || '')} ${escapeHtml(c.last_name || '')}</strong>
+                            <div style="color:#666;font-size:10px;">${escapeHtml(c.designation || c.current_role || '')}</div>
                             ${c.match_score ? `<span style="background:${c.match_score>=70?'#10B981':c.match_score>=40?'#F59E0B':'#EF4444'};color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;">${c.match_score}%</span>` : ''}
                         </div>
                     `).join('')}
