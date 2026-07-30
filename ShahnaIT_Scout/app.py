@@ -434,7 +434,40 @@ def generate_interview_questions(jd_text, resume_text, missing_skills):
     return questions
 
 app = Flask(__name__)
-CORS(app)
+app.secret_key = os.environ.get('SECRET_KEY', 'shahnait-scout-secret-key-change-in-production')
+CORS(app, supports_credentials=True)
+
+# ============================================
+# AUTHENTICATION
+# ============================================
+import hashlib
+from functools import wraps
+from flask import session, redirect, url_for
+
+def login_required(role=None):
+    """Decorator to require login and optional role"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                return jsonify({'error': 'Unauthorized', 'redirect': '/login'}), 401
+            if role and session.get('role') != role and session.get('role') != 'admin':
+                return jsonify({'error': 'Access denied. ' + role.capitalize() + ' role required.'}), 403
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def get_current_user():
+    """Get current logged-in user"""
+    if 'user_id' not in session:
+        return None
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT id, email, full_name, role FROM users WHERE id = ? AND is_active = 1', (session['user_id'],))
+    user = c.fetchone()
+    conn.close()
+    return dict(user) if user else None
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
@@ -533,6 +566,26 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        full_name TEXT,
+        role TEXT DEFAULT 'recruiter',
+        is_active BOOLEAN DEFAULT 1,
+        last_login TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    # Create default admin if no users exist
+    c.execute('SELECT COUNT(*) FROM users')
+    if c.fetchone()[0] == 0:
+        import hashlib
+        default_password = hashlib.sha256('admin123'.encode()).hexdigest()
+        c.execute('INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
+                  ('admin@shahnait.com', default_password, 'Admin', 'admin'))
+        print("✅ Default admin created: admin@shahnait.com / admin123")
     
     conn.commit()
     conn.close()
@@ -1162,6 +1215,128 @@ def get_requirements():
     requirements = [dict(row) for row in c.fetchall()]
     conn.close()
     return jsonify(requirements)
+
+# ============================================
+# AUTH ROUTES
+# ============================================
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM users WHERE email = ? AND is_active = 1', (email,))
+    user = c.fetchone()
+    conn.close()
+    
+    if not user:
+        return jsonify({'error': 'Invalid email or password'}), 401
+    
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    if password_hash != user['password_hash']:
+        return jsonify({'error': 'Invalid email or password'}), 401
+    
+    session['user_id'] = user['id']
+    session['role'] = user['role']
+    session['user_name'] = user['full_name']
+    
+    # Update last login
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user['id'],))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        'message': 'Login successful',
+        'user': {
+            'id': user['id'],
+            'email': user['email'],
+            'full_name': user['full_name'],
+            'role': user['role']
+        }
+    })
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return jsonify({'message': 'Logged out'})
+
+@app.route('/api/auth/me', methods=['GET'])
+def get_me():
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Not logged in'}), 401
+    return jsonify({'user': user})
+
+@app.route('/api/auth/users', methods=['GET'])
+@login_required('admin')
+def get_users():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT id, email, full_name, role, is_active, last_login, created_at FROM users ORDER BY id')
+    users = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(users)
+
+@app.route('/api/auth/users', methods=['POST'])
+@login_required('admin')
+def create_user():
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    full_name = data.get('full_name', '')
+    role = data.get('role', 'recruiter')
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    if role not in ['admin', 'manager', 'recruiter']:
+        return jsonify({'error': 'Invalid role'}), 400
+    
+    password_hash = hashlib.sha256(password.encode()).hexdigest()
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
+                  (email, password_hash, full_name, role))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({'error': 'Email already exists'}), 400
+    conn.close()
+    
+    return jsonify({'message': 'User created'})
+
+@app.route('/api/auth/users/<int:user_id>', methods=['PUT'])
+@login_required('admin')
+def update_user(user_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    if 'role' in data:
+        c.execute('UPDATE users SET role = ? WHERE id = ?', (data['role'], user_id))
+    if 'is_active' in data:
+        c.execute('UPDATE users SET is_active = ? WHERE id = ?', (data['is_active'], user_id))
+    if 'full_name' in data:
+        c.execute('UPDATE users SET full_name = ? WHERE id = ?', (data['full_name'], user_id))
+    if 'password' in data:
+        password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
+        c.execute('UPDATE users SET password_hash = ? WHERE id = ?', (password_hash, user_id))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'User updated'})
 
 @app.route('/api/jobs/parse-jd', methods=['POST'])
 def parse_jd_file():
