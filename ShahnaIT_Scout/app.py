@@ -3315,6 +3315,13 @@ async function checkAuth() {
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
             document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+            
+            // Hide Users tab for non-admins
+            const tabUsers = document.getElementById('tabUsers');
+            if (tabUsers && currentUser.role !== 'admin') {
+                tabUsers.style.display = 'none';
+            }
+            
             loadDashboard();
         }
     } catch(e) {
@@ -3339,9 +3346,16 @@ async function handleLogin(e) {
             currentUser = data.user;
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
-            document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+                       document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+            
+            // Hide Users tab for non-admins
+            const tabUsers = document.getElementById('tabUsers');
+            if (tabUsers && currentUser.role !== 'admin') {
+                tabUsers.style.display = 'none';
+            }
+            
             loadDashboard();
-            toastSuccess('Welcome, ' + currentUser.full_name + '!');
+            toastSuccess('Welcome, ' + currentUser.full_name + '!');;
         } else {
             errorDiv.textContent = data.error || 'Login failed';
             errorDiv.style.display = 'block';
