@@ -567,7 +567,7 @@ def init_db():
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
 
-        c.execute('''CREATE TABLE IF NOT EXISTS users (
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
