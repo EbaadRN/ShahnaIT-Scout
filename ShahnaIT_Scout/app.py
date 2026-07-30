@@ -2711,6 +2711,24 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     
 </head>
 <body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:#1B2A4A;z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#FFFFFF;padding:40px;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="text-align:center;margin-bottom:30px;">
+            <h1 style="color:#1B2A4A;margin:0;font-size:28px;">🔍 ShahnaIT Scout</h1>
+            <p style="color:#64748B;margin:8px 0 0 0;">AI-Powered Recruitment Platform</p>
+        </div>
+        <div id="loginError" style="display:none;background:#FEE2E2;color:#991B1B;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;"></div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group"><label>Email</label><input type="email" id="loginEmail" class="form-input" placeholder="admin@shahnait.com" required></div>
+            <div class="form-group"><label>Password</label><input type="password" id="loginPassword" class="form-input" placeholder="Enter password" required></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;">🔐 Login</button>
+        </form>
+        <p style="text-align:center;margin-top:16px;font-size:12px;color:#94A3B8;">Default: admin@shahnait.com / admin123</p>
+    </div>
+</div>
+
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
 <div style="max-width: 1200px; margin: 0 auto;">
