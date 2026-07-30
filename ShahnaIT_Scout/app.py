@@ -2789,6 +2789,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <button class="tab-btn" id="tabInterviews" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📅 Interviews</button>
         <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
         <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
+        <button class="tab-btn" id="tabKanban" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Kanban Board</button>
     <button class="tab-btn" id="tabUsers" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Users</button>
     </div>
     
@@ -3123,8 +3124,25 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
                     <h4>Candidates Over Time</h4>
                     <canvas id="trendChart" height="200"></canvas>
                 </div>
-            </div>
+                      </div>
         </div>
+    </div>
+
+<div id="kanbanPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>📋 Kanban Board</h3>
+        <div id="kanbanBoard" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;"></div>
+    </div>
+</div>
+
+<div id="usersPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>👥 User Management</h3>
+    <div class="card no-click">
+        <h3>📋 Kanban Board</h3>
+        <div id="kanbanBoard" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;"></div>
+    </div>
+</div>
     </div>
 
 <div id="usersPanel" style="display:none;">
@@ -4126,11 +4144,11 @@ loadCandidates();
     const tabUpload = document.getElementById('tabUpload'); if (tabUpload) tabUpload.onclick = function() { showPanel('upload'); };
     const tabCreateJob = document.getElementById('tabCreateJob'); if (tabCreateJob) tabCreateJob.onclick = function() { showPanel('createJob'); };     const tabInterviews = document.getElementById('tabInterviews'); if (tabInterviews) tabInterviews.onclick = function() { showPanel('interviews'); loadInterviews(); };
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
-    const tabDashboard = document.getElementById('tabDashboard'); if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
+    const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'usersPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -6192,6 +6210,78 @@ function renderPipelineChart(pipeline) {
     }
 
     // ========== DASHBOARD ==========
+// ============================================
+// KANBAN BOARD
+// ============================================
+
+const kanbanStages = [
+    { id: 'new', name: 'New', color: '#2196F3', emoji: '🆕' },
+    { id: 'proposed', name: 'Proposed', color: '#6B4CB8', emoji: '📋' },
+    { id: 'screening', name: 'Screening', color: '#FF9800', emoji: '🔍' },
+    { id: 'technical_l1', name: 'L1 Tech', color: '#0D7B4A', emoji: '💻' },
+    { id: 'technical_l2', name: 'L2 Tech', color: '#0D7B4A', emoji: '💻' },
+    { id: 'technical_l3', name: 'L3 Tech', color: '#0A5C35', emoji: '💻' },
+    { id: 'shortlisted', name: 'Shortlisted', color: '#D4A800', emoji: '⭐' },
+    { id: 'offer_letter_shared', name: 'Offer', color: '#2C7A4A', emoji: '📄' },
+    { id: 'onboarded', name: 'Onboarded', color: '#1B5F8C', emoji: '✅' },
+    { id: 'rejected', name: 'Rejected', color: '#C42020', emoji: '❌' }
+];
+
+async function loadKanban() {
+    const res = await fetch('/api/candidates');
+    const candidates = await res.json();
+    const board = document.getElementById('kanbanBoard');
+    
+    board.innerHTML = kanbanStages.map(stage => {
+        const stageCandidates = candidates.filter(c => (c.stage || 'new') === stage.id);
+        return `
+            <div style="background:#F5F7FA;border-radius:10px;min-height:200px;display:flex;flex-direction:column;">
+                <div style="background:${stage.color};color:#fff;padding:10px 14px;border-radius:10px 10px 0 0;font-weight:bold;font-size:13px;display:flex;justify-content:space-between;">
+                    <span>${stage.emoji} ${stage.name}</span>
+                    <span style="background:rgba(255,255,255,0.3);padding:2px 8px;border-radius:10px;font-size:11px;">${stageCandidates.length}</span>
+                </div>
+                <div style="padding:8px;flex:1;min-height:100px;" 
+                     ondragover="event.preventDefault()" 
+                     ondrop="dropCandidate(event, '${stage.id}')">
+                    ${stageCandidates.map(c => `
+                        <div draggable="true" 
+                             ondragstart="dragCandidate(event, ${c.id})" 
+                             onclick="viewCandidate(${c.id})"
+                             style="background:#fff;padding:10px;margin-bottom:6px;border-radius:8px;border-left:3px solid ${stage.color};cursor:pointer;font-size:12px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+                            <strong>${escapeHtml(c.first_name || '')} ${escapeHtml(c.last_name || '')}</strong>
+                            <div style="color:#666;font-size:11px;">${escapeHtml(c.designation || c.current_role || '')}</div>
+                            ${c.match_score ? `<span style="background:${c.match_score>=70?'#10B981':c.match_score>=40?'#F59E0B':'#EF4444'};color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;">${c.match_score}%</span>` : ''}
+                        </div>
+                    `).join('')}
+                    ${stageCandidates.length === 0 ? '<div style="color:#bbb;font-size:11px;text-align:center;padding:20px;">Drop here</div>' : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+let draggedCandidateId = null;
+
+function dragCandidate(event, candidateId) {
+    draggedCandidateId = candidateId;
+    event.dataTransfer.effectAllowed = 'move';
+}
+
+async function dropCandidate(event, stage) {
+    event.preventDefault();
+    if (!draggedCandidateId) return;
+    
+    await fetch('/api/candidates/' + draggedCandidateId, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ stage: stage })
+    });
+    
+    draggedCandidateId = null;
+    loadKanban();
+    toastSuccess('Stage updated!');
+}
+
     
     async function loadDashboard() {
         try {
