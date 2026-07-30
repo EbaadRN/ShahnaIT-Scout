@@ -482,15 +482,8 @@ os.makedirs('/data/tmp', exist_ok=True)
 DB_PATH = '/data/shahnai.db'
 
 def init_db():
-    # TEMPORARY: Reset old admin
-conn = sqlite3.connect(DB_PATH)
-c = conn.cursor()
-c.execute("DELETE FROM users WHERE email = 'admin@shahnait.com'")
-conn.commit()
-conn.close()
-print("✅ Old admin cleaned")
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+c = conn.cursor()
     
     c.execute('''CREATE TABLE IF NOT EXISTS candidates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -599,6 +592,14 @@ print("✅ Old admin cleaned")
     print("✅ Database initialized")
 
 init_db()
+
+# TEMPORARY: Reset old admin
+conn = sqlite3.connect(DB_PATH)
+c = conn.cursor()
+c.execute("DELETE FROM users WHERE email = 'admin@shahnait.com'")
+conn.commit()
+conn.close()
+print("✅ Old admin cleaned")
 # ============ STEP 1: DATABASE MIGRATION - ADD NEW COLUMNS ============
 def migrate_database():
     """Add new columns for enhanced candidate profile"""
