@@ -3281,6 +3281,67 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 </div>
 
 <script>
+// ============================================
+// AUTHENTICATION
+// ============================================
+let currentUser = null;
+
+async function checkAuth() {
+    try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+            const data = await res.json();
+            currentUser = data.user;
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
+            document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+            loadDashboard();
+        }
+    } catch(e) {
+        console.log('Not logged in');
+    }
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const errorDiv = document.getElementById('loginError');
+    errorDiv.style.display = 'none';
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            currentUser = data.user;
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
+            document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+            loadDashboard();
+            toastSuccess('Welcome, ' + currentUser.full_name + '!');
+        } else {
+            errorDiv.textContent = data.error || 'Login failed';
+            errorDiv.style.display = 'block';
+        }
+    } catch(e) {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.style.display = 'block';
+    }
+}
+
+async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    currentUser = null;
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('loginEmail').value = '';
+    document.getElementById('loginPassword').value = '';
+}
+
+checkAuth();
+
     let allJobs = [], allCandidates = [], currentCandidateId = null;
     let currentCandidateData = null;
     let selectedBulkFiles = [];
