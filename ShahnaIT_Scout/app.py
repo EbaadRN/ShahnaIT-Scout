@@ -3138,16 +3138,6 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 <div id="usersPanel" style="display:none;">
     <div class="card no-click">
         <h3>👥 User Management</h3>
-    <div class="card no-click">
-        <h3>📋 Kanban Board</h3>
-        <div id="kanbanBoard" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;"></div>
-    </div>
-</div>
-    </div>
-
-<div id="usersPanel" style="display:none;">
-    <div class="card no-click">
-        <h3>👥 User Management</h3>
         <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
             <strong>➕ Add New User</strong>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:10px;">
