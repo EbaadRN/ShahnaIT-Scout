@@ -1338,6 +1338,37 @@ def update_user(user_id):
     conn.close()
     return jsonify({'message': 'User updated'})
 
+@app.route('/api/candidates/check-duplicate', methods=['POST'])
+@login_required()
+def check_duplicate():
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    phone = data.get('phone', '').strip()
+    
+    if not email and not phone:
+        return jsonify({'duplicate': False})
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    matches = []
+    if email:
+        c.execute("SELECT id, first_name, last_name, email, phone FROM candidates WHERE LOWER(email) = ?", (email,))
+        matches.extend([dict(row) for row in c.fetchall()])
+    
+    if phone and not matches:
+        c.execute("SELECT id, first_name, last_name, email, phone FROM candidates WHERE phone = ?", (phone,))
+        matches.extend([dict(row) for row in c.fetchall()])
+    
+    conn.close()
+    
+    return jsonify({
+        'duplicate': len(matches) > 0,
+        'matches': matches,
+        'matched_by': 'email' if email and any(m['email'] == email for m in matches) else 'phone' if matches else None
+    })
+
 @app.route('/api/jobs/parse-jd', methods=['POST'])
 def parse_jd_file():
     """Parse uploaded JD file (PDF/DOCX)"""
@@ -5225,7 +5256,21 @@ if (parseBtn) parseBtn.onclick = async function() {
         const result = await res.json();
         if(result.error) { div.innerHTML = `<div class="alert-error">${result.error}</div>`; return; }
         div.innerHTML = `<div class="alert-success"><h4>✅ Parsed</h4><p><strong>Name:</strong> ${escapeHtml(result.first_name||'')} ${escapeHtml(result.last_name||'')}</p><p><strong>Email:</strong> ${escapeHtml(result.email||'')}</p><p><strong>Phone:</strong> ${escapeHtml(result.phone||'')}</p><p><strong>Skills:</strong> ${result.core_skills ? result.core_skills.map(s => `<span class="skill-tag">${escapeHtml(typeof s === 'object' ? (s.skill || s.name || '') : s)}</span>`).join('') : 'None'}</p><button id="saveBtn">💾 Save</button></div>`;
-               const saveBtn = document.getElementById('saveBtn'); if (saveBtn) saveBtn.onclick = async function() {
+                             const saveBtn = document.getElementById('saveBtn'); if (saveBtn) saveBtn.onclick = async function() {
+            // Check for duplicates first
+            const dupRes = await fetch('/api/candidates/check-duplicate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email: result.email, phone: result.phone })
+            });
+            const dupData = await dupRes.json();
+            
+            if (dupData.duplicate) {
+                const dupNames = dupData.matches.map(m => `${m.first_name} ${m.last_name} (${m.email || m.phone})`).join(', ');
+                const skip = confirm(`⚠️ Possible duplicate found!\n\nExisting candidate(s): ${dupNames}\n\nMatched by: ${dupData.matched_by}\n\nClick OK to save anyway, Cancel to skip.`);
+                if (!skip) { toastInfo('Skipped duplicate'); return; }
+            }
+            
             // Ask for uploader name
             const uploaded_by = prompt('Enter your name (for tracking):', 'HR Team');
             result.uploaded_by = uploaded_by || 'ShahnaIT';
@@ -5637,10 +5682,27 @@ if (result.weaknesses && result.weaknesses.length > 0) {
                 const result = await res.json();
 document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse failed: ' + escapeHtml(result.error) : '✅ Parsed successfully, saving...';
                 
-                if (result.error) {
+                 if (result.error) {
                     failCount++;
                     errors.push(`${file.name}: ${result.error}`);
+                    document.getElementById(`liveStatus${i}`).innerHTML = '❌ Parse failed: ' + escapeHtml(result.error);
                 } else {
+                    // Check duplicate
+                    const dupRes = await fetch('/api/candidates/check-duplicate', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ email: result.email, phone: result.phone })
+                    });
+                    const dupData = await dupRes.json();
+                    
+                    if (dupData.duplicate) {
+                        document.getElementById(`liveStatus${i}`).innerHTML = '⚠️ Duplicate skipped (matched by ' + dupData.matched_by + ')';
+                        failCount++;
+                        errors.push(`${file.name}: Duplicate - ${dupData.matches[0].first_name} ${dupData.matches[0].last_name}`);
+                        continue; // Skip saving, move to next file
+                    }
+                    
+                    // Save candidate
                     const saveRes = await fetch('/api/candidates', { 
                         method: 'POST', 
                         headers: {'Content-Type': 'application/json'}, 
