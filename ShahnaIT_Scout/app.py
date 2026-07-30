@@ -6219,7 +6219,8 @@ function renderPipelineChart(pipeline) {
 def index():
     return HTML_TEMPLATE
 
-@app.route('/api/jobs', methods=['GET']) @login_required()
+@app.route('/api/jobs', methods=['GET']) 
+@login_required()
 def get_jobs():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
