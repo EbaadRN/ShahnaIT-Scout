@@ -6219,7 +6219,7 @@ function renderPipelineChart(pipeline) {
 def index():
     return HTML_TEMPLATE
 
-@app.route('/api/jobs', methods=['GET'])
+@app.route('/api/jobs', methods=['GET']) @login_required()
 def get_jobs():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -6229,7 +6229,7 @@ def get_jobs():
     conn.close()
     return jsonify(jobs)
 
-@app.route('/api/jobs', methods=['POST'])
+@app.route('/api/jobs', methods=['POST']) @login_required('manager')
 def create_job():
     data = request.json
     conn = sqlite3.connect(DB_PATH)
@@ -6264,7 +6264,7 @@ def create_job():
     conn.close()
     return jsonify({'message': 'Job created'})
 
-@app.route('/api/candidates/<int:candidate_id>', methods=['PUT'])
+@app.route('/api/candidates/<int:candidate_id>', methods=['PUT']) @login_required()
 def update_candidate(candidate_id):
     """Update candidate details"""
     try:
@@ -6310,7 +6310,7 @@ def update_candidate(candidate_id):
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-@app.route('/api/jobs/<int:job_id>', methods=['PUT'])
+@app.route('/api/jobs/<int:job_id>', methods=['PUT']) @login_required('manager')
 def update_job(job_id):
     data = request.json
     conn = sqlite3.connect(DB_PATH)
@@ -6390,7 +6390,7 @@ def delete_job_document(doc_id):
     conn.close()
     return jsonify({'message': 'Document deleted'})
 
-@app.route('/api/candidates', methods=['GET'])
+@app.route('/api/candidates', methods=['GET']) @login_required()
 def get_candidates():
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -6403,7 +6403,7 @@ def get_candidates():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/candidates', methods=['POST'])
+@app.route('/api/candidates', methods=['POST']) @login_required()
 def create_candidate():
     data = request.json
     candidate_id = save_candidate_to_db(data)
@@ -6654,7 +6654,7 @@ def analyze_match():
 # INTERVIEW TRACKER ROUTES
 # ============================================
 
-@app.route('/api/interviews', methods=['GET'])
+@app.route('/api/interviews', methods=['GET']) @login_required()
 def get_interviews():
     date_filter = request.args.get('date', '')
     round_filter = request.args.get('round', '')
@@ -6683,7 +6683,7 @@ def get_interviews():
     conn.close()
     return jsonify(interviews)
 
-@app.route('/api/interviews', methods=['POST'])
+@app.route('/api/interviews', methods=['POST']) @login_required()
 def create_interview():
     data = request.json
     conn = sqlite3.connect(DB_PATH)
