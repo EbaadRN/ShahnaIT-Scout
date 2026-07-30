@@ -21,6 +21,7 @@ import re
 import io
 import csv
 import shutil
+import subprocess
 import base64
 from datetime import datetime
 import traceback
@@ -1096,7 +1097,94 @@ def save_candidate_to_db(candidate_data):
     conn.commit()
     conn.close()
     return candidate_id
-    # ============ ATTACHMENT UPLOAD ============
+    # ============================================
+# BACKUP SYSTEM
+# ============================================
+
+@app.route('/api/admin/backup', methods=['POST'])
+@login_required('admin')
+def trigger_backup():
+    try:
+        result = perform_backup()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/backups', methods=['GET'])
+@login_required('admin')
+def list_backups():
+    backup_dir = '/data/backups'
+    os.makedirs(backup_dir, exist_ok=True)
+    backups = []
+    for f in sorted(os.listdir(backup_dir), reverse=True):
+        if f.endswith('.db'):
+            path = os.path.join(backup_dir, f)
+            size = os.path.getsize(path)
+            backups.append({
+                'filename': f,
+                'size': f'{size/1024/1024:.1f} MB' if size > 1024*1024 else f'{size/1024:.1f} KB',
+                'date': f[:10]
+            })
+    return jsonify({'backups': backups})
+
+@app.route('/api/admin/backup/download/<filename>')
+@login_required('admin')
+def download_backup(filename):
+    filepath = os.path.join('/data/backups', secure_filename(filename))
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True, download_name=filename)
+    return jsonify({'error': 'File not found'}), 404
+
+def perform_backup():
+    backup_dir = '/data/backups'
+    os.makedirs(backup_dir, exist_ok=True)
+    date_str = datetime.now().strftime('%Y-%m-%d_%H%M')
+    backup_filename = f'shahnai_backup_{date_str}.db'
+    backup_path = os.path.join(backup_dir, backup_filename)
+    shutil.copy2(DB_PATH, backup_path)
+    all_backups = sorted([f for f in os.listdir(backup_dir) if f.endswith('.db')])
+    if len(all_backups) > 30:
+        for old_file in all_backups[:-30]:
+            os.remove(os.path.join(backup_dir, old_file))
+    drive_result = upload_to_drive(backup_path, backup_filename)
+    return {
+        'success': True,
+        'filename': backup_filename,
+        'drive_upload': drive_result,
+        'message': 'Backup created' + (' and uploaded to Drive' if drive_result else ' (local only)')
+    }
+
+def upload_to_drive(filepath, filename):
+    service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
+    folder_name = os.environ.get('GOOGLE_DRIVE_FOLDER', 'ShahnaIT-Backups')
+    if not service_account_json:
+        return False
+    try:
+        import tempfile
+        sa_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        sa_file.write(service_account_json)
+        sa_file.close()
+        token_cmd = f"python3 -c \"import json; from google.oauth2 import service_account; from google.auth.transport.requests import Request; creds = service_account.Credentials.from_service_account_file('{sa_file.name}', scopes=['https://www.googleapis.com/auth/drive.file']); creds.refresh(Request()); print(creds.token)\""
+        result = subprocess.run(token_cmd, shell=True, capture_output=True, text=True, timeout=30)
+        token = result.stdout.strip()
+        if not token:
+            os.unlink(sa_file.name)
+            return False
+        folder_cmd = f"""curl -s -X GET "https://www.googleapis.com/drive/v3/files?q=name='{folder_name}'+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false" -H "Authorization: Bearer {token}\""""
+        result = subprocess.run(folder_cmd, shell=True, capture_output=True, text=True, timeout=30)
+        folder_data = json.loads(result.stdout)
+        folder_id = None
+        if folder_data.get('files'):
+            folder_id = folder_data['files'][0]['id']
+        upload_cmd = f"""curl -s -X POST "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart" -H "Authorization: Bearer {token}" -F "metadata={{'name':'{filename}','parents':['{folder_id}']}};type=application/json" -F "file=@{filepath}" """
+        result = subprocess.run(upload_cmd, shell=True, capture_output=True, text=True, timeout=60)
+        os.unlink(sa_file.name)
+        return 'id' in result.stdout
+    except Exception as e:
+        print(f"Drive upload error: {e}")
+        return False
+
+# ============ ATTACHMENT UPLOAD ============
 UPLOAD_FOLDER = '/data/attachments'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
