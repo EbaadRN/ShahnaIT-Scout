@@ -2758,6 +2758,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <button class="tab-btn" id="tabInterviews" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📅 Interviews</button>
         <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
         <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
+    <button class="tab-btn" id="tabUsers" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Users</button>
     </div>
     
     <!-- Content Area -->
@@ -3094,6 +3095,25 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
             </div>
         </div>
     </div>
+
+<div id="usersPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>👥 User Management</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Add New User</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Full Name</label><input type="text" id="newUserName" class="form-input" placeholder="John Doe"></div>
+                <div><label style="font-size:12px;">Email</label><input type="email" id="newUserEmail" class="form-input" placeholder="john@shahnait.com"></div>
+                <div><label style="font-size:12px;">Password</label><input type="password" id="newUserPassword" class="form-input" placeholder="Min 6 characters"></div>
+                <div><label style="font-size:12px;">Role</label><select id="newUserRole" class="form-input"><option value="admin">Admin</option><option value="manager">Manager</option><option value="recruiter">Recruiter</option></select></div>
+            </div>
+            <button id="addUserBtn" class="btn btn-primary" style="margin-top:12px;">➕ Add User</button>
+            <div id="addUserStatus" style="margin-top:6px;font-size:12px;"></div>
+        </div>
+        <div id="usersList"></div>
+    </div>
+</div>
+
 
 <!-- ============================================ -->
 <!-- MODALS - SHAHNAIT SCOUT                     -->
@@ -4062,9 +4082,10 @@ loadCandidates();
     const tabCreateJob = document.getElementById('tabCreateJob'); if (tabCreateJob) tabCreateJob.onclick = function() { showPanel('createJob'); };     const tabInterviews = document.getElementById('tabInterviews'); if (tabInterviews) tabInterviews.onclick = function() { showPanel('interviews'); loadInterviews(); };
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
+    const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'usersPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -5818,6 +5839,88 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
     let matchChartInstance = null;
     let pipelineChartInstance = null;
     let trendChartInstance = null;
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/auth/users');
+        if (!res.ok) { toastError('Admin access required'); return; }
+        const users = await res.json();
+        const container = document.getElementById('usersList');
+        if (!users.length) {
+            container.innerHTML = '<div class="card no-click" style="text-align:center;padding:30px;">No users found</div>';
+            return;
+        }
+        container.innerHTML = users.map(u => `
+            <div class="card" style="margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <div style="flex:1;min-width:200px;">
+                        <strong>${escapeHtml(u.full_name)}</strong>
+                        <span style="font-size:12px;color:#666;margin-left:8px;">${escapeHtml(u.email)}</span>
+                        <span style="background:${u.role==='admin'?'#1B2A4A':u.role==='manager'?'#0D7B4A':'#6366F1'};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;margin-left:8px;">${u.role.toUpperCase()}</span>
+                        ${!u.is_active ? '<span style="background:#EF4444;color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;margin-left:8px;">Disabled</span>' : ''}
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <select onchange="updateUserRole(${u.id}, this.value)" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #D0D8E4;">
+                            <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+                            <option value="manager" ${u.role==='manager'?'selected':''}>Manager</option>
+                            <option value="recruiter" ${u.role==='recruiter'?'selected':''}>Recruiter</option>
+                        </select>
+                        <button class="btn btn-sm ${u.is_active ? 'btn-danger' : 'btn-secondary'}" onclick="toggleUserStatus(${u.id}, ${u.is_active ? 'false' : 'true'})" style="font-size:11px;padding:4px 10px;">
+                            ${u.is_active ? '🚫 Disable' : '✅ Enable'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        toastError('Failed to load users');
+    }
+}
+
+async function updateUserRole(userId, role) {
+    const res = await fetch('/api/auth/users/' + userId, {
+        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ role: role })
+    });
+    if (res.ok) { toastSuccess('Role updated'); loadUsers(); } else { toastError('Failed to update role'); }
+}
+
+async function toggleUserStatus(userId, isActive) {
+    const res = await fetch('/api/auth/users/' + userId, {
+        method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ is_active: isActive })
+    });
+    if (res.ok) { toastSuccess(isActive ? 'User enabled' : 'User disabled'); loadUsers(); } else { toastError('Failed to update user'); }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const addUserBtn = document.getElementById('addUserBtn');
+    if (addUserBtn) addUserBtn.onclick = async function() {
+        const full_name = document.getElementById('newUserName').value;
+        const email = document.getElementById('newUserEmail').value;
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+        const statusDiv = document.getElementById('addUserStatus');
+        if (!full_name || !email || !password) { statusDiv.innerHTML = '<span style="color:#EF4444;">All fields required</span>'; return; }
+        statusDiv.innerHTML = '<span style="color:#6366F1;">Creating...</span>';
+        const res = await fetch('/api/auth/users', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ full_name, email, password, role })
+        });
+        if (res.ok) {
+            statusDiv.innerHTML = '<span style="color:#10B981;">✅ User created!</span>';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+            loadUsers();
+        } else {
+            const data = await res.json();
+            statusDiv.innerHTML = '<span style="color:#EF4444;">' + (data.error || 'Failed') + '</span>';
+        }
+    };
+});
     
     async function loadDashboard() {
         try {
