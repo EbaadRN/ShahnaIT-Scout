@@ -1164,31 +1164,58 @@ def perform_backup():
     }
 
 def upload_to_drive(filepath, filename):
+    """Upload file to Google Drive using Python Google API library"""
     service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
     folder_name = os.environ.get('GOOGLE_DRIVE_FOLDER', 'ShahnaIT-Backups')
+    
     if not service_account_json:
+        print("⚠️ Google Drive not configured")
         return False
+    
     try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
         import tempfile
+        
+        sa_data = json.loads(service_account_json)
         sa_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        sa_file.write(service_account_json)
+        json.dump(sa_data, sa_file)
         sa_file.close()
-        token_cmd = f"python3 -c \"import json; from google.oauth2 import service_account; from google.auth.transport.requests import Request; creds = service_account.Credentials.from_service_account_file('{sa_file.name}', scopes=['https://www.googleapis.com/auth/drive.file']); creds.refresh(Request()); print(creds.token)\""
-        result = subprocess.run(token_cmd, shell=True, capture_output=True, text=True, timeout=30)
-        token = result.stdout.strip()
-        if not token:
-            os.unlink(sa_file.name)
-            return False
-        folder_cmd = f"""curl -s -X GET "https://www.googleapis.com/drive/v3/files?q=name='{folder_name}'+and+mimeType='application/vnd.google-apps.folder'+and+trashed=false" -H "Authorization: Bearer {token}\""""
-        result = subprocess.run(folder_cmd, shell=True, capture_output=True, text=True, timeout=30)
-        folder_data = json.loads(result.stdout)
+        
+        creds = service_account.Credentials.from_service_account_file(
+            sa_file.name,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        drive_service = build('drive', 'v3', credentials=creds)
+        
         folder_id = None
-        if folder_data.get('files'):
-            folder_id = folder_data['files'][0]['id']
-        upload_cmd = f"""curl -s -X POST "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart" -H "Authorization: Bearer {token}" -F "metadata={{'name':'{filename}','parents':['{folder_id}']}};type=application/json" -F "file=@{filepath}" """
-        result = subprocess.run(upload_cmd, shell=True, capture_output=True, text=True, timeout=60)
+        results = drive_service.files().list(
+            q=f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+            pageSize=1
+        ).execute()
+        
+        if results.get('files'):
+            folder_id = results['files'][0]['id']
+        else:
+            folder_metadata = {'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder'}
+            folder = drive_service.files().create(body=folder_metadata).execute()
+            folder_id = folder['id']
+        
+        file_metadata = {'name': filename, 'parents': [folder_id]}
+        media = MediaFileUpload(filepath, mimetype='application/octet-stream', resumable=True)
+        drive_service.files().create(body=file_metadata, media_body=media).execute()
+        
+        all_files = drive_service.files().list(
+            q=f"'{folder_id}' in parents and trashed=false", orderBy='createdTime desc'
+        ).execute()
+        for old_file in all_files.get('files', [])[10:]:
+            drive_service.files().delete(fileId=old_file['id']).execute()
+        
         os.unlink(sa_file.name)
-        return 'id' in result.stdout
+        print(f"✅ Uploaded to Drive: {filename}")
+        return True
+        
     except Exception as e:
         print(f"Drive upload error: {e}")
         return False
