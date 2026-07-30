@@ -3175,6 +3175,11 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     <div id="dashboardPanel" style="display:none;">
         <div class="card no-click">
             <h3>📊 Recruitment Dashboard</h3>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button>
+    <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
+</div>
+<div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <div style="background: #1A4D4A; color: white; padding: 15px; border-radius: 10px; text-align: center;">
                     <div style="font-size: 28px; font-weight: bold;" id="totalCandidates">0</div>
@@ -7635,3 +7640,18 @@ def debug_db():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+import threading
+import time
+
+def auto_backup_daemon():
+    """Run backup every 24 hours"""
+    while True:
+        time.sleep(86400)  # 24 hours
+        try:
+            perform_backup()
+            print(f"✅ Auto-backup completed at {datetime.now()}")
+        except Exception as e:
+            print(f"❌ Auto-backup failed: {e}")
+
+backup_thread = threading.Thread(target=auto_backup_daemon, daemon=True)
+backup_thread.start()
