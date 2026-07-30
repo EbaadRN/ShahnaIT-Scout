@@ -3131,7 +3131,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 <div id="kanbanPanel" style="display:none;">
     <div class="card no-click">
         <h3>📋 Kanban Board</h3>
-        <div id="kanbanBoard" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;overflow-x:auto;padding-bottom:10px;"></div>
+        <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:12px;overflow-x:auto;padding-bottom:10px;"></div>
     </div>
 </div>
 
@@ -6225,7 +6225,7 @@ async function loadKanban() {
     board.innerHTML = kanbanStages.map(stage => {
         const stageCandidates = candidates.filter(c => (c.stage || 'new') === stage.id);
         return `
-            <div style="background:#F5F7FA;border-radius:10px;min-height:200px;display:flex;flex-direction:column;">
+            <div style="background:#F5F7FA;border-radius:10px;min-height:200px;min-width:220px;max-width:280px;display:flex;flex-direction:column;flex-shrink:0;">
                 <div style="background:${stage.color};color:#fff;padding:10px 14px;border-radius:10px 10px 0 0;font-weight:bold;font-size:13px;display:flex;justify-content:space-between;">
                     <span>${stage.emoji} ${stage.name}</span>
                     <span style="background:rgba(255,255,255,0.3);padding:2px 8px;border-radius:10px;font-size:11px;">${stageCandidates.length}</span>
