@@ -3,6 +3,8 @@
 # ============================================
 # PDF GENERATION (ReportLab)
 # ============================================
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
