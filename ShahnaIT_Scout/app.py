@@ -3180,6 +3180,11 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
 </div>
 <div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button>
+    <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
+</div>
+<div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <div style="background: #1A4D4A; color: white; padding: 15px; border-radius: 10px; text-align: center;">
                     <div style="font-size: 28px; font-weight: bold;" id="totalCandidates">0</div>
@@ -6098,6 +6103,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 });
+
+async function triggerBackup() {
+    const div = document.getElementById('backupStatus');
+    div.innerHTML = '<span style="color:#6366F1;">⏳ Creating backup...</span>';
+    try {
+        const res = await fetch('/api/admin/backup', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            div.innerHTML = `<span style="color:#10B981;">✅ Backup saved: ${data.filename}${data.drive_upload ? ' (Drive ✅)' : ''}</span>`;
+        } else {
+            div.innerHTML = `<span style="color:#EF4444;">❌ ${data.error}</span>`;
+        }
+    } catch(e) {
+        div.innerHTML = '<span style="color:#EF4444;">❌ Backup failed</span>';
+    }
+}
+
+async function listBackups() {
+    const div = document.getElementById('backupStatus');
+    try {
+        const res = await fetch('/api/admin/backups');
+        const data = await res.json();
+        if (data.backups && data.backups.length > 0) {
+            div.innerHTML = '<strong>📂 Backups:</strong><br>' + data.backups.slice(0, 10).map(b => 
+                `<a href="/api/admin/backup/download/${b.filename}" style="color:#1B2A4A;">📥 ${b.filename}</a> <span style="color:#666;">(${b.size})</span>`
+            ).join('<br>');
+        } else {
+            div.innerHTML = '<span style="color:#666;">No backups found</span>';
+        }
+    } catch(e) {
+        div.innerHTML = '<span style="color:#EF4444;">Failed to load backups</span>';
+    }
+}
+
     
     async function loadDashboard() {
         try {
