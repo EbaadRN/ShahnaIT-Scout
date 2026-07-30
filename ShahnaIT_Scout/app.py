@@ -1101,6 +1101,15 @@ def save_candidate_to_db(candidate_data):
 # BACKUP SYSTEM
 # ============================================
 
+@app.route('/test-drive')
+def test_drive():
+    service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
+    return jsonify({
+        'has_key': bool(service_account_json),
+        'length': len(service_account_json) if service_account_json else 0,
+        'first_50_chars': service_account_json[:50] if service_account_json else 'NONE'
+    })
+
 @app.route('/api/admin/backup', methods=['POST'])
 @login_required('admin')
 def trigger_backup():
