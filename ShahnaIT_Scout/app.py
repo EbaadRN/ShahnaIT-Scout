@@ -592,14 +592,6 @@ def init_db():
     print("✅ Database initialized")
 
 init_db()
-
-# TEMPORARY: Reset old admin
-conn = sqlite3.connect(DB_PATH)
-c = conn.cursor()
-c.execute("DELETE FROM users WHERE email = 'admin@shahnait.com'")
-conn.commit()
-conn.close()
-print("✅ Old admin cleaned")
 # ============ STEP 1: DATABASE MIGRATION - ADD NEW COLUMNS ============
 def migrate_database():
     """Add new columns for enhanced candidate profile"""
@@ -1345,21 +1337,6 @@ def update_user(user_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'User updated'})
-
-@app.route('/fix-admin')
-def fix_admin():
-    import hashlib
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    # Delete old admin
-    c.execute("DELETE FROM users WHERE email = 'admin@shahnait.com'")
-    # Create new admin
-    password_hash = hashlib.sha256('Ibaadrn@shahnait@301'.encode()).hexdigest()
-    c.execute('INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
-              ('ibaadrn@shahnait.com', password_hash, 'Ibaad RN', 'admin'))
-    conn.commit()
-    conn.close()
-    return 'Admin fixed! You can now login.'
 
 @app.route('/api/jobs/parse-jd', methods=['POST'])
 def parse_jd_file():
