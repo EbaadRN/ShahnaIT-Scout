@@ -1108,7 +1108,6 @@ def test_drive_upload():
     import tempfile
     try:
         from google.oauth2 import service_account
-        from googleapiclient.discovery import build
         
         service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
         if not service_account_json:
@@ -1210,7 +1209,6 @@ def upload_to_drive(filepath, filename):
     
     try:
         from google.oauth2 import service_account
-        from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
         import tempfile
         
