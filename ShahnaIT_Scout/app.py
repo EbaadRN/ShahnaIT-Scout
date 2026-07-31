@@ -3339,7 +3339,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 </div>
 <div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <div style="background: #1A4D4A; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                <div style="background: linear-gradient(135deg, #2C3E50, #3498DB); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="totalCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Total Candidates</div> </div> <div style="background: linear-gradient(135deg, #1B5E20, #43A047); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="matchedCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Matched (70%+)</div> </div> <div style="background: linear-gradient(135deg, #0D47A1, #1E88E5); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="hiredCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Hired</div> </div> <div style="background: linear-gradient(135deg, #B71C1C, #E53935); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="rejectedCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Rejected</div> </div>
                     <div style="font-size: 28px; font-weight: bold;" id="totalCandidates">0</div>
                     <div style="font-size: 12px;">Total Candidates</div>
                 </div>
@@ -7674,7 +7674,7 @@ def get_dashboard_data():
             matched += 1
         
         # Count hired/rejected
-        if status == 'hired':
+        if status == 'onboarded':
             hired += 1
         elif status == 'rejected':
             rejected += 1
