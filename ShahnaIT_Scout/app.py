@@ -6959,11 +6959,7 @@ async function dropCandidate(event, stage) {
         if(m==='>') return '&gt;'; 
         return m; 
     }); 
-}
-
-// Ensure all blocks are closed
-})(); 
-      
+}      
 </script>
 </body>
 </html>
