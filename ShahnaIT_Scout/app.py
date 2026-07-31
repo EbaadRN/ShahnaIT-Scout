@@ -1208,8 +1208,6 @@ def upload_to_drive(filepath, filename):
         return False
     
     try:
-        from google.oauth2 import service_account
-        from googleapiclient.http import MediaFileUpload
         import tempfile
         
         sa_data = json.loads(service_account_json)
