@@ -6960,6 +6960,9 @@ async function dropCandidate(event, stage) {
         return m; 
     }); 
 }
+
+// Ensure all blocks are closed
+})(); 
       
 </script>
 </body>
