@@ -6434,13 +6434,13 @@ async function listBackups() {
 function searchOnbCandidate() {
     const search = document.getElementById('onbCandidate').value.toLowerCase();
     const list = document.getElementById('onbCandidateList');
-    if (!search || search.length < 2) { list.innerHTML = ''; return; }
+    if (!search || search.length < 1) { list.innerHTML = ''; return; }
     const matches = allCandidates.filter(c => 
         (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
-        ('SIT-C-' + String(c.id).padStart(3,'0')).includes(search)
+        String(c.id).padStart(3,'0').includes(search)
     );
     list.innerHTML = matches.map(c => 
-        `<option value="${escapeHtml('SIT-C-' + String(c.id).padStart(3,'0') + ' - ' + (c.first_name||'') + ' ' + (c.last_name||''))}">`
+        `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
     ).join('');
 }
 
