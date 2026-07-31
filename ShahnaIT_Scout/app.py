@@ -590,6 +590,26 @@ def init_db():
         c.execute('INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
                   ('ibaadrn@shahnait.com', default_password, 'Ibaad RN', 'admin'))
         print("✅ Default admin created: ibaadrn@shahnait.com")
+
+        c.execute('''CREATE TABLE IF NOT EXISTS onboarded_resources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER,
+        client_name TEXT,
+        doj DATE,
+        contract_start DATE,
+        contract_end DATE,
+        resource_owner TEXT,
+        work_location TEXT,
+        monthly_salary REAL DEFAULT 0,
+        billing_rate REAL DEFAULT 0,
+        business_model TEXT DEFAULT 'C2C',
+        po_number TEXT,
+        sow_attached TEXT,
+        status TEXT DEFAULT 'Active',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id)
+    )''')
     
     conn.commit()
     conn.close()
@@ -1103,6 +1123,65 @@ def save_candidate_to_db(candidate_data):
     # ============================================
 # BACKUP SYSTEM
 # ============================================
+
+# ============================================
+# ONBOARDED RESOURCES
+# ============================================
+
+@app.route('/api/onboarded', methods=['GET'])
+@login_required()
+def get_onboarded():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('''SELECT o.*, c.first_name, c.last_name, c.email, c.phone 
+                 FROM onboarded_resources o 
+                 LEFT JOIN candidates c ON o.candidate_id = c.id 
+                 ORDER BY o.id DESC''')
+    resources = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(resources)
+
+@app.route('/api/onboarded', methods=['POST'])
+@login_required('manager')
+def create_onboarded():
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''INSERT INTO onboarded_resources 
+        (candidate_id, client_name, doj, contract_start, contract_end,
+         resource_owner, work_location, monthly_salary, billing_rate,
+         business_model, po_number, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (data.get('candidate_id'), data.get('client_name'), data.get('doj'),
+         data.get('contract_start'), data.get('contract_end'),
+         data.get('resource_owner'), data.get('work_location'),
+         data.get('monthly_salary', 0), data.get('billing_rate', 0),
+         data.get('business_model', 'C2C'), data.get('po_number'),
+         data.get('notes', '')))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Resource onboarded'})
+
+@app.route('/api/onboarded/<int:resource_id>', methods=['PUT'])
+@login_required('manager')
+def update_onboarded(resource_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''UPDATE onboarded_resources SET 
+        client_name=?, doj=?, contract_start=?, contract_end=?,
+        resource_owner=?, work_location=?, monthly_salary=?, billing_rate=?,
+        business_model=?, po_number=?, notes=?, status=?
+        WHERE id=?''',
+        (data.get('client_name'), data.get('doj'), data.get('contract_start'),
+         data.get('contract_end'), data.get('resource_owner'), data.get('work_location'),
+         data.get('monthly_salary', 0), data.get('billing_rate', 0),
+         data.get('business_model', 'C2C'), data.get('po_number'),
+         data.get('notes', ''), data.get('status', 'Active'), resource_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Resource updated'})
 
 @app.route('/api/admin/export-pdf', methods=['GET'])
 @login_required('admin')
@@ -3034,6 +3113,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <button class="tab-btn" id="tabInterviews" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📅 Interviews</button>
         <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
         <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
+        <button class="tab-btn" id="tabOnboarded" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">💼 Onboarded</button>
         <button class="tab-btn" id="tabKanban" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Kanban Board</button>
     <button class="tab-btn" id="tabUsers" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Users</button>
     <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
@@ -3369,6 +3449,37 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     <div class="card no-click">
         <h3>📋 Kanban Board</h3>
         <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:10px;overflow-x:auto;padding:10px 0;max-height:70vh;"></div>
+    </div>
+</div>
+
+
+<div id="onboardedPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>💼 Onboarded Resources</h3>
+        
+        <!-- Add New Resource -->
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Onboard New Resource</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Candidate</label><input type="text" id="onbCandidate" class="form-input" placeholder="SIT-C-001" list="onbCandidateList" oninput="searchOnbCandidate()"><datalist id="onbCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Client</label><input type="text" id="onbClient" class="form-input" placeholder="Client name"></div>
+                <div><label style="font-size:12px;">DOJ</label><input type="date" id="onbDOJ" class="form-input"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Monthly Salary (₹)</label><input type="number" id="onbSalary" class="form-input" placeholder="50000"></div>
+                <div><label style="font-size:12px;">Billing Rate (₹)</label><input type="number" id="onbBilling" class="form-input" placeholder="75000"></div>
+                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="onbOwner" class="form-input" placeholder="HR Name"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Work Location</label><input type="text" id="onbLocation" class="form-input" placeholder="Remote/Hybrid/Onsite"></div>
+                <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
+                <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
+            </div>
+            <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
+        </div>
+        
+        <!-- Resources List -->
+        <div id="onboardedList"></div>
     </div>
 </div>
 
@@ -4371,11 +4482,11 @@ loadCandidates();
     const tabUpload = document.getElementById('tabUpload'); if (tabUpload) tabUpload.onclick = function() { showPanel('upload'); };
     const tabCreateJob = document.getElementById('tabCreateJob'); if (tabCreateJob) tabCreateJob.onclick = function() { showPanel('createJob'); };     const tabInterviews = document.getElementById('tabInterviews'); if (tabInterviews) tabInterviews.onclick = function() { showPanel('interviews'); loadInterviews(); };
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
-    const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
+    const tabDashboard = document.getElementById('tabDashboard'); const tabOnboarded = document.getElementById('tabOnboarded'); if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); }; const tabKanban = document.getElementById('tabKanban'); if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel', 'onboardedPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -6277,6 +6388,107 @@ async function listBackups() {
     }
 }
 
+// ============================================
+// ONBOARDED RESOURCES
+// ============================================
+
+function searchOnbCandidate() {
+    const search = document.getElementById('onbCandidate').value.toLowerCase();
+    const list = document.getElementById('onbCandidateList');
+    if (!search || search.length < 2) { list.innerHTML = ''; return; }
+    const matches = allCandidates.filter(c => 
+        (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
+        ('SIT-C-' + String(c.id).padStart(3,'0')).includes(search)
+    );
+    list.innerHTML = matches.map(c => 
+        `<option value="${escapeHtml('SIT-C-' + String(c.id).padStart(3,'0') + ' - ' + (c.first_name||'') + ' ' + (c.last_name||''))}">`
+    ).join('');
+}
+
+async function loadOnboarded() {
+    const res = await fetch('/api/onboarded');
+    const resources = await res.json();
+    const container = document.getElementById('onboardedList');
+    
+    if (!resources.length) {
+        container.innerHTML = '<div class="card no-click" style="text-align:center;padding:40px;color:#94A3B8;">No onboarded resources</div>';
+        return;
+    }
+    
+    container.innerHTML = resources.map(r => {
+        const revenue = (r.billing_rate || 0) - (r.monthly_salary || 0);
+        const margin = r.billing_rate ? Math.round((revenue / r.billing_rate) * 100) : 0;
+        const marginColor = margin >= 30 ? '#10B981' : margin >= 15 ? '#F59E0B' : '#EF4444';
+        
+        return `<div class="card" style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;">
+                <div style="flex:1;min-width:200px;">
+                    <h4 style="margin:0;">
+                        <a href="javascript:void(0)" onclick="viewCandidate(${r.candidate_id})" style="color:#1B2A4A;text-decoration:underline;">
+                            ${escapeHtml(r.first_name || '')} ${escapeHtml(r.last_name || '')}
+                        </a>
+                    </h4>
+                    <div style="font-size:13px;color:#555;">🏢 ${escapeHtml(r.client_name || 'N/A')} | 📅 DOJ: ${r.doj || 'N/A'}</div>
+                    <div style="font-size:12px;color:#777;">👤 Owner: ${escapeHtml(r.resource_owner || 'N/A')} | 📍 ${escapeHtml(r.work_location || 'N/A')} | ${escapeHtml(r.business_model || 'C2C')}</div>
+                </div>
+                <div style="text-align:right;min-width:180px;">
+                    <div style="font-size:13px;">💰 Salary: <strong>₹${(r.monthly_salary || 0).toLocaleString()}</strong></div>
+                    <div style="font-size:13px;">📊 Billing: <strong>₹${(r.billing_rate || 0).toLocaleString()}</strong></div>
+                    <div style="font-size:14px;font-weight:bold;color:${marginColor};">
+                        Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)
+                    </div>
+                    <span style="background:${r.status==='Active'?'#10B981':r.status==='Completed'?'#6366F1':'#EF4444'};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">${r.status || 'Active'}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Onboard button
+document.addEventListener('DOMContentLoaded', function() {
+    const onboardBtn = document.getElementById('onboardBtn');
+    if (onboardBtn) onboardBtn.onclick = async function() {
+        const candidateVal = document.getElementById('onbCandidate').value;
+        const candidateId = candidateVal.split(' - ')[0].replace('SIT-C-', '').trim();
+        
+        if (!candidateId) { toastError('Select a candidate'); return; }
+        
+        const data = {
+            candidate_id: parseInt(candidateId),
+            client_name: document.getElementById('onbClient').value,
+            doj: document.getElementById('onbDOJ').value,
+            resource_owner: document.getElementById('onbOwner').value,
+            work_location: document.getElementById('onbLocation').value,
+            monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
+            billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
+            business_model: document.getElementById('onbModel').value,
+            po_number: document.getElementById('onbPO').value
+        };
+        
+        if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
+        
+        const res = await fetch('/api/onboarded', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (res.ok) {
+            toastSuccess('Resource onboarded!');
+            document.getElementById('onbCandidate').value = '';
+            document.getElementById('onbClient').value = '';
+            document.getElementById('onbDOJ').value = '';
+            document.getElementById('onbSalary').value = '';
+            document.getElementById('onbBilling').value = '';
+            document.getElementById('onbOwner').value = '';
+            document.getElementById('onbLocation').value = '';
+            document.getElementById('onbPO').value = '';
+            loadOnboarded();
+        } else {
+            toastError('Failed to onboard');
+        }
+    };
+});
     
     async function loadDashboard() {
         try {
