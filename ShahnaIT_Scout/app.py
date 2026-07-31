@@ -6959,7 +6959,8 @@ async function dropCandidate(event, stage) {
         if(m==='>') return '&gt;'; 
         return m; 
     }); 
-}      
+} 
+
 </script>
 </body>
 </html>
