@@ -6461,21 +6461,6 @@ async function loadOnboarded() {
         </div>`;
     }).join('');
 }
-       
-        if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
-        
-                    const formData = new FormData();
-            Object.keys(data).forEach(key => formData.append(key, data[key]));
-            
-            const docFiles = document.getElementById('onbDocuments').files;
-            for (let i = 0; i < docFiles.length; i++) {
-                formData.append('documents', docFiles[i]);
-            }
-            
-            const res = await fetch('/api/onboarded', {
-                method: 'POST',
-                body: formData
-            });
 
 // All button handlers
 document.addEventListener('DOMContentLoaded', function() {
