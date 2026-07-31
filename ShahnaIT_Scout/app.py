@@ -6474,34 +6474,7 @@ async function loadOnboarded() {
         </div>`;
     }).join('');
 }
-
-// Onboard button
-document.addEventListener('DOMContentLoaded', function() {
-    const onboardBtn = document.getElementById('onboardBtn');
-    if (onboardBtn) onboardBtn.onclick = async function() {
-        const candidateVal = document.getElementById('onbCandidate').value;
-        const candidateId = candidateVal.split(' - ')[0].trim();
-        
-        if (!candidateId) { toastError('Select a candidate'); return; }
-        
-               const reqId = document.getElementById('onbRequirementId').value.trim();
-        const reqName = document.getElementById('onbRequirementId').value.includes(' - ') ? 
-            document.getElementById('onbRequirementId').value.split(' - ')[1].trim() : '';
-        
-        const data = {
-            candidate_id: parseInt(candidateId),
-            client_name: document.getElementById('onbClient').value,
-            doj: document.getElementById('onbDOJ').value,
-            resource_owner: document.getElementById('onbOwner').value,
-            work_location: document.getElementById('onbLocation').value,
-            monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
-            billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
-            business_model: document.getElementById('onbModel').value,
-            requirement_id: reqId ? 'SIT-R-' + reqId : '',
-            requirement_name: reqName,
-            po_number: document.getElementById('onbPO').value
-        };
-        
+       
         if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
         
                     const formData = new FormData();
@@ -6532,6 +6505,93 @@ document.addEventListener('DOMContentLoaded', function() {
             toastError('Failed to onboard');
         }
     };
+});
+
+// All button handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Onboard button
+    const onboardBtn = document.getElementById('onboardBtn');
+    if (onboardBtn) onboardBtn.onclick = async function() {
+        const candidateVal = document.getElementById('onbCandidate').value;
+        const candidateId = candidateVal.split(' - ')[0].trim();
+        
+        if (!candidateId) { toastError('Select a candidate'); return; }
+        
+        const reqId = document.getElementById('onbRequirementId').value.trim();
+        const reqName = document.getElementById('onbRequirementId').value.includes(' - ') ? 
+            document.getElementById('onbRequirementId').value.split(' - ')[1].trim() : '';
+        
+        const data = {
+            candidate_id: parseInt(candidateId),
+            client_name: document.getElementById('onbClient').value,
+            doj: document.getElementById('onbDOJ').value,
+            resource_owner: document.getElementById('onbOwner').value,
+            work_location: document.getElementById('onbLocation').value,
+            monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
+            billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
+            business_model: document.getElementById('onbModel').value,
+            requirement_id: reqId ? 'SIT-R-' + reqId : '',
+            requirement_name: reqName,
+            po_number: document.getElementById('onbPO').value
+        };
+        
+        if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
+        
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+        
+        const docFiles = document.getElementById('onbDocuments').files;
+        for (let i = 0; i < docFiles.length; i++) {
+            formData.append('documents', docFiles[i]);
+        }
+        
+        const res = await fetch('/api/onboarded', { method: 'POST', body: formData });
+        
+        if (res.ok) {
+            toastSuccess('Resource onboarded!');
+            document.getElementById('onbCandidate').value = '';
+            document.getElementById('onbClient').value = '';
+            document.getElementById('onbDOJ').value = '';
+            document.getElementById('onbSalary').value = '';
+            document.getElementById('onbBilling').value = '';
+            document.getElementById('onbOwner').value = '';
+            document.getElementById('onbLocation').value = '';
+            document.getElementById('onbPO').value = '';
+            loadOnboarded();
+        } else {
+            toastError('Failed to onboard');
+        }
+    };
+    
+    // Add User button
+    const addUserBtn = document.getElementById('addUserBtn');
+    if (addUserBtn) addUserBtn.onclick = async function() {
+        const full_name = document.getElementById('newUserName').value;
+        const email = document.getElementById('newUserEmail').value;
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+        const statusDiv = document.getElementById('addUserStatus');
+        if (!full_name || !email || !password) { statusDiv.innerHTML = '<span style="color:#EF4444;">All fields required</span>'; return; }
+        statusDiv.innerHTML = '<span style="color:#6366F1;">Creating...</span>';
+        const res = await fetch('/api/auth/users', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ full_name, email, password, role })
+        });
+        if (res.ok) {
+            statusDiv.innerHTML = '<span style="color:#10B981;">✅ User created!</span>';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+            loadUsers();
+        } else {
+            const data = await res.json();
+            statusDiv.innerHTML = '<span style="color:#EF4444;">' + (data.error || 'Failed') + '</span>';
+        }
+    };
+    
+    // Schedule Interview button
+    const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
+    if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
 });
     
     async function loadDashboard() {
