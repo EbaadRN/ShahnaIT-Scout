@@ -6489,23 +6489,6 @@ async function loadOnboarded() {
                 method: 'POST',
                 body: formData
             });
-        
-        if (res.ok) {
-            toastSuccess('Resource onboarded!');
-            document.getElementById('onbCandidate').value = '';
-            document.getElementById('onbClient').value = '';
-            document.getElementById('onbDOJ').value = '';
-            document.getElementById('onbSalary').value = '';
-            document.getElementById('onbBilling').value = '';
-            document.getElementById('onbOwner').value = '';
-            document.getElementById('onbLocation').value = '';
-            document.getElementById('onbPO').value = '';
-            loadOnboarded();
-        } else {
-            toastError('Failed to onboard');
-        }
-    };
-});
 
 // All button handlers
 document.addEventListener('DOMContentLoaded', function() {
