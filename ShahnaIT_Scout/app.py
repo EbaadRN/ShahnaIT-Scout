@@ -1236,13 +1236,24 @@ def upload_to_drive(filepath, filename):
         
         file_metadata = {'name': filename, 'parents': [folder_id]}
         media = MediaFileUpload(filepath, mimetype='application/octet-stream', resumable=True)
-        drive_service.files().create(body=file_metadata, media_body=media).execute()
+        uploaded_file = drive_service.files().create(body=file_metadata, media_body=media).execute()
         
         all_files = drive_service.files().list(
             q=f"'{folder_id}' in parents and trashed=false", orderBy='createdTime desc'
         ).execute()
         for old_file in all_files.get('files', [])[10:]:
             drive_service.files().delete(fileId=old_file['id']).execute()
+        
+                # Share file with your email so it appears in your Drive
+        try:
+            your_email = 'ibaadrn@shahnait.com'
+            drive_service.permissions().create(
+                fileId=uploaded_file['id'],
+                body={'type': 'user', 'role': 'reader', 'emailAddress': your_email}
+            ).execute()
+            print(f"📧 Shared with {your_email}")
+        except Exception as share_err:
+            print(f"Share error (non-fatal): {share_err}")
         
         os.unlink(sa_file.name)
         print(f"✅ Uploaded to Drive: {filename}")
