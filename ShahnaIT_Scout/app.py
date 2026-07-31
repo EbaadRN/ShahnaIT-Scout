@@ -1103,6 +1103,40 @@ def save_candidate_to_db(candidate_data):
 # BACKUP SYSTEM
 # ============================================
 
+@app.route('/test-drive-upload')
+def test_drive_upload():
+    import tempfile
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        
+        service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
+        if not service_account_json:
+            return jsonify({'error': 'No service account configured'})
+        
+        sa_data = json.loads(service_account_json)
+        sa_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        json.dump(sa_data, sa_file)
+        sa_file.close()
+        
+        creds = service_account.Credentials.from_service_account_file(
+            sa_file.name,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        # List files to test connection
+        results = drive_service.files().list(pageSize=5).execute()
+        os.unlink(sa_file.name)
+        
+        return jsonify({
+            'success': True,
+            'files_found': len(results.get('files', [])),
+            'service_account': sa_data.get('client_email')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 @app.route('/test-drive')
 def test_drive():
     service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
