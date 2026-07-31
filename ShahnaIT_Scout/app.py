@@ -603,6 +603,8 @@ def init_db():
         monthly_salary REAL DEFAULT 0,
         billing_rate REAL DEFAULT 0,
         business_model TEXT DEFAULT 'C2C',
+        requirement_id TEXT,
+        requirement_name TEXT,
         po_number TEXT,
         sow_attached TEXT,
         status TEXT DEFAULT 'Active',
@@ -1155,12 +1157,13 @@ def create_onboarded():
         (candidate_id, client_name, doj, contract_start, contract_end,
          resource_owner, work_location, monthly_salary, billing_rate,
          business_model, po_number, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (data.get('candidate_id'), data.get('client_name'), data.get('doj'),
          data.get('contract_start'), data.get('contract_end'),
          data.get('resource_owner'), data.get('work_location'),
          float(data.get('monthly_salary', 0)), float(data.get('billing_rate', 0)),
-         data.get('business_model', 'C2C'), data.get('po_number'),
+         data.get('business_model', 'C2C'), data.get('requirement_id', ''),
+         data.get('requirement_name', ''), data.get('po_number'),
          data.get('notes', '')))
     
     resource_id = c.lastrowid
@@ -3488,7 +3491,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
             <strong>➕ Onboard New Resource</strong>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
-                <div><label style="font-size:12px;">Candidate</label><input type="text" id="onbCandidate" class="form-input" placeholder="SIT-C-001" list="onbCandidateList" oninput="searchOnbCandidate()"><datalist id="onbCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Candidate</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;">     <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span>     <input type="text" id="onbCandidate" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbCandidateList" oninput="searchOnbCandidate()"> </div><datalist id="onbCandidateList"></datalist></div>
                 <div><label style="font-size:12px;">Client</label><input type="text" id="onbClient" class="form-input" placeholder="Client name"></div>
                 <div><label style="font-size:12px;">DOJ</label><input type="date" id="onbDOJ" class="form-input"></div>
             </div>
@@ -3497,9 +3500,19 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
                 <div><label style="font-size:12px;">Billing Rate (₹)</label><input type="number" id="onbBilling" class="form-input" placeholder="75000"></div>
                 <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="onbOwner" class="form-input" placeholder="HR Name"></div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
                 <div><label style="font-size:12px;">Work Location</label><input type="text" id="onbLocation" class="form-input" placeholder="Remote/Hybrid/Onsite"></div>
                 <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div>
+                    <label style="font-size:12px;">Requirement ID</label>
+                    <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;">
+                        <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>
+                        <input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()">
+                        <datalist id="onbReqList"></datalist>
+                    </div>
+                </div>
                 <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
             </div>
                         <div style="margin-top:10px;">                 <label style="font-size:12px;">Attach Documents (PO/SOW/Offer Letter)</label>                 <input type="file" id="onbDocuments" multiple accept=".pdf,.docx,.doc" style="font-size:12px;">                 <div id="onbDocStatus" style="font-size:11px;margin-top:4px;"></div>             </div>             <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
@@ -4606,18 +4619,17 @@ function searchInterviewCandidate() {
     const search = document.getElementById('intCandidateSearch').value.toLowerCase();
     const list = document.getElementById('intCandidateList');
     if (!search || search.length < 2) { list.innerHTML = ''; return; }
-    const matches = allCandidates.filter(c => 
+        const matches = allCandidates.filter(c => 
         (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
-        ('SIT-C-' + String(c.id).padStart(3,'0')).includes(search)
+        String(c.id).padStart(3,'0').includes(search)
     );
     list.innerHTML = matches.map(c => 
-        `<option value="${escapeHtml('SIT-C-' + String(c.id).padStart(3,'0') + ' - ' + (c.first_name||'') + ' ' + (c.last_name||''))}">`
+        `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
     ).join('');
-}
 
 async function scheduleInterview() {
     const candidateVal = document.getElementById('intCandidateSearch').value;
-    const candidateId = candidateVal.split(' - ')[0].replace('SIT-C-', '').trim();
+    const candidateId = candidateVal.split(' - ')[0].trim();
     
     if (!candidateId) { toastError('Please select a candidate'); return; }
     
@@ -6432,6 +6444,19 @@ function searchOnbCandidate() {
     ).join('');
 }
 
+function searchOnbRequirement() {
+    const search = document.getElementById('onbRequirementId').value.toLowerCase();
+    const list = document.getElementById('onbReqList');
+    if (!search || search.length < 1) { list.innerHTML = ''; return; }
+    const matches = allJobs.filter(j => 
+        (j.requirement_id || '').toLowerCase().includes(search) ||
+        (j.title || '').toLowerCase().includes(search)
+    );
+    list.innerHTML = matches.map(j => 
+        `<option value="${(j.requirement_id || 'SIT-R-'+String(j.id).padStart(3,'0')).replace('SIT-R-','')} - ${escapeHtml(j.title || '')}">`
+    ).join('');
+}
+
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
@@ -6456,8 +6481,8 @@ async function loadOnboarded() {
                         </a>
                     </h4>
                     <div style="font-size:13px;color:#555;">🏢 ${escapeHtml(r.client_name || 'N/A')} | 📅 DOJ: ${r.doj || 'N/A'}</div>
-                    <div style="font-size:12px;color:#777;">👤 Owner: ${escapeHtml(r.resource_owner || 'N/A')} | 📍 ${escapeHtml(r.work_location || 'N/A')} | ${escapeHtml(r.business_model || 'C2C')}</div>
-                </div>
+                   <div style="font-size:12px;color:#777;">👤 Owner: ${escapeHtml(r.resource_owner || 'N/A')} | 📍 ${escapeHtml(r.work_location || 'N/A')} | ${escapeHtml(r.business_model || 'C2C')}</div>
+                   <div style="font-size:12px;color:#777;">📋 ${r.requirement_id || 'N/A'} ${r.requirement_name ? '- ' + escapeHtml(r.requirement_name) : ''}</div>                </div>
                 <div style="text-align:right;min-width:180px;">
                     <div style="font-size:13px;">💰 Salary: <strong>₹${(r.monthly_salary || 0).toLocaleString()}</strong></div>
                     <div style="font-size:13px;">📊 Billing: <strong>₹${(r.billing_rate || 0).toLocaleString()}</strong></div>
@@ -6476,9 +6501,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const onboardBtn = document.getElementById('onboardBtn');
     if (onboardBtn) onboardBtn.onclick = async function() {
         const candidateVal = document.getElementById('onbCandidate').value;
-        const candidateId = candidateVal.split(' - ')[0].replace('SIT-C-', '').trim();
+        const candidateId = candidateVal.split(' - ')[0].trim();
         
         if (!candidateId) { toastError('Select a candidate'); return; }
+        
+               const reqId = document.getElementById('onbRequirementId').value.trim();
+        const reqName = document.getElementById('onbRequirementId').value.includes(' - ') ? 
+            document.getElementById('onbRequirementId').value.split(' - ')[1].trim() : '';
         
         const data = {
             candidate_id: parseInt(candidateId),
@@ -6489,6 +6518,8 @@ document.addEventListener('DOMContentLoaded', function() {
             monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
             billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
             business_model: document.getElementById('onbModel').value,
+            requirement_id: reqId ? 'SIT-R-' + reqId : '',
+            requirement_name: reqName,
             po_number: document.getElementById('onbPO').value
         };
         
