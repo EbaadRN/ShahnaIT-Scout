@@ -1145,7 +1145,10 @@ def get_onboarded():
 @app.route('/api/onboarded', methods=['POST'])
 @login_required('manager')
 def create_onboarded():
-    data = request.json
+    data = request.form.to_dict() if request.form else request.json
+    if not data:
+        data = request.json
+    
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO onboarded_resources 
@@ -1156,12 +1159,36 @@ def create_onboarded():
         (data.get('candidate_id'), data.get('client_name'), data.get('doj'),
          data.get('contract_start'), data.get('contract_end'),
          data.get('resource_owner'), data.get('work_location'),
-         data.get('monthly_salary', 0), data.get('billing_rate', 0),
+         float(data.get('monthly_salary', 0)), float(data.get('billing_rate', 0)),
          data.get('business_model', 'C2C'), data.get('po_number'),
          data.get('notes', '')))
+    
+    resource_id = c.lastrowid
+    
+    # Handle file uploads
+    uploaded_files = []
+    if 'documents' in request.files:
+        files = request.files.getlist('documents')
+        doc_dir = f'/data/onboarded_docs/{resource_id}'
+        os.makedirs(doc_dir, exist_ok=True)
+        for file in files:
+            if file.filename:
+                filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
+                filepath = os.path.join(doc_dir, filename)
+                file.save(filepath)
+                uploaded_files.append({
+                    'filename': filename,
+                    'original_name': file.filename,
+                    'path': filepath
+                })
+    
+    if uploaded_files:
+        c.execute('UPDATE onboarded_resources SET sow_attached = ? WHERE id = ?',
+                  (json.dumps(uploaded_files), resource_id))
+    
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Resource onboarded'})
+    return jsonify({'message': 'Resource onboarded', 'id': resource_id})
 
 @app.route('/api/onboarded/<int:resource_id>', methods=['PUT'])
 @login_required('manager')
@@ -3475,7 +3502,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
                 <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
                 <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
             </div>
-            <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
+                        <div style="margin-top:10px;">                 <label style="font-size:12px;">Attach Documents (PO/SOW/Offer Letter)</label>                 <input type="file" id="onbDocuments" multiple accept=".pdf,.docx,.doc" style="font-size:12px;">                 <div id="onbDocStatus" style="font-size:11px;margin-top:4px;"></div>             </div>             <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
         </div>
         
         <!-- Resources List -->
@@ -6467,11 +6494,18 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
         
-        const res = await fetch('/api/onboarded', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
+                    const formData = new FormData();
+            Object.keys(data).forEach(key => formData.append(key, data[key]));
+            
+            const docFiles = document.getElementById('onbDocuments').files;
+            for (let i = 0; i < docFiles.length; i++) {
+                formData.append('documents', docFiles[i]);
+            }
+            
+            const res = await fetch('/api/onboarded', {
+                method: 'POST',
+                body: formData
+            });
         
         if (res.ok) {
             toastSuccess('Resource onboarded!');
