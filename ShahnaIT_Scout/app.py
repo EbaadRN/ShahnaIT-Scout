@@ -6586,56 +6586,6 @@ async function dropCandidate(event, stage) {
         });
     }
     
-    function renderPipelineChart(pipeline) {
-        const canvas = document.getElementById('pipelineChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const labels = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'];
-        const values = [pipeline.new||0, pipeline.screening||0, pipeline.interview||0, pipeline.offer||0, pipeline.hired||0, pipeline.rejected||0];
-        const colors = ['#2196F3', '#FF9800', '#FF5722', '#9C27B0', '#4CAF50', '#F44336'];
-        if (values.every(v => v === 0)) return;
-        if (pipelineChartInstance) pipelineChartInstance.destroy();
-        pipelineChartInstance = new Chart(ctx, {
-            type: 'doughnut',
-            data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
-        });
-    }
-    
-   function renderSkillsCloud(skills) {
-    const container = document.getElementById('skillsCloud');
-    if (!container) return;
-    if (!skills || skills.length === 0) { 
-        container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>'; 
-        return; 
-    }
-    
-    const normalizedSkills = skills.map(s => 
-        typeof s === 'object' ? {skill: s.skill || s.name || '', count: s.count || 1} : {skill: String(s), count: 1}
-    );
-    const topSkills = normalizedSkills.slice(0, 15);
-    const maxCount = topSkills[0]?.count || 1;
-    
-    container.innerHTML = topSkills.map(s => {
-        const size = 12 + (s.count / maxCount) * 20;
-        return '<span style="font-size:' + size + 'px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:' + (0.6 + (s.count / maxCount) * 0.4) + ';">' + escapeHtml(s.skill) + '</span>';
-    }).join('');
-}
-    
-    function renderTrendChart(trend) {
-        const canvas = document.getElementById('trendChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const labels = trend.labels || [];
-        const values = trend.values || [];
-        if (trendChartInstance) trendChartInstance.destroy();
-        if (labels.length === 0) return;
-        trendChartInstance = new Chart(ctx, {
-            type: 'line',
-            data: { labels: labels, datasets: [{ label: 'Candidates Added', data: values, borderColor: '#1A4D4A', backgroundColor: 'rgba(26,77,74,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#1A4D4A' }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-        });
-    }
     // ========== AI DEEP DIVE FROM BATCH RESULTS ==========
     window.runDeepAnalysis = async function(candidateId, jobTitle) {
         // Find the job by title
