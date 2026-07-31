@@ -1253,7 +1253,7 @@ def upload_to_drive(filepath, filename):
     except Exception as e:
         error_msg = str(e)
         print(f"Drive upload error: {error_msg}")
-        return error_msg  # Return error string instead of False
+        return error_msg
 
 # ============ ATTACHMENT UPLOAD ============
 UPLOAD_FOLDER = '/data/attachments'
