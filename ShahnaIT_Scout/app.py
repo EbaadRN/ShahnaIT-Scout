@@ -27,6 +27,7 @@ import subprocess
 import base64
 from datetime import datetime
 import traceback
+from fpdf import FPDF
 
 # ============================================
 # FLASK & WEB FRAMEWORK
