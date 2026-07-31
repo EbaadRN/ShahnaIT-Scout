@@ -1247,9 +1247,7 @@ def upload_to_drive(filepath, filename):
         os.unlink(sa_file.name)
         print(f"✅ Uploaded to Drive: {filename}")
         return True
-        
-                return True
-        
+                
     except Exception as e:
         error_msg = str(e)
         print(f"Drive upload error: {error_msg}")
