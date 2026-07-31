@@ -4700,13 +4700,6 @@ async function updateInterviewVerdict(interviewId, verdict) {
         toastError('Failed to update verdict');
     }
 }
-
-// Schedule button handler
-document.addEventListener('DOMContentLoaded', function() {
-    const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
-    if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
-});
-
     
 async function loadJobs() {
     const res = await fetch('/api/jobs');
@@ -6366,20 +6359,6 @@ async function toggleUserStatus(userId, isActive) {
     if (res.ok) { toastSuccess(isActive ? 'User enabled' : 'User disabled'); loadUsers(); } else { toastError('Failed to update user'); }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    const addUserBtn = document.getElementById('addUserBtn');
-    if (addUserBtn) addUserBtn.onclick = async function() {
-        const full_name = document.getElementById('newUserName').value;
-        const email = document.getElementById('newUserEmail').value;
-        const password = document.getElementById('newUserPassword').value;
-        const role = document.getElementById('newUserRole').value;
-        const statusDiv = document.getElementById('addUserStatus');
-        if (!full_name || !email || !password) { statusDiv.innerHTML = '<span style="color:#EF4444;">All fields required</span>'; return; }
-        statusDiv.innerHTML = '<span style="color:#6366F1;">Creating...</span>';
-        const res = await fetch('/api/auth/users', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ full_name, email, password, role })
-        });
         if (res.ok) {
             statusDiv.innerHTML = '<span style="color:#10B981;">✅ User created!</span>';
             document.getElementById('newUserName').value = '';
