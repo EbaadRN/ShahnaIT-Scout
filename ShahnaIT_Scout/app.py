@@ -6359,19 +6359,6 @@ async function toggleUserStatus(userId, isActive) {
     if (res.ok) { toastSuccess(isActive ? 'User enabled' : 'User disabled'); loadUsers(); } else { toastError('Failed to update user'); }
 }
 
-        if (res.ok) {
-            statusDiv.innerHTML = '<span style="color:#10B981;">✅ User created!</span>';
-            document.getElementById('newUserName').value = '';
-            document.getElementById('newUserEmail').value = '';
-            document.getElementById('newUserPassword').value = '';
-            loadUsers();
-        } else {
-            const data = await res.json();
-            statusDiv.innerHTML = '<span style="color:#EF4444;">' + (data.error || 'Failed') + '</span>';
-        }
-    };
-});
-
 async function triggerBackup() {
     const div = document.getElementById('backupStatus');
     div.innerHTML = '<span style="color:#6366F1;">⏳ Creating backup...</span>';
