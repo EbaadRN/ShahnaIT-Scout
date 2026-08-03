@@ -6549,78 +6549,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
 });
     
-    async function loadDashboard() {
-        try {
-            const res = await fetch('/api/dashboard-data');
-            const data = await res.json();
-            
-            // Update stats cards
-            document.getElementById('totalCandidates').textContent = data.total || 0;
-            document.getElementById('matchedCandidates').textContent = data.matched || 0;
-            document.getElementById('hiredCandidates').textContent = data.hired || 0;
-            document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
-            
-            // Render match score chart
-            renderMatchChart(data.matchDistribution || {});
-            
-            // Render pipeline chart
-            renderPipelineChart(data.pipeline || {});
-            
-            // Render skills cloud
-            renderSkillsCloud(data.skills || []);
-            
-            // Render trend chart
-            renderTrendChart(data.trend || {});
-            
-        } catch(e) {
-            console.error('Dashboard error:', e);
-        }
-    }
-    
-    function renderMatchChart(distribution) {
-        const ctx = document.getElementById('matchChart').getContext('2d');
-        const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
-        const values = [
-            distribution['0-20'] || 0,
-            distribution['21-40'] || 0,
-            distribution['41-60'] || 0,
-            distribution['61-80'] || 0,
-            distribution['81-100'] || 0
-        ];
-        const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
-        
-        if (matchChartInstance) {
-            matchChartInstance.destroy();
-        }
-        
-        matchChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Candidates',
-                    data: values,
-                    backgroundColor: colors,
-                    borderColor: colors.map(c => c),
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                }
-            }
-        });
-    }
-    
 function renderPipelineChart(pipeline) {
     const canvas = document.getElementById('pipelineChart');
     if (!canvas) return;
@@ -6814,48 +6742,6 @@ async function dropCandidate(event, stage) {
     loadKanban();
     toastSuccess('Stage updated!');
 }
-
-    
-    async function loadDashboard() {
-        try {
-            const res = await fetch('/api/dashboard-data');
-            const data = await res.json();
-            
-            document.getElementById('totalCandidates').textContent = data.total || 0;
-            document.getElementById('matchedCandidates').textContent = data.matched || 0;
-            document.getElementById('hiredCandidates').textContent = data.hired || 0;
-            document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
-            
-            renderMatchChart(data.matchDistribution || {});
-            renderPipelineChart(data.pipeline || {});
-            renderSkillsCloud(data.skills || []);
-            renderTrendChart(data.trend || {});
-        } catch(e) {
-            console.error('Dashboard error:', e);
-        }
-    }
-    
-    function renderMatchChart(distribution) {
-        const canvas = document.getElementById('matchChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
-        const values = [
-            distribution['0-20'] || 0,
-            distribution['21-40'] || 0,
-            distribution['41-60'] || 0,
-            distribution['61-80'] || 0,
-            distribution['81-100'] || 0
-        ];
-        const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
-        
-        if (matchChartInstance) matchChartInstance.destroy();
-        matchChartInstance = new Chart(ctx, {
-            type: 'bar',
-            data: { labels: labels, datasets: [{ label: 'Candidates', data: values, backgroundColor: colors, borderColor: colors, borderWidth: 1 }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
-        });
-    }
     
     // ========== AI DEEP DIVE FROM BATCH RESULTS ==========
     window.runDeepAnalysis = async function(candidateId, jobTitle) {
