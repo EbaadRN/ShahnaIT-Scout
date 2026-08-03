@@ -6846,6 +6846,7 @@ async function dropCandidate(event, stage) {
         return m; 
     }); 
 } 
+} 
 
 </script>
 </body>
