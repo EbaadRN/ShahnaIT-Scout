@@ -6808,18 +6808,7 @@ async function dropCandidate(event, stage) {
             `;
         }).join('');
     }
-    function escapeHtml(str) { 
-    if (!str) return ''; 
-    // Convert to string if it's not already
-    str = String(str);
-    return str.replace(/[&<>]/g, function(m) { 
-        if(m==='&') return '&amp;'; 
-        if(m==='<') return '&lt;'; 
-        if(m==='>') return '&gt;'; 
-        return m; 
-       }); 
-} 
-
+    
 </script>
 </body>
 </html>
