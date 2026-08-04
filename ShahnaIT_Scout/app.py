@@ -1153,7 +1153,7 @@ def create_onboarded():
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-   c.execute('''INSERT INTO onboarded_resources 
+       c.execute('''INSERT INTO onboarded_resources 
     (candidate_id, client_name, doj, contract_start, contract_end,
      resource_owner, work_location, monthly_salary, billing_rate,
      business_model, requirement_id, requirement_name, po_number, notes)
