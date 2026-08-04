@@ -3508,9 +3508,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
                 <div>
                     <label style="font-size:12px;">Requirement ID</label>
                     <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;">
-                        <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>
-                        <input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()">
-                        <datalist id="onbReqList"></datalist>
+                       
                     </div>
                 </div>
                 <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
