@@ -6404,6 +6404,24 @@ function searchOnbRequirement() {
     ).join('');
 }
 
+function renderMatchChart(distribution) {
+    const canvas = document.getElementById('matchChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+    const values = [
+        distribution['0-20'] || 0, distribution['21-40'] || 0,
+        distribution['41-60'] || 0, distribution['61-80'] || 0, distribution['81-100'] || 0
+    ];
+    const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
+    if (matchChartInstance) matchChartInstance.destroy();
+    matchChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ data: values, backgroundColor: colors }] },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+}
+
 async function loadDashboard() {
     try {
         const res = await fetch('/api/dashboard-data');
