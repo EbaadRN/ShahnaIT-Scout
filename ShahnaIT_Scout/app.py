@@ -6813,7 +6813,7 @@ async function dropCandidate(event, stage) {
 
 </script>
 </body>
-</html> '''
+</html>'''
 
 # ============ API ROUTES ============
 @app.route('/')
