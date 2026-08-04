@@ -6836,7 +6836,6 @@ async function dropCandidate(event, stage) {
                }).join('');
     }
 }
-}
 
 </script>
 </body>
