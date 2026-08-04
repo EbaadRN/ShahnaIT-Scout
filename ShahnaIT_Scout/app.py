@@ -3743,19 +3743,7 @@ async function checkAuth() {
             document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
             document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
             
-            // Hide Users tab for non-admins
-            const tabUsers = document.getElementById('tabUsers');
-            if (tabUsers && currentUser.role !== 'admin') {
-                tabUsers.style.display = 'none';
-            }
-            
-            loadDashboard();
-        }
-    } catch(e) {
-        console.log('Not logged in');
-    }
-}
-
+        
 async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
