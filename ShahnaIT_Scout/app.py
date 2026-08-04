@@ -4625,7 +4625,8 @@ function searchInterviewCandidate() {
     );
     list.innerHTML = matches.map(c => 
         `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
-    ).join('');
+        ).join('');
+}
 
 async function scheduleInterview() {
     const candidateVal = document.getElementById('intCandidateSearch').value;
