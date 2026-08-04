@@ -3740,10 +3740,22 @@ async function checkAuth() {
             const data = await res.json();
             currentUser = data.user;
             document.getElementById('loginOverlay').style.display = 'none';
-            document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
-            document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+            const nameEl = document.getElementById('userDisplayName');
+            const roleEl = document.getElementById('userDisplayRole');
+            if (nameEl) nameEl.textContent = currentUser.full_name || currentUser.email;
+            if (roleEl) roleEl.textContent = currentUser.role.toUpperCase();
             
-        
+            const tabUsers = document.getElementById('tabUsers');
+            if (tabUsers && currentUser.role !== 'admin') {
+                tabUsers.style.display = 'none';
+            }
+            loadDashboard();
+        }
+    } catch(e) {
+        console.log('Not logged in');
+    }
+}
+
 async function handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
@@ -3761,9 +3773,24 @@ async function handleLogin(e) {
             currentUser = data.user;
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
-                       document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+            document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
             
-          
+            const tabUsers = document.getElementById('tabUsers');
+            if (tabUsers && currentUser.role !== 'admin') {
+                tabUsers.style.display = 'none';
+            }
+            loadDashboard();
+            toastSuccess('Welcome, ' + currentUser.full_name + '!');
+        } else {
+            errorDiv.textContent = data.error || 'Login failed';
+            errorDiv.style.display = 'block';
+        }
+    } catch(e) {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.style.display = 'block';
+    }
+}
+
 async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     currentUser = null;
