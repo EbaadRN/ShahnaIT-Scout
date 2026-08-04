@@ -3775,24 +3775,7 @@ async function handleLogin(e) {
             document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
                        document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
             
-            // Hide Users tab for non-admins
-            const tabUsers = document.getElementById('tabUsers');
-            if (tabUsers && currentUser.role !== 'admin') {
-                tabUsers.style.display = 'none';
-            }
-            
-            loadDashboard();
-            toastSuccess('Welcome, ' + currentUser.full_name + '!');;
-        } else {
-            errorDiv.textContent = data.error || 'Login failed';
-            errorDiv.style.display = 'block';
-        }
-    } catch(e) {
-        errorDiv.textContent = 'Network error. Please try again.';
-        errorDiv.style.display = 'block';
-    }
-}
-
+          
 async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
     currentUser = null;
