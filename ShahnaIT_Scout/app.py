@@ -6810,7 +6810,7 @@ async function dropCandidate(event, stage) {
     }
 }
 }
-}
+
 
 </script>
 </body>
