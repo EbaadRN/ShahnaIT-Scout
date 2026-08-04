@@ -6806,9 +6806,9 @@ async function dropCandidate(event, stage) {
                     <span style="min-width: 60px; font-size: 13px; color: #666; text-align: right;">${percentage}%</span>
                 </div>
             `;
-        }).join('');
+               }).join('');
     }
-    
+}
 </script>
 </body>
 </html>
