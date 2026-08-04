@@ -1153,11 +1153,11 @@ def create_onboarded():
     
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute('''INSERT INTO onboarded_resources 
-        (candidate_id, client_name, doj, contract_start, contract_end,
-         resource_owner, work_location, monthly_salary, billing_rate,
-         business_model, po_number, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+   c.execute('''INSERT INTO onboarded_resources 
+    (candidate_id, client_name, doj, contract_start, contract_end,
+     resource_owner, work_location, monthly_salary, billing_rate,
+     business_model, requirement_id, requirement_name, po_number, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (data.get('candidate_id'), data.get('client_name'), data.get('doj'),
          data.get('contract_start'), data.get('contract_end'),
          data.get('resource_owner'), data.get('work_location'),
@@ -6423,6 +6423,25 @@ function searchOnbRequirement() {
         `<option value="${(j.requirement_id || 'SIT-R-'+String(j.id).padStart(3,'0')).replace('SIT-R-','')} - ${escapeHtml(j.title || '')}">`
     ).join('');
 }
+
+async function loadDashboard() {
+    try {
+        const res = await fetch('/api/dashboard-data');
+        const data = await res.json();
+        document.getElementById('totalCandidates').textContent = data.total || 0;
+        document.getElementById('matchedCandidates').textContent = data.matched || 0;
+        document.getElementById('hiredCandidates').textContent = data.hired || 0;
+        document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
+        renderMatchChart(data.matchDistribution || {});
+        renderPipelineChart(data.pipeline || {});
+        renderSkillsCloud(data.skills || []);
+        renderTrendChart(data.trend || {});
+    } catch(e) {
+        console.error('Dashboard error:', e);
+    }
+}
+
+async function loadOnboarded() {
 
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
