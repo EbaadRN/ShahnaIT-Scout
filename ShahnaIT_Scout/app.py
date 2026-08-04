@@ -6845,8 +6845,7 @@ async function dropCandidate(event, stage) {
         if(m==='<') return '&lt;'; 
         if(m==='>') return '&gt;'; 
         return m; 
-    }); 
-} 
+       }); 
 } 
 
 </script>
