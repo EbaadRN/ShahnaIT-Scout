@@ -4361,15 +4361,6 @@ body: JSON.stringify({
     }
 }
 
-function copyResumeText() {
-    const text = document.getElementById('resumeFullText').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        toastSuccess('Resume text copied!');
-    }).catch(() => {
-        toastError('Failed to copy');
-    });
-}
-
 function downloadOriginalResume(candidateId) {
     if (!candidateId) return;
     window.open('/api/candidates/' + candidateId + '/download-resume', '_blank');
