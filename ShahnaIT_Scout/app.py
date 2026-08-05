@@ -3032,7 +3032,8 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
             <strong>➕ Schedule Interview</strong>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
-<div><label style="font-size:12px;">Candidate ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span><input type="text" id="intCandidateSearch" class="form-input" placeholder="001" style="border:none;flex:1;" list="intCandidateList" oninput="searchInterviewCandidate()"><datalist id="intCandidateList"></datalist></div></div>                <div><label style="font-size:12px;">Date</label><input type="date" id="intDate" class="form-input"></div>
+                <div><label style="font-size:12px;">Candidate ID</label><input type="text" id="intCandidateSearch" class="form-input" placeholder="SIT-C-001" oninput="searchInterviewCandidate()" list="intCandidateList"><datalist id="intCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Date</label><input type="date" id="intDate" class="form-input"></div>
                 <div><label style="font-size:12px;">Time</label><input type="time" id="intTime" class="form-input"></div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
@@ -4229,21 +4230,19 @@ async function loadInterviews() {
 function searchInterviewCandidate() {
     const search = document.getElementById('intCandidateSearch').value.toLowerCase();
     const list = document.getElementById('intCandidateList');
-    if (!search || search.length < 1) { list.innerHTML = ''; return; }
+    if (!search || search.length < 2) { list.innerHTML = ''; return; }
     const matches = allCandidates.filter(c => 
         (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
-        String(c.id).padStart(3,'0').includes(search)
+        ('SIT-C-' + String(c.id).padStart(3,'0')).includes(search)
     );
     list.innerHTML = matches.map(c => 
-        `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
+        `<option value="${escapeHtml('SIT-C-' + String(c.id).padStart(3,'0') + ' - ' + (c.first_name||'') + ' ' + (c.last_name||''))}">`
     ).join('');
 }
 
 async function scheduleInterview() {
-
-async function scheduleInterview() {
     const candidateVal = document.getElementById('intCandidateSearch').value;
-    const candidateId = candidateVal.split(' - ')[0].trim();
+    const candidateId = candidateVal.split(' - ')[0].replace('SIT-C-', '').trim();
     
     if (!candidateId) { toastError('Please select a candidate'); return; }
     
@@ -6455,10 +6454,9 @@ async function dropCandidate(event, stage) {
                     <span style="min-width: 60px; font-size: 13px; color: #666; text-align: right;">${percentage}%</span>
                 </div>
             `;
-                }).join('');
+        }).join('');
     }
-}
-function escapeHtml(str) { 
+    function escapeHtml(str) { 
     if (!str) return ''; 
     // Convert to string if it's not already
     str = String(str);
