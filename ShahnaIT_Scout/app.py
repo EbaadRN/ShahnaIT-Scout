@@ -4167,7 +4167,7 @@ loadCandidates();
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
-    const tabOnboarded = document.getElementById('tabOnboarded'); if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); };
+    const tabOnboarded = document.getElementById('tabOnboarded'); if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
     const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel', 'onboardedPanel'];
@@ -6248,6 +6248,29 @@ const kanbanStages = [
     { id: 'onboarded', name: 'Onboarded', color: '#1B5F8C', emoji: '✅' },
     { id: 'rejected', name: 'Rejected', color: '#C42020', emoji: '❌' }
 ];
+
+async function loadOnboarded() {
+    const res = await fetch('/api/onboarded');
+    const resources = await res.json();
+    const container = document.getElementById('onboardedList');
+    if (!resources.length) {
+        container.innerHTML = '<div class="card no-click" style="text-align:center;padding:40px;">No onboarded resources</div>';
+        return;
+    }
+    container.innerHTML = resources.map(r => {
+        const revenue = (r.billing_rate || 0) - (r.monthly_salary || 0);
+        const margin = r.billing_rate ? Math.round((revenue / r.billing_rate) * 100) : 0;
+        return `<div class="card" style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;">
+                <div style="flex:1;"><h4 style="margin:0;"><a href="javascript:void(0)" onclick="viewCandidate(${r.candidate_id})" style="color:#1B2A4A;">${escapeHtml(r.first_name||'')} ${escapeHtml(r.last_name||'')}</a></h4>
+                <div style="font-size:13px;color:#555;">🏢 ${escapeHtml(r.client_name||'N/A')} | 📅 DOJ: ${r.doj||'N/A'}</div>
+                <div style="font-size:12px;color:#777;">👤 ${escapeHtml(r.resource_owner||'N/A')} | 📍 ${escapeHtml(r.work_location||'N/A')}</div></div>
+                <div style="text-align:right;"><div>💰 Salary: ₹${(r.monthly_salary||0).toLocaleString()}</div>
+                <div>📊 Billing: ₹${(r.billing_rate||0).toLocaleString()}</div>
+                <div style="font-weight:bold;color:${margin>=30?'#10B981':margin>=15?'#F59E0B':'#EF4444'};">Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)</div></div>
+            </div></div>`;
+    }).join('');
+}
 
 async function loadKanban() {
     const res = await fetch('/api/candidates');
