@@ -4226,7 +4226,10 @@ async function loadInterviews() {
     }
 }
 
- if (!search || search.length < 1) { list.innerHTML = ''; return; }
+function searchInterviewCandidate() {
+    const search = document.getElementById('intCandidateSearch').value.toLowerCase();
+    const list = document.getElementById('intCandidateList');
+    if (!search || search.length < 1) { list.innerHTML = ''; return; }
     const matches = allCandidates.filter(c => 
         (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
         String(c.id).padStart(3,'0').includes(search)
@@ -4235,6 +4238,8 @@ async function loadInterviews() {
         `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
     ).join('');
 }
+
+async function scheduleInterview() {
 
 async function scheduleInterview() {
     const candidateVal = document.getElementById('intCandidateSearch').value;
