@@ -4348,17 +4348,10 @@ async function updateInterviewVerdict(interviewId, verdict) {
 
 // Schedule button handler
 document.addEventListener('DOMContentLoaded', function() {
-   const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
+       const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
     if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
-    
-    // Onboard button
-    const onboardBtn = document.getElementById('onboardBtn');
-    if (onboardBtn) onboardBtn.onclick = async function() {
-        ... (all the onboard code)
-    };
 });
 
-    
 async function loadJobs() {
     const res = await fetch('/api/jobs');
     allJobs = await res.json();
