@@ -6438,8 +6438,6 @@ async function loadDashboard() {
 }
 
 async function loadOnboarded() {
-
-async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
     const container = document.getElementById('onboardedList');
