@@ -6249,6 +6249,32 @@ const kanbanStages = [
     { id: 'rejected', name: 'Rejected', color: '#C42020', emoji: '❌' }
 ];
 
+function searchOnbCandidate() {
+    const search = document.getElementById('onbCandidate').value.toLowerCase();
+    const list = document.getElementById('onbCandidateList');
+    if (!search || search.length < 1) { list.innerHTML = ''; return; }
+    const matches = allCandidates.filter(c => 
+        (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
+        String(c.id).padStart(3,'0').includes(search)
+    );
+    list.innerHTML = matches.map(c => 
+        `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
+    ).join('');
+}
+
+function searchOnbRequirement() {
+    const search = document.getElementById('onbRequirementId').value.toLowerCase();
+    const list = document.getElementById('onbReqList');
+    if (!search || search.length < 1) { list.innerHTML = ''; return; }
+    const matches = allJobs.filter(j => 
+        (j.requirement_id || '').toLowerCase().includes(search) ||
+        (j.title || '').toLowerCase().includes(search)
+    );
+    list.innerHTML = matches.map(j => 
+        `<option value="${(j.requirement_id || 'SIT-R-'+String(j.id).padStart(3,'0')).replace('SIT-R-','')} - ${escapeHtml(j.title || '')}">`
+    ).join('');
+}
+
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
@@ -7115,7 +7141,66 @@ def send_interview_email(interview_id):
         return jsonify({'message': 'Email sent successfully'})
     
     return jsonify({'error': 'Failed to send email'}), 500    
-        
+
+
+# ============================================
+# ONBOARDED RESOURCES
+# ============================================
+
+@app.route('/api/onboarded', methods=['GET'])
+@login_required()
+def get_onboarded():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('''SELECT o.*, c.first_name, c.last_name, c.email, c.phone 
+                 FROM onboarded_resources o 
+                 LEFT JOIN candidates c ON o.candidate_id = c.id 
+                 ORDER BY o.id DESC''')
+    resources = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(resources)
+
+@app.route('/api/onboarded', methods=['POST'])
+@login_required('manager')
+def create_onboarded():
+    data = request.form.to_dict() if request.form else request.json
+    if not data:
+        data = request.json
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''INSERT INTO onboarded_resources 
+        (candidate_id, client_name, doj, resource_owner, work_location,
+         monthly_salary, billing_rate, business_model, requirement_id, requirement_name, po_number)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (data.get('candidate_id'), data.get('client_name'), data.get('doj'),
+         data.get('resource_owner'), data.get('work_location'),
+         float(data.get('monthly_salary', 0)), float(data.get('billing_rate', 0)),
+         data.get('business_model', 'C2C'), data.get('requirement_id', ''),
+         data.get('requirement_name', ''), data.get('po_number', '')))
+    
+    resource_id = c.lastrowid
+    
+    if 'documents' in request.files:
+        files = request.files.getlist('documents')
+        doc_dir = f'/data/onboarded_docs/{resource_id}'
+        os.makedirs(doc_dir, exist_ok=True)
+        uploaded_files = []
+        for file in files:
+            if file.filename:
+                filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
+                filepath = os.path.join(doc_dir, filename)
+                file.save(filepath)
+                uploaded_files.append({'filename': filename, 'original_name': file.filename, 'path': filepath})
+        if uploaded_files:
+            c.execute('UPDATE onboarded_resources SET sow_attached = ? WHERE id = ?',
+                      (json.dumps(uploaded_files), resource_id))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Resource onboarded', 'id': resource_id})
+
 @app.route('/api/export-candidates', methods=['GET'])
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
