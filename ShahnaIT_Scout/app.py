@@ -2790,6 +2790,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
         <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
         <button class="tab-btn" id="tabKanban" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Kanban Board</button>
+    <button class="tab-btn" id="tabOnboarded" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">💼 Onboarded</button>
     <button class="tab-btn" id="tabUsers" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Users</button>
     </div>
     
@@ -3132,6 +3133,36 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     <div class="card no-click">
         <h3>📋 Kanban Board</h3>
         <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:10px;overflow-x:auto;padding:10px 0;max-height:70vh;"></div>
+    </div>
+</div>
+
+<div id="onboardedPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>💼 Onboarded Resources</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Onboard New Resource</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Candidate</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span><input type="text" id="onbCandidate" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbCandidateList" oninput="searchOnbCandidate()"></div><datalist id="onbCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Client</label><input type="text" id="onbClient" class="form-input" placeholder="Client name"></div>
+                <div><label style="font-size:12px;">DOJ</label><input type="date" id="onbDOJ" class="form-input"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Monthly Salary (₹)</label><input type="number" id="onbSalary" class="form-input" placeholder="50000"></div>
+                <div><label style="font-size:12px;">Billing Rate (₹)</label><input type="number" id="onbBilling" class="form-input" placeholder="75000"></div>
+                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="onbOwner" class="form-input" placeholder="HR Name"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Work Location</label><input type="text" id="onbLocation" class="form-input" placeholder="Remote/Hybrid/Onsite"></div>
+                <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Requirement ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()"></div><datalist id="onbReqList"></datalist></div>
+                <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
+            </div>
+            <div style="margin-top:10px;"><label style="font-size:12px;">Attach Documents (PO/SOW/Offer Letter)</label><input type="file" id="onbDocuments" multiple accept=".pdf,.docx,.doc" style="font-size:12px;"></div>
+            <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
+        </div>
+        <div id="onboardedList"></div>
     </div>
 </div>
 
@@ -4138,7 +4169,7 @@ loadCandidates();
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel', 'onboardedPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
