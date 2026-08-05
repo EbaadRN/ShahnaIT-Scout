@@ -3,8 +3,6 @@
 # ============================================
 # PDF GENERATION (ReportLab)
 # ============================================
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
@@ -23,11 +21,9 @@ import re
 import io
 import csv
 import shutil
-import subprocess
 import base64
 from datetime import datetime
 import traceback
-from fpdf import FPDF
 
 # ============================================
 # FLASK & WEB FRAMEWORK
@@ -590,28 +586,6 @@ def init_db():
         c.execute('INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
                   ('ibaadrn@shahnait.com', default_password, 'Ibaad RN', 'admin'))
         print("✅ Default admin created: ibaadrn@shahnait.com")
-
-        c.execute('''CREATE TABLE IF NOT EXISTS onboarded_resources (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        candidate_id INTEGER,
-        client_name TEXT,
-        doj DATE,
-        contract_start DATE,
-        contract_end DATE,
-        resource_owner TEXT,
-        work_location TEXT,
-        monthly_salary REAL DEFAULT 0,
-        billing_rate REAL DEFAULT 0,
-        business_model TEXT DEFAULT 'C2C',
-        requirement_id TEXT,
-        requirement_name TEXT,
-        po_number TEXT,
-        sow_attached TEXT,
-        status TEXT DEFAULT 'Active',
-        notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (candidate_id) REFERENCES candidates(id)
-    )''')
     
     conn.commit()
     conn.close()
@@ -1122,335 +1096,7 @@ def save_candidate_to_db(candidate_data):
     conn.commit()
     conn.close()
     return candidate_id
-    # ============================================
-# BACKUP SYSTEM
-# ============================================
-
-# ============================================
-# ONBOARDED RESOURCES
-# ============================================
-
-@app.route('/api/onboarded', methods=['GET'])
-@login_required()
-def get_onboarded():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute('''SELECT o.*, c.first_name, c.last_name, c.email, c.phone 
-                 FROM onboarded_resources o 
-                 LEFT JOIN candidates c ON o.candidate_id = c.id 
-                 ORDER BY o.id DESC''')
-    resources = [dict(row) for row in c.fetchall()]
-    conn.close()
-    return jsonify(resources)
-
-@app.route('/api/onboarded', methods=['POST'])
-@login_required('manager')
-def create_onboarded():
-    data = request.form.to_dict() if request.form else request.json
-    if not data:
-        data = request.json
-    
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''INSERT INTO onboarded_resources 
-        (candidate_id, client_name, doj, contract_start, contract_end,
-         resource_owner, work_location, monthly_salary, billing_rate,
-         business_model, po_number, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-        (data.get('candidate_id'), data.get('client_name'), data.get('doj'),
-         data.get('contract_start'), data.get('contract_end'),
-         data.get('resource_owner'), data.get('work_location'),
-         float(data.get('monthly_salary', 0)), float(data.get('billing_rate', 0)),
-         data.get('business_model', 'C2C'), data.get('requirement_id', ''),
-         data.get('requirement_name', ''), data.get('po_number'),
-         data.get('notes', '')))
-    
-    resource_id = c.lastrowid
-    
-    # Handle file uploads
-    uploaded_files = []
-    if 'documents' in request.files:
-        files = request.files.getlist('documents')
-        doc_dir = f'/data/onboarded_docs/{resource_id}'
-        os.makedirs(doc_dir, exist_ok=True)
-        for file in files:
-            if file.filename:
-                filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
-                filepath = os.path.join(doc_dir, filename)
-                file.save(filepath)
-                uploaded_files.append({
-                    'filename': filename,
-                    'original_name': file.filename,
-                    'path': filepath
-                })
-    
-    if uploaded_files:
-        c.execute('UPDATE onboarded_resources SET sow_attached = ? WHERE id = ?',
-                  (json.dumps(uploaded_files), resource_id))
-    
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Resource onboarded', 'id': resource_id})
-
-@app.route('/api/onboarded/<int:resource_id>', methods=['PUT'])
-@login_required('manager')
-def update_onboarded(resource_id):
-    data = request.json
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''UPDATE onboarded_resources SET 
-        client_name=?, doj=?, contract_start=?, contract_end=?,
-        resource_owner=?, work_location=?, monthly_salary=?, billing_rate=?,
-        business_model=?, po_number=?, notes=?, status=?
-        WHERE id=?''',
-        (data.get('client_name'), data.get('doj'), data.get('contract_start'),
-         data.get('contract_end'), data.get('resource_owner'), data.get('work_location'),
-         data.get('monthly_salary', 0), data.get('billing_rate', 0),
-         data.get('business_model', 'C2C'), data.get('po_number'),
-         data.get('notes', ''), data.get('status', 'Active'), resource_id))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Resource updated'})
-
-@app.route('/api/admin/export-pdf', methods=['GET'])
-@login_required('admin')
-def export_pdf():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font('Times', 'B', 16)
-    pdf.cell(0, 10, 'ShahnaIT Scout - Data Backup Report', ln=True, align='C')
-    pdf.set_font('Times', '', 10)
-    pdf.cell(0, 8, f'Generated: {datetime.now().strftime("%d %B %Y, %I:%M %p")}', ln=True, align='C')
-    pdf.ln(5)
-    
-    # Candidates
-    pdf.set_font('Times', 'B', 13)
-    pdf.cell(0, 8, 'Candidates', ln=True)
-    pdf.set_font('Times', '', 9)
-    
-    c.execute('SELECT * FROM candidates ORDER BY id')
-    candidates = c.fetchall()
-    
-    for cand in candidates:
-        pdf.set_font('Times', 'B', 10)
-        pdf.cell(0, 6, f"{cand['first_name'] or ''} {cand['last_name'] or ''} - SIT-C-{str(cand['id']).zfill(3)}", ln=True)
-        pdf.set_font('Times', '', 9)
-        pdf.cell(0, 5, f"Email: {cand['email'] or 'N/A'} | Phone: {cand['phone'] or 'N/A'} | Stage: {cand['stage'] or 'new'} | Match: {cand['match_score'] or 0}%", ln=True)
-        if cand['core_skills']:
-            try:
-                skills = json.loads(cand['core_skills'])
-                skill_str = ', '.join([s.get('skill', str(s)) if isinstance(s, dict) else str(s) for s in skills[:5]])
-                pdf.cell(0, 5, f"Skills: {skill_str}", ln=True)
-            except:
-                pass
-        pdf.ln(2)
-    
-    # Jobs
-    pdf.add_page()
-    pdf.set_font('Times', 'B', 13)
-    pdf.cell(0, 8, 'Jobs / Requirements', ln=True)
-    pdf.set_font('Times', '', 9)
-    
-    c.execute('SELECT * FROM jobs ORDER BY id')
-    jobs = c.fetchall()
-    
-    for job in jobs:
-        pdf.set_font('Times', 'B', 10)
-        pdf.cell(0, 6, f"{job['title'] or 'N/A'} - {job['requirement_id'] or 'SIT-R-'+str(job['id']).zfill(3)}", ln=True)
-        pdf.set_font('Times', '', 9)
-        pdf.cell(0, 5, f"Client: {job['client_name'] or job['company'] or 'N/A'} | Mode: {job['working_mode'] or 'N/A'} | Exp: {job['years_of_experience'] or 0} yrs", ln=True)
-        pdf.ln(2)
-    
-    # Interviews
-    pdf.ln(5)
-    pdf.set_font('Times', 'B', 13)
-    pdf.cell(0, 8, 'Interviews', ln=True)
-    pdf.set_font('Times', '', 9)
-    
-    c.execute('SELECT * FROM interviews ORDER BY interview_date DESC')
-    interviews = c.fetchall()
-    
-    for iv in interviews:
-        pdf.set_font('Times', 'B', 10)
-        pdf.cell(0, 6, f"{iv['candidate_name'] or 'N/A'} - {iv['round'] or 'N/A'} ({iv['interview_date']})", ln=True)
-        pdf.set_font('Times', '', 9)
-        pdf.cell(0, 5, f"Verdict: {iv['verdict'] or 'Scheduled'} | Client: {iv['client_name'] or 'N/A'}", ln=True)
-        pdf.ln(2)
-    
-    conn.close()
-    
-    # Save PDF
-    pdf_path = '/data/backups/backup_report.pdf'
-    pdf.output(pdf_path)
-    return send_file(pdf_path, as_attachment=True, download_name=f'shahnai_report_{datetime.now().strftime("%Y%m%d")}.pdf')
-
-@app.route('/test-drive-upload')
-def test_drive_upload():
-    import tempfile
-    try:
-        from google.oauth2 import service_account
-        
-        service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
-        if not service_account_json:
-            return jsonify({'error': 'No service account configured'})
-        
-        sa_data = json.loads(service_account_json)
-        sa_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        json.dump(sa_data, sa_file)
-        sa_file.close()
-        
-        creds = service_account.Credentials.from_service_account_file(
-            sa_file.name,
-            scopes=['https://www.googleapis.com/auth/drive.file']
-        )
-        drive_service = build('drive', 'v3', credentials=creds)
-        
-        # List files to test connection
-        results = drive_service.files().list(pageSize=5).execute()
-        os.unlink(sa_file.name)
-        
-        return jsonify({
-            'success': True,
-            'files_found': len(results.get('files', [])),
-            'service_account': sa_data.get('client_email')
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)})
-
-@app.route('/test-drive')
-def test_drive():
-    service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
-    return jsonify({
-        'has_key': bool(service_account_json),
-        'length': len(service_account_json) if service_account_json else 0,
-        'first_50_chars': service_account_json[:50] if service_account_json else 'NONE'
-    })
-
-@app.route('/api/admin/backup', methods=['POST'])
-@login_required('admin')
-def trigger_backup():
-    try:
-        result = perform_backup()
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/admin/backups', methods=['GET'])
-@login_required('admin')
-def list_backups():
-    backup_dir = '/data/backups'
-    os.makedirs(backup_dir, exist_ok=True)
-    backups = []
-    for f in sorted(os.listdir(backup_dir), reverse=True):
-        if f.endswith('.db'):
-            path = os.path.join(backup_dir, f)
-            size = os.path.getsize(path)
-            backups.append({
-                'filename': f,
-                'size': f'{size/1024/1024:.1f} MB' if size > 1024*1024 else f'{size/1024:.1f} KB',
-                'date': f[:10]
-            })
-    return jsonify({'backups': backups})
-
-@app.route('/api/admin/backup/download/<filename>')
-@login_required('admin')
-def download_backup(filename):
-    filepath = os.path.join('/data/backups', secure_filename(filename))
-    if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True, download_name=filename)
-    return jsonify({'error': 'File not found'}), 404
-
-def perform_backup():
-    backup_dir = '/data/backups'
-    os.makedirs(backup_dir, exist_ok=True)
-    date_str = datetime.now().strftime('%Y-%m-%d_%H%M')
-    backup_filename = f'shahnai_backup_{date_str}.db'
-    backup_path = os.path.join(backup_dir, backup_filename)
-    shutil.copy2(DB_PATH, backup_path)
-    all_backups = sorted([f for f in os.listdir(backup_dir) if f.endswith('.db')])
-    if len(all_backups) > 30:
-        for old_file in all_backups[:-30]:
-            os.remove(os.path.join(backup_dir, old_file))
-    drive_result = upload_to_drive(backup_path, backup_filename)
-    return {
-        'success': True,
-        'filename': backup_filename,
-        'drive_upload': drive_result,
-        'message': 'Backup created' + (' and uploaded to Drive' if drive_result else ' (local only)')
-    }
-
-def upload_to_drive(filepath, filename):
-    """Upload file to Google Drive using Python Google API library"""
-    service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
-    folder_name = os.environ.get('GOOGLE_DRIVE_FOLDER', 'ShahnaIT-Backups')
-    
-    if not service_account_json:
-        print("⚠️ Google Drive not configured")
-        return False
-    
-    try:
-        import tempfile
-        
-        sa_data = json.loads(service_account_json)
-        sa_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        json.dump(sa_data, sa_file)
-        sa_file.close()
-        
-        creds = service_account.Credentials.from_service_account_file(
-            sa_file.name,
-            scopes=['https://www.googleapis.com/auth/drive.file']
-        )
-        drive_service = build('drive', 'v3', credentials=creds)
-        
-        folder_id = None
-        results = drive_service.files().list(
-            q=f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false",
-            pageSize=1
-        ).execute()
-        
-        if results.get('files'):
-            folder_id = results['files'][0]['id']
-        else:
-            folder_metadata = {'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder'}
-            folder = drive_service.files().create(body=folder_metadata).execute()
-            folder_id = folder['id']
-        
-        file_metadata = {'name': filename, 'parents': [folder_id]}
-        media = MediaFileUpload(filepath, mimetype='application/octet-stream', resumable=True)
-        uploaded_file = drive_service.files().create(body=file_metadata, media_body=media).execute()
-        
-        all_files = drive_service.files().list(
-            q=f"'{folder_id}' in parents and trashed=false", orderBy='createdTime desc'
-        ).execute()
-        for old_file in all_files.get('files', [])[10:]:
-            drive_service.files().delete(fileId=old_file['id']).execute()
-        
-                # Share file with your email so it appears in your Drive
-        try:
-            your_email = 'ibaadrn@shahnait.com'
-            drive_service.permissions().create(
-                fileId=uploaded_file['id'],
-                body={'type': 'user', 'role': 'reader', 'emailAddress': your_email}
-            ).execute()
-            print(f"📧 Shared with {your_email}")
-        except Exception as share_err:
-            print(f"Share error (non-fatal): {share_err}")
-        
-        os.unlink(sa_file.name)
-        print(f"✅ Uploaded to Drive: {filename}")
-        return True
-                
-    except Exception as e:
-        error_msg = str(e)
-        print(f"Drive upload error: {error_msg}")
-        return error_msg
-
-# ============ ATTACHMENT UPLOAD ============
+    # ============ ATTACHMENT UPLOAD ============
 UPLOAD_FOLDER = '/data/attachments'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
@@ -3143,10 +2789,8 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
         <button class="tab-btn" id="tabInterviews" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📅 Interviews</button>
         <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
         <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
-        <button class="tab-btn" id="tabOnboarded" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">💼 Onboarded</button>
         <button class="tab-btn" id="tabKanban" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Kanban Board</button>
     <button class="tab-btn" id="tabUsers" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Users</button>
-    <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
     </div>
     
     <!-- Content Area -->
@@ -3443,14 +3087,23 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     <div id="dashboardPanel" style="display:none;">
         <div class="card no-click">
             <h3>📊 Recruitment Dashboard</h3>
-            <div style="display:flex;gap:8px;margin-bottom:10px;">
-    <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button>
-    <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
-</div>
-<div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <div style="background: linear-gradient(135deg, #2C3E50, #3498DB); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="totalCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Total Candidates</div> </div> <div style="background: linear-gradient(135deg, #1B5E20, #43A047); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="matchedCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Matched (70%+)</div> </div> <div style="background: linear-gradient(135deg, #0D47A1, #1E88E5); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="hiredCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Hired</div> </div> <div style="background: linear-gradient(135deg, #B71C1C, #E53935); color: white; padding: 20px 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">     <div style="font-size: 32px; font-weight: 700;" id="rejectedCandidates">0</div>     <div style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9;">Rejected</div> </div>
-            
+                <div style="background: #1A4D4A; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="totalCandidates">0</div>
+                    <div style="font-size: 12px;">Total Candidates</div>
+                </div>
+                <div style="background: #1B6B2E; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="matchedCandidates">0</div>
+                    <div style="font-size: 12px;">Matched (70%+)</div>
+                </div>
+                <div style="background: #2196F3; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="hiredCandidates">0</div>
+                    <div style="font-size: 12px;">Hired</div>
+                </div>
+                <div style="background: #F44336; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="rejectedCandidates">0</div>
+                    <div style="font-size: 12px;">Rejected</div>
+                </div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div style="background: white; padding: 15px; border-radius: 8px;">
@@ -3479,47 +3132,6 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     <div class="card no-click">
         <h3>📋 Kanban Board</h3>
         <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:10px;overflow-x:auto;padding:10px 0;max-height:70vh;"></div>
-    </div>
-</div>
-
-
-<div id="onboardedPanel" style="display:none;">
-    <div class="card no-click">
-        <h3>💼 Onboarded Resources</h3>
-        
-        <!-- Add New Resource -->
-        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
-            <strong>➕ Onboard New Resource</strong>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
-                <div><label style="font-size:12px;">Candidate</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;">     <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span>     <input type="text" id="onbCandidate" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbCandidateList" oninput="searchOnbCandidate()"> </div><datalist id="onbCandidateList"></datalist></div>
-                <div><label style="font-size:12px;">Client</label><input type="text" id="onbClient" class="form-input" placeholder="Client name"></div>
-                <div><label style="font-size:12px;">DOJ</label><input type="date" id="onbDOJ" class="form-input"></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
-                <div><label style="font-size:12px;">Monthly Salary (₹)</label><input type="number" id="onbSalary" class="form-input" placeholder="50000"></div>
-                <div><label style="font-size:12px;">Billing Rate (₹)</label><input type="number" id="onbBilling" class="form-input" placeholder="75000"></div>
-                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="onbOwner" class="form-input" placeholder="HR Name"></div>
-            </div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-                <div><label style="font-size:12px;">Work Location</label><input type="text" id="onbLocation" class="form-input" placeholder="Remote/Hybrid/Onsite"></div>
-                <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
-            </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-                <div>
-                    <label style="font-size:12px;">Requirement ID</label>
-                    <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;">
-                        <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>
-                        <input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()">
-                        <datalist id="onbReqList"></datalist>
-                    </div>
-                </div>
-                <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
-            </div>
-                        <div style="margin-top:10px;">                 <label style="font-size:12px;">Attach Documents (PO/SOW/Offer Letter)</label>                 <input type="file" id="onbDocuments" multiple accept=".pdf,.docx,.doc" style="font-size:12px;">                 <div id="onbDocStatus" style="font-size:11px;margin-top:4px;"></div>             </div>             <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
-        </div>
-        
-        <!-- Resources List -->
-        <div id="onboardedList"></div>
     </div>
 </div>
 
@@ -4522,11 +4134,11 @@ loadCandidates();
     const tabUpload = document.getElementById('tabUpload'); if (tabUpload) tabUpload.onclick = function() { showPanel('upload'); };
     const tabCreateJob = document.getElementById('tabCreateJob'); if (tabCreateJob) tabCreateJob.onclick = function() { showPanel('createJob'); };     const tabInterviews = document.getElementById('tabInterviews'); if (tabInterviews) tabInterviews.onclick = function() { showPanel('interviews'); loadInterviews(); };
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
-    const tabDashboard = document.getElementById('tabDashboard'); const tabOnboarded = document.getElementById('tabOnboarded'); if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); }; const tabKanban = document.getElementById('tabKanban'); if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
+    const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel', 'onboardedPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'usersPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -4619,17 +4231,18 @@ function searchInterviewCandidate() {
     const search = document.getElementById('intCandidateSearch').value.toLowerCase();
     const list = document.getElementById('intCandidateList');
     if (!search || search.length < 2) { list.innerHTML = ''; return; }
-        const matches = allCandidates.filter(c => 
+    const matches = allCandidates.filter(c => 
         (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
-        String(c.id).padStart(3,'0').includes(search)
+        ('SIT-C-' + String(c.id).padStart(3,'0')).includes(search)
     );
     list.innerHTML = matches.map(c => 
-        `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
+        `<option value="${escapeHtml('SIT-C-' + String(c.id).padStart(3,'0') + ' - ' + (c.first_name||'') + ' ' + (c.last_name||''))}">`
     ).join('');
+}
 
 async function scheduleInterview() {
     const candidateVal = document.getElementById('intCandidateSearch').value;
-    const candidateId = candidateVal.split(' - ')[0].trim();
+    const candidateId = candidateVal.split(' - ')[0].replace('SIT-C-', '').trim();
     
     if (!candidateId) { toastError('Please select a candidate'); return; }
     
@@ -4700,6 +4313,13 @@ async function updateInterviewVerdict(interviewId, verdict) {
         toastError('Failed to update verdict');
     }
 }
+
+// Schedule button handler
+document.addEventListener('DOMContentLoaded', function() {
+    const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
+    if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
+});
+
     
 async function loadJobs() {
     const res = await fetch('/api/jobs');
@@ -6359,166 +5979,7 @@ async function toggleUserStatus(userId, isActive) {
     if (res.ok) { toastSuccess(isActive ? 'User enabled' : 'User disabled'); loadUsers(); } else { toastError('Failed to update user'); }
 }
 
-async function triggerBackup() {
-    const div = document.getElementById('backupStatus');
-    div.innerHTML = '<span style="color:#6366F1;">⏳ Creating backup...</span>';
-    try {
-        const res = await fetch('/api/admin/backup', { method: 'POST' });
-        const data = await res.json();
-       if (data.success) {
-    const driveMsg = data.drive_upload ? '✅ Uploaded to Google Drive' : '⚠️ Local only (Drive upload failed)';
-    div.innerHTML = `<span style="color:#10B981;">✅ Backup saved: ${data.filename}</span><br><span style="color:${data.drive_upload?'#10B981':'#F59E0B'};">${driveMsg}</span>`;
-} else {
-            div.innerHTML = `<span style="color:#EF4444;">❌ ${data.error}</span>`;
-        }
-    } catch(e) {
-        div.innerHTML = '<span style="color:#EF4444;">❌ Backup failed</span>';
-    }
-}
-
-async function listBackups() {
-    const div = document.getElementById('backupStatus');
-    try {
-        const res = await fetch('/api/admin/backups');
-        const data = await res.json();
-        if (data.backups && data.backups.length > 0) {
-            div.innerHTML = '<strong>📂 Backups:</strong><br>' + data.backups.slice(0, 10).map(b => 
-                `<a href="/api/admin/backup/download/${b.filename}" style="color:#1B2A4A;">📥 ${b.filename}</a> <span style="color:#666;">(${b.size})</span>`
-            ).join('<br>');
-        } else {
-            div.innerHTML = '<span style="color:#666;">No backups found</span>';
-        }
-    } catch(e) {
-        div.innerHTML = '<span style="color:#EF4444;">Failed to load backups</span>';
-    }
-}
-
-// ============================================
-// ONBOARDED RESOURCES
-// ============================================
-
-function searchOnbCandidate() {
-    const search = document.getElementById('onbCandidate').value.toLowerCase();
-    const list = document.getElementById('onbCandidateList');
-    if (!search || search.length < 1) { list.innerHTML = ''; return; }
-    const matches = allCandidates.filter(c => 
-        (c.first_name + ' ' + c.last_name).toLowerCase().includes(search) ||
-        String(c.id).padStart(3,'0').includes(search)
-    );
-    list.innerHTML = matches.map(c => 
-        `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
-    ).join('');
-}
-
-function searchOnbRequirement() {
-    const search = document.getElementById('onbRequirementId').value.toLowerCase();
-    const list = document.getElementById('onbReqList');
-    if (!search || search.length < 1) { list.innerHTML = ''; return; }
-    const matches = allJobs.filter(j => 
-        (j.requirement_id || '').toLowerCase().includes(search) ||
-        (j.title || '').toLowerCase().includes(search)
-    );
-    list.innerHTML = matches.map(j => 
-        `<option value="${(j.requirement_id || 'SIT-R-'+String(j.id).padStart(3,'0')).replace('SIT-R-','')} - ${escapeHtml(j.title || '')}">`
-    ).join('');
-}
-
-async function loadOnboarded() {
-    const res = await fetch('/api/onboarded');
-    const resources = await res.json();
-    const container = document.getElementById('onboardedList');
-    
-    if (!resources.length) {
-        container.innerHTML = '<div class="card no-click" style="text-align:center;padding:40px;color:#94A3B8;">No onboarded resources</div>';
-        return;
-    }
-    
-    container.innerHTML = resources.map(r => {
-        const revenue = (r.billing_rate || 0) - (r.monthly_salary || 0);
-        const margin = r.billing_rate ? Math.round((revenue / r.billing_rate) * 100) : 0;
-        const marginColor = margin >= 30 ? '#10B981' : margin >= 15 ? '#F59E0B' : '#EF4444';
-        
-        return `<div class="card" style="margin-bottom:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;">
-                <div style="flex:1;min-width:200px;">
-                    <h4 style="margin:0;">
-                        <a href="javascript:void(0)" onclick="viewCandidate(${r.candidate_id})" style="color:#1B2A4A;text-decoration:underline;">
-                            ${escapeHtml(r.first_name || '')} ${escapeHtml(r.last_name || '')}
-                        </a>
-                    </h4>
-                    <div style="font-size:13px;color:#555;">🏢 ${escapeHtml(r.client_name || 'N/A')} | 📅 DOJ: ${r.doj || 'N/A'}</div>
-                   <div style="font-size:12px;color:#777;">👤 Owner: ${escapeHtml(r.resource_owner || 'N/A')} | 📍 ${escapeHtml(r.work_location || 'N/A')} | ${escapeHtml(r.business_model || 'C2C')}</div>
-                   <div style="font-size:12px;color:#777;">📋 ${r.requirement_id || 'N/A'} ${r.requirement_name ? '- ' + escapeHtml(r.requirement_name) : ''}</div>                </div>
-                <div style="text-align:right;min-width:180px;">
-                    <div style="font-size:13px;">💰 Salary: <strong>₹${(r.monthly_salary || 0).toLocaleString()}</strong></div>
-                    <div style="font-size:13px;">📊 Billing: <strong>₹${(r.billing_rate || 0).toLocaleString()}</strong></div>
-                    <div style="font-size:14px;font-weight:bold;color:${marginColor};">
-                        Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)
-                    </div>
-                    <span style="background:${r.status==='Active'?'#10B981':r.status==='Completed'?'#6366F1':'#EF4444'};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">${r.status || 'Active'}</span>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-// All button handlers
 document.addEventListener('DOMContentLoaded', function() {
-    // Onboard button
-    const onboardBtn = document.getElementById('onboardBtn');
-    if (onboardBtn) onboardBtn.onclick = async function() {
-        const candidateVal = document.getElementById('onbCandidate').value;
-        const candidateId = candidateVal.split(' - ')[0].trim();
-        
-        if (!candidateId) { toastError('Select a candidate'); return; }
-        
-        const reqId = document.getElementById('onbRequirementId').value.trim();
-        const reqName = document.getElementById('onbRequirementId').value.includes(' - ') ? 
-            document.getElementById('onbRequirementId').value.split(' - ')[1].trim() : '';
-        
-        const data = {
-            candidate_id: parseInt(candidateId),
-            client_name: document.getElementById('onbClient').value,
-            doj: document.getElementById('onbDOJ').value,
-            resource_owner: document.getElementById('onbOwner').value,
-            work_location: document.getElementById('onbLocation').value,
-            monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
-            billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
-            business_model: document.getElementById('onbModel').value,
-            requirement_id: reqId ? 'SIT-R-' + reqId : '',
-            requirement_name: reqName,
-            po_number: document.getElementById('onbPO').value
-        };
-        
-        if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
-        
-        const formData = new FormData();
-        Object.keys(data).forEach(key => formData.append(key, data[key]));
-        
-        const docFiles = document.getElementById('onbDocuments').files;
-        for (let i = 0; i < docFiles.length; i++) {
-            formData.append('documents', docFiles[i]);
-        }
-        
-        const res = await fetch('/api/onboarded', { method: 'POST', body: formData });
-        
-        if (res.ok) {
-            toastSuccess('Resource onboarded!');
-            document.getElementById('onbCandidate').value = '';
-            document.getElementById('onbClient').value = '';
-            document.getElementById('onbDOJ').value = '';
-            document.getElementById('onbSalary').value = '';
-            document.getElementById('onbBilling').value = '';
-            document.getElementById('onbOwner').value = '';
-            document.getElementById('onbLocation').value = '';
-            document.getElementById('onbPO').value = '';
-            loadOnboarded();
-        } else {
-            toastError('Failed to onboard');
-        }
-    };
-    
-    // Add User button
     const addUserBtn = document.getElementById('addUserBtn');
     if (addUserBtn) addUserBtn.onclick = async function() {
         const full_name = document.getElementById('newUserName').value;
@@ -6543,10 +6004,6 @@ document.addEventListener('DOMContentLoaded', function() {
             statusDiv.innerHTML = '<span style="color:#EF4444;">' + (data.error || 'Failed') + '</span>';
         }
     };
-    
-    // Schedule Interview button
-    const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
-    if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
 });
     
     async function loadDashboard() {
@@ -6857,6 +6314,56 @@ async function dropCandidate(event, stage) {
         });
     }
     
+    function renderPipelineChart(pipeline) {
+        const canvas = document.getElementById('pipelineChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = ['New', 'Screening', 'Interview', 'Offer', 'Hired', 'Rejected'];
+        const values = [pipeline.new||0, pipeline.screening||0, pipeline.interview||0, pipeline.offer||0, pipeline.hired||0, pipeline.rejected||0];
+        const colors = ['#2196F3', '#FF9800', '#FF5722', '#9C27B0', '#4CAF50', '#F44336'];
+        if (values.every(v => v === 0)) return;
+        if (pipelineChartInstance) pipelineChartInstance.destroy();
+        pipelineChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderColor: '#fff', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
+        });
+    }
+    
+   function renderSkillsCloud(skills) {
+    const container = document.getElementById('skillsCloud');
+    if (!container) return;
+    if (!skills || skills.length === 0) { 
+        container.innerHTML = '<p style="color: #999; font-style: italic;">No skills data available</p>'; 
+        return; 
+    }
+    
+    const normalizedSkills = skills.map(s => 
+        typeof s === 'object' ? {skill: s.skill || s.name || '', count: s.count || 1} : {skill: String(s), count: 1}
+    );
+    const topSkills = normalizedSkills.slice(0, 15);
+    const maxCount = topSkills[0]?.count || 1;
+    
+    container.innerHTML = topSkills.map(s => {
+        const size = 12 + (s.count / maxCount) * 20;
+        return '<span style="font-size:' + size + 'px; color:#1A4D4A; background:#F5F0E8; padding:4px 12px; border-radius:20px; border:1px solid #ddd; opacity:' + (0.6 + (s.count / maxCount) * 0.4) + ';">' + escapeHtml(s.skill) + '</span>';
+    }).join('');
+}
+    
+    function renderTrendChart(trend) {
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = trend.labels || [];
+        const values = trend.values || [];
+        if (trendChartInstance) trendChartInstance.destroy();
+        if (labels.length === 0) return;
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Candidates Added', data: values, borderColor: '#1A4D4A', backgroundColor: 'rgba(26,77,74,0.1)', fill: true, tension: 0.3, pointBackgroundColor: '#1A4D4A' }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+    }
     // ========== AI DEEP DIVE FROM BATCH RESULTS ==========
     window.runDeepAnalysis = async function(candidateId, jobTitle) {
         // Find the job by title
@@ -6959,7 +6466,8 @@ async function dropCandidate(event, stage) {
         if(m==='>') return '&gt;'; 
         return m; 
     }); 
-}      
+}
+      
 </script>
 </body>
 </html>
@@ -7880,7 +7388,7 @@ def get_dashboard_data():
             matched += 1
         
         # Count hired/rejected
-        if status == 'onboarded':
+        if status == 'hired':
             hired += 1
         elif status == 'rejected':
             rejected += 1
@@ -8039,18 +7547,3 @@ def debug_db():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-import threading
-import time
-
-def auto_backup_daemon():
-    """Run backup every 24 hours"""
-    while True:
-        time.sleep(86400)  # 24 hours
-        try:
-            perform_backup()
-            print(f"✅ Auto-backup completed at {datetime.now()}")
-        except Exception as e:
-            print(f"❌ Auto-backup failed: {e}")
-
-backup_thread = threading.Thread(target=auto_backup_daemon, daemon=True)
-backup_thread.start()
