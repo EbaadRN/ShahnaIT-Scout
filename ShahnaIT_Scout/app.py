@@ -6446,35 +6446,6 @@ async function loadOnboarded() {
         container.innerHTML = '<div class="card no-click" style="text-align:center;padding:40px;color:#94A3B8;">No onboarded resources</div>';
         return;
     }
-    
-    container.innerHTML = resources.map(r => {
-        const revenue = (r.billing_rate || 0) - (r.monthly_salary || 0);
-        const margin = r.billing_rate ? Math.round((revenue / r.billing_rate) * 100) : 0;
-        const marginColor = margin >= 30 ? '#10B981' : margin >= 15 ? '#F59E0B' : '#EF4444';
-        
-        return `<div class="card" style="margin-bottom:8px;">
-            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;">
-                <div style="flex:1;min-width:200px;">
-                    <h4 style="margin:0;">
-                        <a href="javascript:void(0)" onclick="viewCandidate(${r.candidate_id})" style="color:#1B2A4A;text-decoration:underline;">
-                            ${escapeHtml(r.first_name || '')} ${escapeHtml(r.last_name || '')}
-                        </a>
-                    </h4>
-                    <div style="font-size:13px;color:#555;">🏢 ${escapeHtml(r.client_name || 'N/A')} | 📅 DOJ: ${r.doj || 'N/A'}</div>
-                   <div style="font-size:12px;color:#777;">👤 Owner: ${escapeHtml(r.resource_owner || 'N/A')} | 📍 ${escapeHtml(r.work_location || 'N/A')} | ${escapeHtml(r.business_model || 'C2C')}</div>
-                   <div style="font-size:12px;color:#777;">📋 ${r.requirement_id || 'N/A'} ${r.requirement_name ? '- ' + escapeHtml(r.requirement_name) : ''}</div>                </div>
-                <div style="text-align:right;min-width:180px;">
-                    <div style="font-size:13px;">💰 Salary: <strong>₹${(r.monthly_salary || 0).toLocaleString()}</strong></div>
-                    <div style="font-size:13px;">📊 Billing: <strong>₹${(r.billing_rate || 0).toLocaleString()}</strong></div>
-                    <div style="font-size:14px;font-weight:bold;color:${marginColor};">
-                        Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)
-                    </div>
-                    <span style="background:${r.status==='Active'?'#10B981':r.status==='Completed'?'#6366F1':'#EF4444'};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">${r.status || 'Active'}</span>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-}
    
 function renderPipelineChart(pipeline) {
     const canvas = document.getElementById('pipelineChart');
