@@ -3742,7 +3742,6 @@ async function checkAuth() {
             const roleEl = document.getElementById('userDisplayRole');
             if (nameEl) nameEl.textContent = currentUser.full_name || currentUser.email;
             if (roleEl) roleEl.textContent = currentUser.role.toUpperCase();
-            
             const tabUsers = document.getElementById('tabUsers');
             if (tabUsers && currentUser.role !== 'admin') {
                 tabUsers.style.display = 'none';
