@@ -1154,10 +1154,10 @@ def create_onboarded():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO onboarded_resources 
-    (candidate_id, client_name, doj, contract_start, contract_end,
-     resource_owner, work_location, monthly_salary, billing_rate,
-     business_model, requirement_id, requirement_name, po_number, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (candidate_id, client_name, doj, contract_start, contract_end,
+         resource_owner, work_location, monthly_salary, billing_rate,
+         business_model, po_number, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
         (data.get('candidate_id'), data.get('client_name'), data.get('doj'),
          data.get('contract_start'), data.get('contract_end'),
          data.get('resource_owner'), data.get('work_location'),
@@ -3508,7 +3508,9 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
                 <div>
                     <label style="font-size:12px;">Requirement ID</label>
                     <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;">
-                       
+                        <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>
+                        <input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()">
+                        <datalist id="onbReqList"></datalist>
                     </div>
                 </div>
                 <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
@@ -3738,14 +3740,15 @@ async function checkAuth() {
             const data = await res.json();
             currentUser = data.user;
             document.getElementById('loginOverlay').style.display = 'none';
-            const nameEl = document.getElementById('userDisplayName');
-            const roleEl = document.getElementById('userDisplayRole');
-            if (nameEl) nameEl.textContent = currentUser.full_name || currentUser.email;
-            if (roleEl) roleEl.textContent = currentUser.role.toUpperCase();
+            document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
+            document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+            
+            // Hide Users tab for non-admins
             const tabUsers = document.getElementById('tabUsers');
             if (tabUsers && currentUser.role !== 'admin') {
                 tabUsers.style.display = 'none';
             }
+            
             loadDashboard();
         }
     } catch(e) {
@@ -3770,14 +3773,16 @@ async function handleLogin(e) {
             currentUser = data.user;
             document.getElementById('loginOverlay').style.display = 'none';
             document.getElementById('userDisplayName').textContent = currentUser.full_name || currentUser.email;
-            document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
+                       document.getElementById('userDisplayRole').textContent = currentUser.role.toUpperCase();
             
+            // Hide Users tab for non-admins
             const tabUsers = document.getElementById('tabUsers');
             if (tabUsers && currentUser.role !== 'admin') {
                 tabUsers.style.display = 'none';
             }
+            
             loadDashboard();
-            toastSuccess('Welcome, ' + currentUser.full_name + '!');
+            toastSuccess('Welcome, ' + currentUser.full_name + '!');;
         } else {
             errorDiv.textContent = data.error || 'Login failed';
             errorDiv.style.display = 'block';
@@ -4385,6 +4390,15 @@ body: JSON.stringify({
     }
 }
 
+function copyResumeText() {
+    const text = document.getElementById('resumeFullText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        toastSuccess('Resume text copied!');
+    }).catch(() => {
+        toastError('Failed to copy');
+    });
+}
+
 function downloadOriginalResume(candidateId) {
     if (!candidateId) return;
     window.open('/api/candidates/' + candidateId + '/download-resume', '_blank');
@@ -4611,8 +4625,7 @@ function searchInterviewCandidate() {
     );
     list.innerHTML = matches.map(c => 
         `<option value="${String(c.id).padStart(3,'0')} - ${escapeHtml((c.first_name||'') + ' ' + (c.last_name||''))}">`
-        ).join('');
-}
+    ).join('');
 
 async function scheduleInterview() {
     const candidateVal = document.getElementById('intCandidateSearch').value;
@@ -4756,6 +4769,15 @@ async function viewCandidatesForRequirement(requirementId) {
     toastSuccess('Found ' + matched.length + ' candidate(s) for ' + requirementId);
 }
    
+   async function loadCandidates() {
+    const res = await fetch('/api/candidates');
+    allCandidates = await res.json();
+    filterCandidates();
+    // updatePipelineStats();  // ← REMOVED - function doesn't exist
+    renderUploaderStats();
+    document.getElementById('candidateSelect').innerHTML = '<option value="">-- Select Candidate --</option>' + allCandidates.map(c => `<option value="${c.id}">${escapeHtml(c.first_name + ' ' + c.last_name || 'Unknown')}</option>`).join('');
+  refreshDashboard();
+}
 // ============================================
 // UPDATE DASHBOARD STATISTICS
 // ============================================
@@ -6401,41 +6423,6 @@ function searchOnbRequirement() {
     ).join('');
 }
 
-function renderMatchChart(distribution) {
-    const canvas = document.getElementById('matchChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
-    const values = [
-        distribution['0-20'] || 0, distribution['21-40'] || 0,
-        distribution['41-60'] || 0, distribution['61-80'] || 0, distribution['81-100'] || 0
-    ];
-    const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
-    if (matchChartInstance) matchChartInstance.destroy();
-    matchChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: { labels: labels, datasets: [{ data: values, backgroundColor: colors }] },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
-}
-
-async function loadDashboard() {
-    try {
-        const res = await fetch('/api/dashboard-data');
-        const data = await res.json();
-        document.getElementById('totalCandidates').textContent = data.total || 0;
-        document.getElementById('matchedCandidates').textContent = data.matched || 0;
-        document.getElementById('hiredCandidates').textContent = data.hired || 0;
-        document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
-        renderMatchChart(data.matchDistribution || {});
-        renderPipelineChart(data.pipeline || {});
-        renderSkillsCloud(data.skills || []);
-        renderTrendChart(data.trend || {});
-    } catch(e) {
-        console.error('Dashboard error:', e);
-    }
-}
-
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
@@ -6445,7 +6432,195 @@ async function loadOnboarded() {
         container.innerHTML = '<div class="card no-click" style="text-align:center;padding:40px;color:#94A3B8;">No onboarded resources</div>';
         return;
     }
-   
+    
+    container.innerHTML = resources.map(r => {
+        const revenue = (r.billing_rate || 0) - (r.monthly_salary || 0);
+        const margin = r.billing_rate ? Math.round((revenue / r.billing_rate) * 100) : 0;
+        const marginColor = margin >= 30 ? '#10B981' : margin >= 15 ? '#F59E0B' : '#EF4444';
+        
+        return `<div class="card" style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;">
+                <div style="flex:1;min-width:200px;">
+                    <h4 style="margin:0;">
+                        <a href="javascript:void(0)" onclick="viewCandidate(${r.candidate_id})" style="color:#1B2A4A;text-decoration:underline;">
+                            ${escapeHtml(r.first_name || '')} ${escapeHtml(r.last_name || '')}
+                        </a>
+                    </h4>
+                    <div style="font-size:13px;color:#555;">🏢 ${escapeHtml(r.client_name || 'N/A')} | 📅 DOJ: ${r.doj || 'N/A'}</div>
+                   <div style="font-size:12px;color:#777;">👤 Owner: ${escapeHtml(r.resource_owner || 'N/A')} | 📍 ${escapeHtml(r.work_location || 'N/A')} | ${escapeHtml(r.business_model || 'C2C')}</div>
+                   <div style="font-size:12px;color:#777;">📋 ${r.requirement_id || 'N/A'} ${r.requirement_name ? '- ' + escapeHtml(r.requirement_name) : ''}</div>                </div>
+                <div style="text-align:right;min-width:180px;">
+                    <div style="font-size:13px;">💰 Salary: <strong>₹${(r.monthly_salary || 0).toLocaleString()}</strong></div>
+                    <div style="font-size:13px;">📊 Billing: <strong>₹${(r.billing_rate || 0).toLocaleString()}</strong></div>
+                    <div style="font-size:14px;font-weight:bold;color:${marginColor};">
+                        Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)
+                    </div>
+                    <span style="background:${r.status==='Active'?'#10B981':r.status==='Completed'?'#6366F1':'#EF4444'};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">${r.status || 'Active'}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// All button handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Onboard button
+    const onboardBtn = document.getElementById('onboardBtn');
+    if (onboardBtn) onboardBtn.onclick = async function() {
+        const candidateVal = document.getElementById('onbCandidate').value;
+        const candidateId = candidateVal.split(' - ')[0].trim();
+        
+        if (!candidateId) { toastError('Select a candidate'); return; }
+        
+        const reqId = document.getElementById('onbRequirementId').value.trim();
+        const reqName = document.getElementById('onbRequirementId').value.includes(' - ') ? 
+            document.getElementById('onbRequirementId').value.split(' - ')[1].trim() : '';
+        
+        const data = {
+            candidate_id: parseInt(candidateId),
+            client_name: document.getElementById('onbClient').value,
+            doj: document.getElementById('onbDOJ').value,
+            resource_owner: document.getElementById('onbOwner').value,
+            work_location: document.getElementById('onbLocation').value,
+            monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
+            billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
+            business_model: document.getElementById('onbModel').value,
+            requirement_id: reqId ? 'SIT-R-' + reqId : '',
+            requirement_name: reqName,
+            po_number: document.getElementById('onbPO').value
+        };
+        
+        if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
+        
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+        
+        const docFiles = document.getElementById('onbDocuments').files;
+        for (let i = 0; i < docFiles.length; i++) {
+            formData.append('documents', docFiles[i]);
+        }
+        
+        const res = await fetch('/api/onboarded', { method: 'POST', body: formData });
+        
+        if (res.ok) {
+            toastSuccess('Resource onboarded!');
+            document.getElementById('onbCandidate').value = '';
+            document.getElementById('onbClient').value = '';
+            document.getElementById('onbDOJ').value = '';
+            document.getElementById('onbSalary').value = '';
+            document.getElementById('onbBilling').value = '';
+            document.getElementById('onbOwner').value = '';
+            document.getElementById('onbLocation').value = '';
+            document.getElementById('onbPO').value = '';
+            loadOnboarded();
+        } else {
+            toastError('Failed to onboard');
+        }
+    };
+    
+    // Add User button
+    const addUserBtn = document.getElementById('addUserBtn');
+    if (addUserBtn) addUserBtn.onclick = async function() {
+        const full_name = document.getElementById('newUserName').value;
+        const email = document.getElementById('newUserEmail').value;
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+        const statusDiv = document.getElementById('addUserStatus');
+        if (!full_name || !email || !password) { statusDiv.innerHTML = '<span style="color:#EF4444;">All fields required</span>'; return; }
+        statusDiv.innerHTML = '<span style="color:#6366F1;">Creating...</span>';
+        const res = await fetch('/api/auth/users', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ full_name, email, password, role })
+        });
+        if (res.ok) {
+            statusDiv.innerHTML = '<span style="color:#10B981;">✅ User created!</span>';
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+            loadUsers();
+        } else {
+            const data = await res.json();
+            statusDiv.innerHTML = '<span style="color:#EF4444;">' + (data.error || 'Failed') + '</span>';
+        }
+    };
+    
+    // Schedule Interview button
+    const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
+    if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
+});
+    
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/dashboard-data');
+            const data = await res.json();
+            
+            // Update stats cards
+            document.getElementById('totalCandidates').textContent = data.total || 0;
+            document.getElementById('matchedCandidates').textContent = data.matched || 0;
+            document.getElementById('hiredCandidates').textContent = data.hired || 0;
+            document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
+            
+            // Render match score chart
+            renderMatchChart(data.matchDistribution || {});
+            
+            // Render pipeline chart
+            renderPipelineChart(data.pipeline || {});
+            
+            // Render skills cloud
+            renderSkillsCloud(data.skills || []);
+            
+            // Render trend chart
+            renderTrendChart(data.trend || {});
+            
+        } catch(e) {
+            console.error('Dashboard error:', e);
+        }
+    }
+    
+    function renderMatchChart(distribution) {
+        const ctx = document.getElementById('matchChart').getContext('2d');
+        const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+        const values = [
+            distribution['0-20'] || 0,
+            distribution['21-40'] || 0,
+            distribution['41-60'] || 0,
+            distribution['61-80'] || 0,
+            distribution['81-100'] || 0
+        ];
+        const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
+        
+        if (matchChartInstance) {
+            matchChartInstance.destroy();
+        }
+        
+        matchChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Candidates',
+                    data: values,
+                    backgroundColor: colors,
+                    borderColor: colors.map(c => c),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                }
+            }
+        });
+    }
+    
 function renderPipelineChart(pipeline) {
     const canvas = document.getElementById('pipelineChart');
     if (!canvas) return;
@@ -6639,6 +6814,48 @@ async function dropCandidate(event, stage) {
     loadKanban();
     toastSuccess('Stage updated!');
 }
+
+    
+    async function loadDashboard() {
+        try {
+            const res = await fetch('/api/dashboard-data');
+            const data = await res.json();
+            
+            document.getElementById('totalCandidates').textContent = data.total || 0;
+            document.getElementById('matchedCandidates').textContent = data.matched || 0;
+            document.getElementById('hiredCandidates').textContent = data.hired || 0;
+            document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
+            
+            renderMatchChart(data.matchDistribution || {});
+            renderPipelineChart(data.pipeline || {});
+            renderSkillsCloud(data.skills || []);
+            renderTrendChart(data.trend || {});
+        } catch(e) {
+            console.error('Dashboard error:', e);
+        }
+    }
+    
+    function renderMatchChart(distribution) {
+        const canvas = document.getElementById('matchChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+        const values = [
+            distribution['0-20'] || 0,
+            distribution['21-40'] || 0,
+            distribution['41-60'] || 0,
+            distribution['61-80'] || 0,
+            distribution['81-100'] || 0
+        ];
+        const colors = ['#F44336', '#FF9800', '#FFC107', '#4CAF50', '#1B6B2E'];
+        
+        if (matchChartInstance) matchChartInstance.destroy();
+        matchChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Candidates', data: values, backgroundColor: colors, borderColor: colors, borderWidth: 1 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+    }
     
     // ========== AI DEEP DIVE FROM BATCH RESULTS ==========
     window.runDeepAnalysis = async function(candidateId, jobTitle) {
@@ -6730,100 +6947,24 @@ async function dropCandidate(event, stage) {
                     <span style="min-width: 60px; font-size: 13px; color: #666; text-align: right;">${percentage}%</span>
                 </div>
             `;
-               }).join('');
+        }).join('');
     }
-}
-
-// All button handlers
-document.addEventListener('DOMContentLoaded', function() {
-    // Onboard button
-    const onboardBtn = document.getElementById('onboardBtn');
-    if (onboardBtn) onboardBtn.onclick = async function() {
-        const candidateVal = document.getElementById('onbCandidate').value;
-        const candidateId = candidateVal.split(' - ')[0].trim();
-        
-        if (!candidateId) { toastError('Select a candidate'); return; }
-        
-        const reqId = document.getElementById('onbRequirementId').value.trim();
-        const reqName = document.getElementById('onbRequirementId').value.includes(' - ') ? 
-            document.getElementById('onbRequirementId').value.split(' - ')[1].trim() : '';
-        
-        const data = {
-            candidate_id: parseInt(candidateId),
-            client_name: document.getElementById('onbClient').value,
-            doj: document.getElementById('onbDOJ').value,
-            resource_owner: document.getElementById('onbOwner').value,
-            work_location: document.getElementById('onbLocation').value,
-            monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
-            billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
-            business_model: document.getElementById('onbModel').value,
-            requirement_id: reqId ? 'SIT-R-' + reqId : '',
-            requirement_name: reqName,
-            po_number: document.getElementById('onbPO').value
-        };
-        
-        if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
-        
-        const formData = new FormData();
-        Object.keys(data).forEach(key => formData.append(key, data[key]));
-        
-        const docFiles = document.getElementById('onbDocuments').files;
-        for (let i = 0; i < docFiles.length; i++) {
-            formData.append('documents', docFiles[i]);
-        }
-        
-        const res = await fetch('/api/onboarded', { method: 'POST', body: formData });
-        
-        if (res.ok) {
-            toastSuccess('Resource onboarded!');
-            document.getElementById('onbCandidate').value = '';
-            document.getElementById('onbClient').value = '';
-            document.getElementById('onbDOJ').value = '';
-            document.getElementById('onbSalary').value = '';
-            document.getElementById('onbBilling').value = '';
-            document.getElementById('onbOwner').value = '';
-            document.getElementById('onbLocation').value = '';
-            document.getElementById('onbPO').value = '';
-            loadOnboarded();
-        } else {
-            toastError('Failed to onboard');
-        }
-    };
-    
-    // Add User button
-    const addUserBtn = document.getElementById('addUserBtn');
-    if (addUserBtn) addUserBtn.onclick = async function() {
-        const full_name = document.getElementById('newUserName').value;
-        const email = document.getElementById('newUserEmail').value;
-        const password = document.getElementById('newUserPassword').value;
-        const role = document.getElementById('newUserRole').value;
-        const statusDiv = document.getElementById('addUserStatus');
-        if (!full_name || !email || !password) { statusDiv.innerHTML = '<span style="color:#EF4444;">All fields required</span>'; return; }
-        statusDiv.innerHTML = '<span style="color:#6366F1;">Creating...</span>';
-        const res = await fetch('/api/auth/users', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ full_name, email, password, role })
-        });
-        if (res.ok) {
-            statusDiv.innerHTML = '<span style="color:#10B981;">✅ User created!</span>';
-            document.getElementById('newUserName').value = '';
-            document.getElementById('newUserEmail').value = '';
-            document.getElementById('newUserPassword').value = '';
-            loadUsers();
-        } else {
-            const data = await res.json();
-            statusDiv.innerHTML = '<span style="color:#EF4444;">' + (data.error || 'Failed') + '</span>';
-        }
-    };
-    
-    // Schedule Interview button
-    const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
-    if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
-});
+    function escapeHtml(str) { 
+    if (!str) return ''; 
+    // Convert to string if it's not already
+    str = String(str);
+    return str.replace(/[&<>]/g, function(m) { 
+        if(m==='&') return '&amp;'; 
+        if(m==='<') return '&lt;'; 
+        if(m==='>') return '&gt;'; 
+        return m; 
+    }); 
+} 
 
 </script>
 </body>
-</html>'''
+</html>
+'''
 
 # ============ API ROUTES ============
 @app.route('/')
