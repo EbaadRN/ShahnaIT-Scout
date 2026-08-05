@@ -6455,9 +6455,10 @@ async function dropCandidate(event, stage) {
                     <span style="min-width: 60px; font-size: 13px; color: #666; text-align: right;">${percentage}%</span>
                 </div>
             `;
-        }).join('');
+                }).join('');
     }
-    function escapeHtml(str) { 
+}
+function escapeHtml(str) { 
     if (!str) return ''; 
     // Convert to string if it's not already
     str = String(str);
