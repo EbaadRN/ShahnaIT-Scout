@@ -586,6 +586,28 @@ def init_db():
         c.execute('INSERT INTO users (email, password_hash, full_name, role) VALUES (?, ?, ?, ?)',
                   ('ibaadrn@shahnait.com', default_password, 'Ibaad RN', 'admin'))
         print("✅ Default admin created: ibaadrn@shahnait.com")
+
+        c.execute('''CREATE TABLE IF NOT EXISTS onboarded_resources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER,
+        client_name TEXT,
+        doj DATE,
+        contract_start DATE,
+        contract_end DATE,
+        resource_owner TEXT,
+        work_location TEXT,
+        monthly_salary REAL DEFAULT 0,
+        billing_rate REAL DEFAULT 0,
+        business_model TEXT DEFAULT 'C2C',
+        requirement_id TEXT,
+        requirement_name TEXT,
+        po_number TEXT,
+        sow_attached TEXT,
+        status TEXT DEFAULT 'Active',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id)
+    )''')
     
     conn.commit()
     conn.close()
