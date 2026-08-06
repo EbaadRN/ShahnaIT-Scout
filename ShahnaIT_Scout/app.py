@@ -4406,6 +4406,8 @@ document.addEventListener('DOMContentLoaded', function() {
         for (let i = 0; i < docFiles.length; i++) {
             formData.append('documents', docFiles[i]);
         }
+
+        console.log('Files count:', document.getElementById('onbDocuments').files.length);
         
         const res = await fetch('/api/onboarded', { method: 'POST', body: formData });
         if (res.ok) {
