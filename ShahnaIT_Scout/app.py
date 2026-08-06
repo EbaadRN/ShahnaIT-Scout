@@ -6355,12 +6355,28 @@ async function editOnboarded(id) {
     
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
-    modal.innerHTML = `<div style="background:#fff;padding:25px;border-radius:12px;width:90%;max-width:450px;">
+    modal.innerHTML = `<div style="background:#fff;padding:25px;border-radius:12px;width:90%;max-width:500px;max-height:80vh;overflow-y:auto;">
         <h3>✏️ Edit Onboarded Resource</h3>
         <label>Client</label><input id="editOnbClient" class="form-input" value="${escapeHtml(r.client_name||'')}">
         <label>DOJ</label><input id="editOnbDOJ" type="date" class="form-input" value="${r.doj||''}">
+        <label>Resource Owner</label><input id="editOnbOwner" class="form-input" value="${escapeHtml(r.resource_owner||'')}">
+        <label>Work Location</label><input id="editOnbLocation" class="form-input" value="${escapeHtml(r.work_location||'')}">
         <label>Monthly Salary (₹)</label><input id="editOnbSalary" type="number" class="form-input" value="${r.monthly_salary||0}">
         <label>Billing Rate (₹)</label><input id="editOnbBilling" type="number" class="form-input" value="${r.billing_rate||0}">
+        <label>Business Model</label><select id="editOnbModel" class="form-input">
+            <option value="C2C" ${r.business_model==='C2C'?'selected':''}>C2C</option>
+            <option value="C2H" ${r.business_model==='C2H'?'selected':''}>C2H</option>
+            <option value="FTE" ${r.business_model==='FTE'?'selected':''}>FTE</option>
+            <option value="Fixed Price" ${r.business_model==='Fixed Price'?'selected':''}>Fixed Price</option>
+        </select>
+        <label>Requirement ID</label><input id="editOnbReq" class="form-input" value="${escapeHtml(r.requirement_id||'')}">
+        <label>PO Number</label><input id="editOnbPO" class="form-input" value="${escapeHtml(r.po_number||'')}">
+        <label>Status</label><select id="editOnbStatus" class="form-input">
+            <option value="Active" ${r.status==='Active'?'selected':''}>Active</option>
+            <option value="Completed" ${r.status==='Completed'?'selected':''}>Completed</option>
+            <option value="Terminated" ${r.status==='Terminated'?'selected':''}>Terminated</option>
+        </select>
+                <label>Attach Documents</label><input type="file" id="editOnbDocs" multiple accept=".pdf,.docx,.doc" style="font-size:12px;">
         <div style="margin-top:15px;display:flex;gap:10px;">
             <button id="saveOnbEdit" class="btn btn-primary">💾 Save</button>
             <button id="cancelOnbEdit" class="btn btn-secondary">Cancel</button>
@@ -6369,16 +6385,27 @@ async function editOnboarded(id) {
     document.body.appendChild(modal);
     
     document.getElementById('cancelOnbEdit').onclick = () => modal.remove();
-    document.getElementById('saveOnbEdit').onclick = async () => {
+        document.getElementById('saveOnbEdit').onclick = async () => {
+        const formData = new FormData();
+        formData.append('client_name', document.getElementById('editOnbClient').value);
+        formData.append('doj', document.getElementById('editOnbDOJ').value);
+        formData.append('resource_owner', document.getElementById('editOnbOwner').value);
+        formData.append('work_location', document.getElementById('editOnbLocation').value);
+        formData.append('monthly_salary', document.getElementById('editOnbSalary').value);
+        formData.append('billing_rate', document.getElementById('editOnbBilling').value);
+        formData.append('business_model', document.getElementById('editOnbModel').value);
+        formData.append('requirement_id', document.getElementById('editOnbReq').value);
+        formData.append('po_number', document.getElementById('editOnbPO').value);
+        formData.append('status', document.getElementById('editOnbStatus').value);
+        
+        const docFiles = document.getElementById('editOnbDocs').files;
+        for (let i = 0; i < docFiles.length; i++) {
+            formData.append('documents', docFiles[i]);
+        }
+        
         const updateRes = await fetch('/api/onboarded/' + id, {
             method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                client_name: document.getElementById('editOnbClient').value,
-                doj: document.getElementById('editOnbDOJ').value,
-                monthly_salary: parseFloat(document.getElementById('editOnbSalary').value) || 0,
-                billing_rate: parseFloat(document.getElementById('editOnbBilling').value) || 0
-            })
+            body: formData
         });
         if (updateRes.ok) {
             toastSuccess('Updated!');
@@ -7348,14 +7375,42 @@ def create_onboarded():
 @app.route('/api/onboarded/<int:resource_id>', methods=['PUT'])
 @login_required('manager')
 def update_onboarded(resource_id):
-    data = request.json
+    data = request.form.to_dict() if request.form else request.json
+    if not data:
+        data = request.json
+    
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''UPDATE onboarded_resources SET 
-        client_name=?, doj=?, monthly_salary=?, billing_rate=?
+        client_name=?, doj=?, resource_owner=?, work_location=?,
+        monthly_salary=?, billing_rate=?, business_model=?,
+        requirement_id=?, po_number=?, status=?
         WHERE id=?''',
         (data.get('client_name'), data.get('doj'),
-         data.get('monthly_salary', 0), data.get('billing_rate', 0), resource_id))
+         data.get('resource_owner'), data.get('work_location'),
+         float(data.get('monthly_salary', 0)), float(data.get('billing_rate', 0)),
+         data.get('business_model', 'C2C'), data.get('requirement_id', ''),
+         data.get('po_number', ''), data.get('status', 'Active'), resource_id))
+    
+    if 'documents' in request.files:
+        files = request.files.getlist('documents')
+        doc_dir = f'/data/onboarded_docs/{resource_id}'
+        os.makedirs(doc_dir, exist_ok=True)
+        uploaded_files = []
+        for file in files:
+            if file.filename:
+                filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
+                filepath = os.path.join(doc_dir, filename)
+                file.save(filepath)
+                uploaded_files.append({'filename': filename, 'original_name': file.filename, 'path': filepath})
+        if uploaded_files:
+            c.execute('SELECT sow_attached FROM onboarded_resources WHERE id = ?', (resource_id,))
+            row = c.fetchone()
+            existing = json.loads(row[0]) if row and row[0] else []
+            existing.extend(uploaded_files)
+            c.execute('UPDATE onboarded_resources SET sow_attached = ? WHERE id = ?',
+                      (json.dumps(existing), resource_id))
+    
     conn.commit()
     conn.close()
     return jsonify({'message': 'Resource updated'})
