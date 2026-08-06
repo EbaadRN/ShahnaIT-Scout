@@ -6347,6 +6347,40 @@ function searchOnbRequirement() {
     ).join('');
 }
 
+async function editOnboarded(id) {
+    const res = await fetch('/api/onboarded');
+    const resources = await res.json();
+    const r = resources.find(r => r.id == id);
+    if (!r) return;
+    
+    const newClient = prompt('Client:', r.client_name || '');
+    if (newClient === null) return;
+    const newDOJ = prompt('DOJ (YYYY-MM-DD):', r.doj || '');
+    if (newDOJ === null) return;
+    const newSalary = prompt('Monthly Salary (₹):', r.monthly_salary || 0);
+    if (newSalary === null) return;
+    const newBilling = prompt('Billing Rate (₹):', r.billing_rate || 0);
+    if (newBilling === null) return;
+    
+    const updateRes = await fetch('/api/onboarded/' + id, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            client_name: newClient,
+            doj: newDOJ,
+            monthly_salary: parseFloat(newSalary) || 0,
+            billing_rate: parseFloat(newBilling) || 0
+        })
+    });
+    
+    if (updateRes.ok) {
+        toastSuccess('Updated!');
+        loadOnboarded();
+    } else {
+        toastError('Failed to update');
+    }
+}
+
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
@@ -6365,7 +6399,7 @@ async function loadOnboarded() {
                 <div style="font-size:12px;color:#777;">👤 ${escapeHtml(r.resource_owner||'N/A')} | 📍 ${escapeHtml(r.work_location||'N/A')}</div></div>
                 <div style="text-align:right;"><div>💰 Salary: ₹${(r.monthly_salary||0).toLocaleString()}</div>
                 <div>📊 Billing: ₹${(r.billing_rate||0).toLocaleString()}</div>
-                <div style="font-weight:bold;color:${margin>=30?'#10B981':margin>=15?'#F59E0B':'#EF4444'};">Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)</div></div>
+                <div style="font-weight:bold;color:${margin>=30?'#10B981':margin>=15?'#F59E0B':'#EF4444'};">Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)</div> <button class="btn btn-sm" onclick="event.stopPropagation(); editOnboarded(${r.id})" style="margin-top:4px;">✏️ Edit</button></div>
             </div></div>`;
     }).join('');
 }
