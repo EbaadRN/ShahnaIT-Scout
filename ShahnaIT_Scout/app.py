@@ -2805,15 +2805,103 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
             <div style="color: #C9A96E; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Menu</div>
         </div>
         <!-- User Info -->         <div style="padding:10px 20px 12px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:6px;">             <div style="display:flex;align-items:center;gap:10px;">                 <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👤</div>                 <div style="flex:1;min-width:0;">                     <div id="userDisplayName" style="color:#FFFFFF;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">---</div>                     <div id="userDisplayRole" style="color:rgba(255,255,255,0.5);font-size:10px;">---</div>                 </div>                 <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:11px;flex-shrink:0;" title="Logout">🚪</button>             </div>         </div>         <button class="tab-btn active" id="tabJobs" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Jobs</button>
-        <button class="tab-btn" id="tabCandidates" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Candidates</button>
-        <button class="tab-btn" id="tabUpload" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📄 Upload Resume</button>
-        <button class="tab-btn" id="tabCreateJob" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">➕ Create Job</button>
-        <button class="tab-btn" id="tabInterviews" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📅 Interviews</button>
-        <button class="tab-btn" id="tabAnalyze" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">🔍 Analyze Match</button>
-        <button class="tab-btn" id="tabDashboard" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📊 Dashboard</button>
-        <button class="tab-btn" id="tabKanban" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">📋 Kanban Board</button>
-    <button class="tab-btn" id="tabOnboarded" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">💼 Onboarded</button>
-    <button class="tab-btn" id="tabUsers" style="display: block; width: 100%; text-align: left; background: transparent; color: #FFFFFF; border: none; padding: 12px 20px; margin: 0; border-radius: 0; border-left: 3px solid transparent; cursor: pointer; font-size: 14px; transition: all 0.2s;">👥 Users</button>
+                <!-- User Info -->
+        <div style="padding:10px 20px 12px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👤</div>
+                <div style="flex:1;min-width:0;">
+                    <div id="userDisplayName" style="color:#FFFFFF;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">---</div>
+                    <div id="userDisplayRole" style="color:rgba(255,255,255,0.5);font-size:10px;">---</div>
+                </div>
+                <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:11px;flex-shrink:0;" title="Logout">🚪</button>
+            </div>
+        </div>
+
+        <!-- 📋 Jobs -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📋 Jobs</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn active" id="tabJobs">📋 View Jobs</button>
+                <button class="tab-btn" id="tabCreateJob">➕ Create Job</button>
+            </div>
+        </div>
+
+        <!-- 👥 Candidates -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>👥 Candidates</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabCandidates">👥 View Candidates</button>
+                <button class="tab-btn" id="tabUpload">📄 Upload Resume</button>
+            </div>
+        </div>
+
+        <!-- 📊 Insights -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📊 Insights</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabAnalyze">🔍 Analyze Match</button>
+                <button class="tab-btn" id="tabDashboard">📊 Dashboard</button>
+                <button class="tab-btn" id="tabKanban">📋 Kanban Board</button>
+            </div>
+        </div>
+
+        <!-- 📅 Operations -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📅 Operations</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabInterviews">📅 Interviews</button>
+            </div>
+        </div>
+
+        <!-- 💼 Management (Admin Only) -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>💼 Management</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabOnboarded">💼 Onboarded</button>
+            </div>
+        </div>
+
+        <!-- 💰 Finance (Admin Only) -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>💰 Finance</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" onclick="toastInfo('Coming Soon')">📊 Finance Dashboard</button>
+                <button class="tab-btn" onclick="toastInfo('Coming Soon')">🧾 Invoices</button>
+                <button class="tab-btn" onclick="toastInfo('Coming Soon')">💸 Expenses</button>
+            </div>
+        </div>
+
+        <!-- 📈 Reports (Admin Only) -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📈 Reports</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" onclick="toastInfo('Coming Soon')">📄 Reports & Exports</button>
+            </div>
+        </div>
+
+        <!-- ⚙️ Admin -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>⚙️ Admin</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabUsers">👥 Users</button>
+            </div>
+        </div>
     </div>
     
     <!-- Content Area -->
