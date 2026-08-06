@@ -6360,7 +6360,7 @@ async function loadOnboarded() {
         const margin = r.billing_rate ? Math.round((revenue / r.billing_rate) * 100) : 0;
         return `<div class="card" style="margin-bottom:8px;">
             <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:10px;">
-                <div style="flex:1;"><h4 style="margin:0;"><a href="javascript:void(0)" onclick="viewCandidate(${r.candidate_id})" style="color:#1B2A4A;">${escapeHtml(r.first_name||'')} ${escapeHtml(r.last_name||'')}</a></h4>
+                <div style="flex:1;"><h4 style="margin:0;"><a href="#" onclick="event.preventDefault(); window.viewCandidate(${r.candidate_id}); return false;" style="color:#1B2A4A;">${escapeHtml(r.first_name||'')} ${escapeHtml(r.last_name||'')}</a></h4>
                 <div style="font-size:13px;color:#555;">🏢 ${escapeHtml(r.client_name||'N/A')} | 📅 DOJ: ${r.doj||'N/A'}</div>
                 <div style="font-size:12px;color:#777;">👤 ${escapeHtml(r.resource_owner||'N/A')} | 📍 ${escapeHtml(r.work_location||'N/A')}</div></div>
                 <div style="text-align:right;"><div>💰 Salary: ₹${(r.monthly_salary||0).toLocaleString()}</div>
