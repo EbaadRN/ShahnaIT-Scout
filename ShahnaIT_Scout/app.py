@@ -3110,6 +3110,9 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     <div id="dashboardPanel" style="display:none;">
         <div class="card no-click">
             <h3>📊 Recruitment Dashboard</h3>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
+</div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <div style="background: #1A4D4A; color: white; padding: 15px; border-radius: 10px; text-align: center;">
                     <div style="font-size: 28px; font-weight: bold;" id="totalCandidates">0</div>
