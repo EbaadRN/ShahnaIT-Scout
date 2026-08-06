@@ -6353,34 +6353,42 @@ async function editOnboarded(id) {
     const r = resources.find(r => r.id == id);
     if (!r) return;
     
-    const newClient = prompt('Client:', r.client_name || '');
-    if (newClient === null) return;
-    const newDOJ = prompt('DOJ (YYYY-MM-DD):', r.doj || '');
-    if (newDOJ === null) return;
-    const newSalary = prompt('Monthly Salary (₹):', r.monthly_salary || 0);
-    if (newSalary === null) return;
-    const newBilling = prompt('Billing Rate (₹):', r.billing_rate || 0);
-    if (newBilling === null) return;
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
+    modal.innerHTML = `<div style="background:#fff;padding:25px;border-radius:12px;width:90%;max-width:450px;">
+        <h3>✏️ Edit Onboarded Resource</h3>
+        <label>Client</label><input id="editOnbClient" class="form-input" value="${escapeHtml(r.client_name||'')}">
+        <label>DOJ</label><input id="editOnbDOJ" type="date" class="form-input" value="${r.doj||''}">
+        <label>Monthly Salary (₹)</label><input id="editOnbSalary" type="number" class="form-input" value="${r.monthly_salary||0}">
+        <label>Billing Rate (₹)</label><input id="editOnbBilling" type="number" class="form-input" value="${r.billing_rate||0}">
+        <div style="margin-top:15px;display:flex;gap:10px;">
+            <button id="saveOnbEdit" class="btn btn-primary">💾 Save</button>
+            <button id="cancelOnbEdit" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>`;
+    document.body.appendChild(modal);
     
-    const updateRes = await fetch('/api/onboarded/' + id, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            client_name: newClient,
-            doj: newDOJ,
-            monthly_salary: parseFloat(newSalary) || 0,
-            billing_rate: parseFloat(newBilling) || 0
-        })
-    });
-    
-    if (updateRes.ok) {
-        toastSuccess('Updated!');
-        loadOnboarded();
-    } else {
-        toastError('Failed to update');
-    }
+    document.getElementById('cancelOnbEdit').onclick = () => modal.remove();
+    document.getElementById('saveOnbEdit').onclick = async () => {
+        const updateRes = await fetch('/api/onboarded/' + id, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                client_name: document.getElementById('editOnbClient').value,
+                doj: document.getElementById('editOnbDOJ').value,
+                monthly_salary: parseFloat(document.getElementById('editOnbSalary').value) || 0,
+                billing_rate: parseFloat(document.getElementById('editOnbBilling').value) || 0
+            })
+        });
+        if (updateRes.ok) {
+            toastSuccess('Updated!');
+            modal.remove();
+            loadOnboarded();
+        } else {
+            toastError('Failed to update');
+        }
+    };
 }
-
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
@@ -7335,6 +7343,22 @@ def create_onboarded():
     conn.commit()
     conn.close()
     return jsonify({'message': 'Resource onboarded', 'id': resource_id})
+
+
+@app.route('/api/onboarded/<int:resource_id>', methods=['PUT'])
+@login_required('manager')
+def update_onboarded(resource_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''UPDATE onboarded_resources SET 
+        client_name=?, doj=?, monthly_salary=?, billing_rate=?
+        WHERE id=?''',
+        (data.get('client_name'), data.get('doj'),
+         data.get('monthly_salary', 0), data.get('billing_rate', 0), resource_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Resource updated'})
 
 @app.route('/api/export-candidates', methods=['GET'])
 @app.route('/api/export-candidates', methods=['GET'])
