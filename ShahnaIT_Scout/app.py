@@ -4372,6 +4372,57 @@ async function updateInterviewVerdict(interviewId, verdict) {
 document.addEventListener('DOMContentLoaded', function() {
        const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
     if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
+        
+    // Onboard button
+    const onboardBtn = document.getElementById('onboardBtn');
+    if (onboardBtn) onboardBtn.onclick = async function() {
+        const candidateVal = document.getElementById('onbCandidate').value;
+        const candidateId = candidateVal.split(' - ')[0].trim();
+        if (!candidateId) { toastError('Select a candidate'); return; }
+        
+        const reqId = document.getElementById('onbRequirementId').value.trim();
+        const reqName = document.getElementById('onbRequirementId').value.includes(' - ') ? 
+            document.getElementById('onbRequirementId').value.split(' - ')[1].trim() : '';
+        
+        const data = {
+            candidate_id: parseInt(candidateId),
+            client_name: document.getElementById('onbClient').value,
+            doj: document.getElementById('onbDOJ').value,
+            resource_owner: document.getElementById('onbOwner').value,
+            work_location: document.getElementById('onbLocation').value,
+            monthly_salary: parseFloat(document.getElementById('onbSalary').value) || 0,
+            billing_rate: parseFloat(document.getElementById('onbBilling').value) || 0,
+            business_model: document.getElementById('onbModel').value,
+            requirement_id: reqId ? 'SIT-R-' + reqId : '',
+            requirement_name: reqName,
+            po_number: document.getElementById('onbPO').value
+        };
+        
+        if (!data.client_name || !data.doj) { toastError('Client and DOJ required'); return; }
+        
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+        const docFiles = document.getElementById('onbDocuments').files;
+        for (let i = 0; i < docFiles.length; i++) {
+            formData.append('documents', docFiles[i]);
+        }
+        
+        const res = await fetch('/api/onboarded', { method: 'POST', body: formData });
+        if (res.ok) {
+            toastSuccess('Resource onboarded!');
+            document.getElementById('onbCandidate').value = '';
+            document.getElementById('onbClient').value = '';
+            document.getElementById('onbDOJ').value = '';
+            document.getElementById('onbSalary').value = '';
+            document.getElementById('onbBilling').value = '';
+            document.getElementById('onbOwner').value = '';
+            document.getElementById('onbLocation').value = '';
+            document.getElementById('onbPO').value = '';
+            loadOnboarded();
+        } else {
+            toastError('Failed to onboard');
+        }
+    };
 });
 
 async function loadJobs() {
