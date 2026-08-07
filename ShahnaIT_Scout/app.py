@@ -7509,7 +7509,7 @@ def send_interview_email(interview_id):
             </table>
             <p>Please be available 5 minutes before the scheduled time.</p>
             <p>Best regards,<br><strong>ShahnaIT Recruitment Team</strong></p>
-        </div>
+        </div>    
         """
     else:  # verdict
         verdict_emoji = {'Selected': '✅', 'Rejected': '❌', 'Hold': '⏸️', 'No Show': '🚫', 'Rescheduled': '🔄'}.get(interview['verdict'], '📋')
@@ -7552,6 +7552,44 @@ def send_interview_email(interview_id):
     
     return jsonify({'error': 'Failed to send email'}), 500    
 
+
+@app.route('/api/daily-report', methods=['GET'])
+@login_required()
+def daily_report():
+    date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    c.execute('SELECT COUNT(*) as count FROM jobs WHERE is_active = 1')
+    active_reqs = c.fetchone()['count']
+    
+    c.execute('SELECT id, title, company, requirement_id, created_at FROM jobs WHERE is_active = 1 ORDER BY created_at DESC')
+    active_jobs = [dict(row) for row in c.fetchall()]
+    
+    c.execute('SELECT * FROM interviews WHERE interview_date = ? ORDER BY interview_time', (date,))
+    interviews = [dict(row) for row in c.fetchall()]
+    
+    c.execute("SELECT id, first_name, last_name, email, uploaded_by_name, proposed_client, proposed_requirement, created_at FROM candidates WHERE date(created_at) = ? ORDER BY created_at DESC", (date,))
+    candidates_added = [dict(row) for row in c.fetchall()]
+    
+    c.execute("SELECT * FROM interviews WHERE interview_date = ? AND verdict != 'Scheduled'", (date,))
+    completed_interviews = [dict(row) for row in c.fetchall()]
+    
+    conn.close()
+    
+    return jsonify({
+        'date': date,
+        'active_requirements': active_reqs,
+        'active_jobs': active_jobs,
+        'interviews_scheduled': len(interviews),
+        'interviews': interviews,
+        'interviews_completed': len(completed_interviews),
+        'completed_interviews': completed_interviews,
+        'candidates_added': len(candidates_added),
+        'candidates': candidates_added
+    })
 
 @app.route('/fix-onboarded-table')
 def fix_onboarded_table():
