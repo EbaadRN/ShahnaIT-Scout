@@ -6634,6 +6634,52 @@ async function loadOnboarded() {
     }).join('');
 }
 
+async function loadDailyReport() {
+    const date = document.getElementById('reportDate').value || new Date().toISOString().split('T')[0];
+    const container = document.getElementById('dailyReportContent');
+    container.innerHTML = '<div class="spinner"></div>';
+    
+    const res = await fetch('/api/daily-report?date=' + date);
+    const data = await res.json();
+    
+    let html = `<h4>📅 Report for ${data.date}</h4>`;
+    
+    html += `<div class="card" style="margin:10px 0;"><h4>📋 Active Requirements: ${data.active_requirements}</h4>`;
+    data.active_jobs.forEach(j => {
+        html += `<div style="font-size:13px;padding:4px 0;">🔹 ${escapeHtml(j.title)} - ${escapeHtml(j.requirement_id || 'SIT-R-'+String(j.id).padStart(3,'0'))} (${escapeHtml(j.company||'N/A')})</div>`;
+    });
+    html += `</div>`;
+    
+    html += `<div class="card" style="margin:10px 0;"><h4>📤 Proposals Sent: ${data.candidates_added}</h4>`;
+    if (data.candidates.length === 0) {
+        html += '<p style="color:#999;">No candidates added on this date</p>';
+    } else {
+        data.candidates.forEach(c => {
+            html += `<div style="font-size:13px;padding:4px 0;border-bottom:1px solid #eee;">
+                👤 <strong>${escapeHtml(c.first_name||'')} ${escapeHtml(c.last_name||'')}</strong> 
+                | 🏢 ${escapeHtml(c.proposed_client||'N/A')} 
+                | 📋 ${escapeHtml(c.proposed_requirement||'N/A')}
+                | 👤 HR: ${escapeHtml(c.uploaded_by_name||'N/A')}
+            </div>`;
+        });
+    }
+    html += `</div>`;
+    
+    html += `<div class="card" style="margin:10px 0;"><h4>📅 Interviews Scheduled: ${data.interviews_scheduled}</h4>`;
+    data.interviews.forEach(i => {
+        html += `<div style="font-size:13px;padding:4px 0;">🕐 ${i.interview_time||'TBD'} - ${escapeHtml(i.candidate_name)} (${escapeHtml(i.round)}) - ${escapeHtml(i.client_name||'N/A')}</div>`;
+    });
+    html += `</div>`;
+    
+    html += `<div class="card" style="margin:10px 0;"><h4>✅ Interviews Completed: ${data.interviews_completed}</h4>`;
+    data.completed_interviews.forEach(i => {
+        html += `<div style="font-size:13px;padding:4px 0;">${i.verdict} - ${escapeHtml(i.candidate_name)} (${escapeHtml(i.round)})</div>`;
+    });
+    html += `</div>`;
+    
+    container.innerHTML = html;
+}
+
 async function loadKanban() {
     const res = await fetch('/api/candidates');
     const candidates = await res.json();
