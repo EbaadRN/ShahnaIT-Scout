@@ -3330,7 +3330,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     </div>
 
 <div id="reportsPanel" style="display:none;">
-    <div class="card no-click">
+    <div class="card no-click" style="max-width:100%;">
         <h3>📈 Daily Activity Report</h3>
         <div style="display:flex;gap:10px;align-items:center;margin-bottom:15px;">
             <input type="date" id="reportDate" class="form-input" style="width:200px;" onchange="loadDailyReport()">
@@ -4631,6 +4631,22 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 
+async function toggleJobActive(jobId) {
+    const job = allJobs.find(j => j.id == jobId);
+    const newStatus = (job.is_active !== false) ? 0 : 1;
+    const res = await fetch('/api/jobs/' + jobId + '/toggle-active', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ is_active: newStatus })
+    });
+    if (res.ok) {
+        toastSuccess(newStatus ? 'Requirement reopened!' : 'Requirement closed!');
+        loadJobs();
+    } else {
+        toastError('Failed to update');
+    }
+}
+
 async function loadJobs() {
     const res = await fetch('/api/jobs');
     allJobs = await res.json();
@@ -4669,7 +4685,7 @@ async function loadJobs() {
             ${badges ? `<div style="margin:8px 0;">${badges}</div>` : ''}
             <small>📅 ${new Date(j.created_at).toLocaleDateString()}</small>
         </div>
-        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button>
+        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button> <button class="btn btn-sm" onclick="event.stopPropagation(); toggleJobActive(${j.id})" style="margin-top:8px;background:${j.is_active ? '#EF4444' : '#10B981'};">${j.is_active !== false ? '🔒 Close' : '🔓 Reopen'}</button>
         <button class="btn btn-sm" onclick="event.stopPropagation(); viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="margin-top:8px;">👥 View Candidates</button>
     </div>`;
 }).join('');
