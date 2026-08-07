@@ -3559,8 +3559,11 @@ async function handleLogin(e) {
                 tabUsers.style.display = 'none';
             }
             
-            loadDashboard();
-            toastSuccess('Welcome, ' + currentUser.full_name + '!');;
+                        loadDashboard();
+            if (currentUser.role === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            }
+            toastSuccess('Welcome, ' + currentUser.full_name + '!');
         } else {
             errorDiv.textContent = data.error || 'Login failed';
             errorDiv.style.display = 'block';
@@ -3598,6 +3601,12 @@ function toggleSidebar() {
     if (sidebar) {
         sidebar.classList.toggle('open');
     }
+}
+
+function toggleSidebarGroup(header) {
+    header.classList.toggle('open');
+    const items = header.nextElementSibling;
+    items.classList.toggle('open');
 }
 
 // Close sidebar when clicking outside (on mobile)
