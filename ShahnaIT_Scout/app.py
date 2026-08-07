@@ -2673,6 +2673,47 @@ HTML_TEMPLATE = '''
     body.dark-mode .toast-error { background: #801515; }
     body.dark-mode .toast-warning { background: #8C4400; }
     body.dark-mode .toast-info { background: #1B2A4A; }
+    /* Dark Mode Dashboard Stats */
+body.dark-mode .stat-card { background: #131C2E; border-color: #2A3A5C; border-left: 5px solid #3B5998; }
+body.dark-mode .stat-info h3 { color: #FFFFFF; font-weight: 800; }
+body.dark-mode .stat-info p { color: #A8B8D4; }
+
+/* Dark Mode Dashboard Panels */
+body.dark-mode .card.no-click { background: #131C2E; border-color: #2A3A5C; }
+body.dark-mode .card.no-click h3 { color: #E8ECF2; }
+body.dark-mode .card.no-click h4 { color: #D0DAEC; }
+body.dark-mode #skillsCloud span { background: #1A2740 !important; color: #A8B8D4 !important; border-color: #2A3A5C !important; }
+body.dark-mode canvas { filter: brightness(0.9); }
+
+/* Dark Mode Forms */
+body.dark-mode .form-group label { color: #A8B8D4 !important; font-weight: 600; }
+body.dark-mode .form-input, body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background: #0F1829 !important; color: #E8ECF2 !important; border-color: #2A3A5C !important; }
+body.dark-mode .form-input:focus { border-color: #3B5998 !important; box-shadow: 0 0 0 3px rgba(59,89,152,0.2) !important; }
+body.dark-mode input::placeholder, body.dark-mode textarea::placeholder { color: #5A6F8A !important; }
+
+/* Dark Mode Modal */
+body.dark-mode .modal-section { background: #0F1829 !important; border-color: #2A3A5C !important; }
+body.dark-mode .modal-section-title { color: #E8ECF2 !important; border-bottom-color: #2A3A5C !important; }
+
+/* Dark Mode Filter Bar */
+body.dark-mode .filter-bar { background: #131C2E; border-color: #2A3A5C; }
+body.dark-mode #simple-total, body.dark-mode #simple-hired, body.dark-mode #simple-pending, body.dark-mode #simple-rejected, body.dark-mode #simple-avg { color: #E8ECF2 !important; }
+body.dark-mode #candidateStats { color: #A8B8D4 !important; }
+
+/* Dark Mode Cards */
+body.dark-mode .company-item { background: #0F1829; border-color: #2A3A5C; color: #E8ECF2; }
+body.dark-mode .file-list { background: #0F1829; border-color: #2A3A5C; }
+body.dark-mode .file-list-item { border-bottom-color: #2A3A5C; color: #E8ECF2; }
+body.dark-mode .progress-bar { background: #1A2740; border-color: #2A3A5C; }
+body.dark-mode .detail-label { color: #A8B8D4; }
+body.dark-mode .detail-value { color: #E8ECF2; }
+body.dark-mode .detail-row { border-bottom-color: #2A3A5C; }
+
+/* Dark Mode Alerts */
+body.dark-mode .alert-success { background: #0A3D1F; border-color: #0A5C35; color: #D0F0D8; }
+body.dark-mode .alert-error { background: #3D0A0A; border-color: #801515; color: #F0D0D0; }
+body.dark-mode .no-skills { color: #5A6F8A; }
+body.dark-mode .doc-link { color: #8AACF0; }
     body.dark-mode .no-skills { color: #5A6F8A; }
     body.dark-mode .doc-link { color: #8AACF0; }
     body.dark-mode .doc-link:hover { color: #B0C8F8; }
