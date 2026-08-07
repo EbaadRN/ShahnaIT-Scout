@@ -3527,12 +3527,14 @@ async function checkAuth() {
                 tabUsers.style.display = 'none';
             }
             
-            loadDashboard();
+                        loadDashboard();
+            if (currentUser.role === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            }
         }
     } catch(e) {
         console.log('Not logged in');
     }
-}
 
 async function handleLogin(e) {
     e.preventDefault();
