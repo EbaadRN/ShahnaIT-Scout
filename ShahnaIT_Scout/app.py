@@ -6945,17 +6945,18 @@ def create_job():
 @app.route('/api/candidates/<int:candidate_id>', methods=['PUT']) 
 @login_required()
 def update_candidate(candidate_id):
-    data = request.json
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    
-    # Check ownership - admin can edit all, others only own
-    if session.get('role') != 'admin':
-        c.execute('SELECT uploaded_by_name FROM candidates WHERE id = ?', (candidate_id,))
-        row = c.fetchone()
-        if not row or (row[0] or '') != (session.get('user_name') or ''):
-            conn.close()
-            return jsonify({"success": False, "error": "You can only edit your own candidates"}), 403
+    try:
+        data = request.json
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        
+        # Check ownership - admin can edit all, others only own
+        if session.get('role') != 'admin':
+            c.execute('SELECT uploaded_by_name FROM candidates WHERE id = ?', (candidate_id,))
+            row = c.fetchone()
+            if not row or (row[0] or '') != (session.get('user_name') or ''):
+                conn.close()
+                return jsonify({"success": False, "error": "You can only edit your own candidates"}), 403
         
         # Build dynamic update query
         allowed_fields = [
@@ -6993,7 +6994,6 @@ def update_candidate(candidate_id):
         return jsonify({"success": True, "message": "Candidate updated successfully"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
 @app.route('/api/jobs/<int:job_id>', methods=['PUT']) 
 @login_required('manager')
 def update_job(job_id):
