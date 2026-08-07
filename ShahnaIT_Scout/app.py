@@ -4229,6 +4229,10 @@ console.log('✅ loadCandidates defined');
 
 // Call loadCandidates when page loads
 loadCandidates();
+
+// Open first sidebar group by default
+document.querySelector('.sidebar-group-header').classList.add('open');
+document.querySelector('.sidebar-group-items').classList.add('open');
 // ============================================
     // DARK MODE
     // ============================================
