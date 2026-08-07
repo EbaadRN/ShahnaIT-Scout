@@ -2672,6 +2672,8 @@ HTML_TEMPLATE = '''
     body.dark-mode .toast-success { background: #0A5C35; }
     body.dark-mode .toast-error { background: #801515; }
     body.dark-mode .toast-warning { background: #8C4400; }
+    body.dark-mode .btn-secondary { background: #1A2740; color: #D0DAEC; border-color: #2A3A5C; }
+    body.dark-mode .btn-secondary:hover { background: #2A3A5C; color: #FFFFFF; }
     body.dark-mode .toast-info { background: #1B2A4A; }
     /* Dark Mode Dashboard Stats */
 body.dark-mode .stat-card { background: #131C2E; border-color: #2A3A5C; border-left: 5px solid #3B5998; }
