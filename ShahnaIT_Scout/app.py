@@ -2769,19 +2769,32 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: #C9A96E;
-    font-size: 12px;
+    color: #FFFFFF;
+    font-size: 13px;
     font-weight: 700;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: all 0.2s;
 }
-.sidebar-group-header:hover { background: rgba(255,255,255,0.05); }
-.sidebar-group-header i { font-size: 10px; transition: transform 0.3s; }
+.sidebar-group-header:hover { background: rgba(255,255,255,0.1); }
+.sidebar-group-header i { font-size: 10px; transition: transform 0.3s; color: rgba(255,255,255,0.6); }
 .sidebar-group-header.open i { transform: rotate(180deg); }
 .sidebar-group-items { display: none; }
 .sidebar-group-items.open { display: block; }
-.sidebar-group-items .tab-btn { padding-left: 35px !important; font-size: 13px !important; }
+.sidebar-group-items .tab-btn { 
+    padding-left: 35px !important; 
+    font-size: 13px !important; 
+    color: #D0DAEC !important;
+}
+.sidebar-group-items .tab-btn:hover { color: #FFFFFF !important; }
+.sidebar-group-items .tab-btn.active { color: #FFFFFF !important; }
+
+/* Dark Mode Sidebar Groups */
+body.dark-mode .sidebar-group-header { color: #C9A96E; }
+body.dark-mode .sidebar-group-header:hover { background: rgba(255,255,255,0.05); }
+body.dark-mode .sidebar-group-header i { color: rgba(201,169,110,0.5); }
+body.dark-mode .sidebar-group-items .tab-btn { color: #A8B8D4 !important; }
+body.dark-mode .sidebar-group-items .tab-btn:hover { color: #FFFFFF !important; }
+body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important; }
 </style>
     
 </head>
