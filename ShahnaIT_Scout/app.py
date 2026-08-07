@@ -7591,6 +7591,19 @@ def daily_report():
         'candidates': candidates_added
     })
 
+
+@app.route('/fix-jobs-active')
+def fix_jobs_active():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE jobs ADD COLUMN is_active BOOLEAN DEFAULT 1")
+    except:
+        pass
+    conn.commit()
+    conn.close()
+    return 'Jobs table fixed!'
+
 @app.route('/fix-onboarded-table')
 def fix_onboarded_table():
     conn = sqlite3.connect(DB_PATH)
