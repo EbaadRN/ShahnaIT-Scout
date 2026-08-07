@@ -2760,6 +2760,28 @@ body.dark-mode .form-group label { color: #A8B8D4; }
 body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: #2A3A5C; }
 @media screen and (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 @media screen and (max-width: 900px) { .modal-grid { grid-template-columns: 1fr; } }
+
+/* Sidebar Dropdown Groups */
+.sidebar-group { border-bottom: 1px solid rgba(255,255,255,0.08); }
+.sidebar-group-header {
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #C9A96E;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+}
+.sidebar-group-header:hover { background: rgba(255,255,255,0.05); }
+.sidebar-group-header i { font-size: 10px; transition: transform 0.3s; }
+.sidebar-group-header.open i { transform: rotate(180deg); }
+.sidebar-group-items { display: none; }
+.sidebar-group-items.open { display: block; }
+.sidebar-group-items .tab-btn { padding-left: 35px !important; font-size: 13px !important; }
 </style>
     
 </head>
