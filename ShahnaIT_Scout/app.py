@@ -3535,6 +3535,7 @@ async function checkAuth() {
     } catch(e) {
         console.log('Not logged in');
     }
+}
 
 async function handleLogin(e) {
     e.preventDefault();
