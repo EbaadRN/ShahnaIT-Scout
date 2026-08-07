@@ -2786,7 +2786,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     color: #D0DAEC !important;
 }
 .sidebar-group-items .tab-btn:hover { color: #E0E8F0 !important; background: rgba(255,255,255,0.08); }
-.sidebar-group-items .tab-btn.active { color: #FFFFFF !important; }
+.sidebar-group-items .tab-btn.active { color: #D0DAEC !important; background: rgba(255,255,255,0.05); }
 
 /* Dark Mode Sidebar Groups */
 body.dark-mode .sidebar-group-header { color: #C9A96E; }
