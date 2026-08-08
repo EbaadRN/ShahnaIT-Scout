@@ -7868,8 +7868,8 @@ def upload_to_drive(filepath, filename):
                 body={'type': 'user', 'role': 'reader', 'emailAddress': 'ibaadrn@shahnait.com'}).execute()
         except:
             pass
-        
-                os.unlink(sa_file.name)
+
+        os.unlink(sa_file.name)        
         return True
     except Exception as e:
         error_msg = str(e)
@@ -7880,7 +7880,6 @@ def upload_to_drive(filepath, filename):
 @login_required()
 def daily_report():
     date = request.args.get('date', datetime.now().strftime('%Y-%m-%d'))
-    
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
