@@ -7869,9 +7869,9 @@ def upload_to_drive(filepath, filename):
         except:
             pass
         
-        os.unlink(sa_file.name)
+                os.unlink(sa_file.name)
         return True
-        except Exception as e:
+    except Exception as e:
         error_msg = str(e)
         print(f"Drive error: {error_msg}")
         return error_msg
