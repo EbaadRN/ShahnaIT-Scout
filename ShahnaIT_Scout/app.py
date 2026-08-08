@@ -3241,7 +3241,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
                 <div><label style="font-size:12px;">Client POC</label><input type="text" id="intPOC" class="form-input" placeholder="Client Contact Person"></div>
-                <div><label style="font-size:12px;">Requirement ID</label><input type="text" id="intRequirement" class="form-input" placeholder="SIT-R-001" list="intReqList"><datalist id="intReqList"></datalist></div>
+                <div><label style="font-size:12px;">Requirement ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="intRequirement" class="form-input" placeholder="001" style="border:none;flex:1;" list="intReqList"></div><datalist id="intReqList"></datalist></div>
             </div>
             <button id="scheduleInterviewBtn" class="btn btn-primary" style="margin-top:12px;">📅 Schedule Interview</button>
         </div>
@@ -3485,7 +3485,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <div class="form-group">
                     <label>Requirement</label>
                     <div style="display:flex;gap:4px;align-items:center;">
-                        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;min-width:0;" list="requirementList" placeholder="Search SIT-R-XXX..." oninput="filterRequirementDropdown()" autocomplete="off">
+                        <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;flex:1;min-width:0;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="edit_proposed_requirement" class="form-input" style="border:none;flex:1;" list="requirementList" placeholder="001" oninput="filterRequirementDropdown()" autocomplete="off"></div>
                         <datalist id="requirementList"></datalist>
                         <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
                     </div>
