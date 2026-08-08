@@ -3485,7 +3485,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <div class="form-group">
                     <label>Requirement</label>
                     <div style="display:flex;gap:4px;align-items:center;">
-                        <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;flex:1;min-width:0;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="edit_proposed_requirement" class="form-input" style="border:none;flex:1;" list="requirementList" placeholder="001" oninput="filterRequirementDropdown()" autocomplete="off"></div>
+                        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;min-width:0;" list="requirementList" placeholder="Search SIT-R-XXX..." oninput="filterRequirementDropdown()" autocomplete="off">
                         <datalist id="requirementList"></datalist>
                         <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
                     </div>
