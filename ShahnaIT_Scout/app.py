@@ -7871,9 +7871,10 @@ def upload_to_drive(filepath, filename):
         
         os.unlink(sa_file.name)
         return True
-    except Exception as e:
-        print(f"Drive error: {e}")
-        return False
+        except Exception as e:
+        error_msg = str(e)
+        print(f"Drive error: {error_msg}")
+        return error_msg
 
 @app.route('/api/daily-report', methods=['GET'])
 @login_required()
