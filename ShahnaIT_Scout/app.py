@@ -2767,8 +2767,9 @@ body.dark-mode .match-low { color: #FFFFFF !important; }
     }
     
     /* Sidebar - Slide from left */
-    .sidebar-container { 
-        flex-direction: column; 
+        .sidebar-container { 
+        display: block !important;
+        flex-direction: column !important;
         gap: 0; 
         position: relative;
     }
