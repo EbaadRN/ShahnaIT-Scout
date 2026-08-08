@@ -7865,9 +7865,12 @@ def upload_to_drive(filepath, filename):
         try:
             drive_service.permissions().create(
                 fileId=uploaded_file['id'],
-                body={'type': 'user', 'role': 'reader', 'emailAddress': 'ibaadrn@shahnait.com'}).execute()
-        except:
-            pass
+                body={'type': 'user', 'role': 'writer', 'emailAddress': 'ibaadrn@shahnait.com'},
+                sendNotificationEmail=False
+            ).execute()
+            print(f"📧 Shared with ibaadrn@shahnait.com")
+        except Exception as share_err:
+            print(f"Share error: {share_err}")
 
         os.unlink(sa_file.name)        
         return True
