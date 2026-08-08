@@ -7776,6 +7776,16 @@ def send_interview_email(interview_id):
     
     return jsonify({'error': 'Failed to send email'}), 500    
 
+@app.route('/test-drive')
+def test_drive():
+    service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
+    return jsonify({
+        'has_key': bool(service_account_json),
+        'length': len(service_account_json) if service_account_json else 0
+    })
+
+@app.route('/api/admin/backup', methods=['POST'])
+
 @app.route('/api/admin/backup', methods=['POST'])
 @login_required('admin')
 def trigger_backup():
