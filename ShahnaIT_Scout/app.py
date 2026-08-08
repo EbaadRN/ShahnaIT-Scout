@@ -2732,118 +2732,188 @@ body.dark-mode .match-low { color: #FFFFFF !important; }
     /* ===== RESPONSIVE ===== */
     @media screen and (max-width: 768px) {
     body {
-        padding: 8px;
-        font-size: 14px;
+        padding: 0;
+        font-size: 15px;
+        background: #F2F5F9;
     }
     
     .header {
-        padding: 16px 20px;
+        padding: 14px 16px;
+        border-radius: 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
     }
-    .header h1 { font-size: 22px; }
-    .header p { font-size: 13px; }
+    .header h1 { font-size: 20px; }
+    .header p { font-size: 12px; display: none; }
     
-    .sidebar-container { 
-        flex-direction: column; 
-        gap: 8px; 
-    }
-    
+    /* Mobile Menu Button */
     .mobile-menu-btn { 
         display: block !important;
         position: fixed;
-        top: 10px;
-        left: 10px;
-        z-index: 1000;
+        top: 8px;
+        left: 8px;
+        z-index: 1001;
         background: #1B2A4A;
         color: #fff;
         border: none;
-        padding: 10px 14px;
+        padding: 10px 12px;
         border-radius: 8px;
-        font-size: 16px;
+        font-size: 20px;
+        width: 44px;
+        height: 44px;
+        text-align: center;
+        line-height: 1;
     }
     
+    /* Sidebar - Slide from left */
+    .sidebar-container { 
+        flex-direction: column; 
+        gap: 0; 
+        position: relative;
+    }
     .sidebar { 
         position: fixed;
         top: 0;
-        left: 0;
+        left: -280px;
         width: 260px !important;
         height: 100vh;
-        z-index: 999;
-        display: none;
+        z-index: 1000;
         overflow-y: auto;
         border-radius: 0 !important;
-        box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        box-shadow: 0 0 40px rgba(0,0,0,0.4);
+        transition: left 0.3s ease;
+        padding-top: 60px;
     }
-    .sidebar.open { display: block; }
+    .sidebar.open { left: 0; }
     
+    /* Overlay when sidebar is open */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    .sidebar-overlay.active { display: block; }
+    
+    /* Content area - full width */
     .content-area {
         width: 100%;
-        margin-top: 50px;
+        margin-top: 60px;
+        margin-left: 0 !important;
+        padding: 8px;
+        overflow-x: hidden;
     }
     
-    .dashboard-stats { 
-        grid-template-columns: 1fr 1fr; 
-        gap: 10px;
+    /* Bigger touch-friendly inputs */
+    input, select, textarea {
+        font-size: 16px !important;
+        padding: 12px 10px !important;
     }
-    .stat-card { padding: 14px; }
-    .stat-info h3 { font-size: 20px; }
+    .form-input { font-size: 16px !important; padding: 12px 10px !important; }
     
-    .card { padding: 14px 16px; }
+    /* Bigger buttons */
+    button, .btn {
+        font-size: 15px !important;
+        padding: 12px 18px !important;
+        margin: 4px;
+    }
+    .btn-sm { padding: 8px 14px !important; font-size: 13px !important; }
     
+    /* Cards - full width */
+    .card { 
+        padding: 14px; 
+        margin: 8px 0;
+        border-radius: 10px;
+    }
+    .card h3 { font-size: 16px !important; }
+    .card h4 { font-size: 14px !important; }
+    
+    /* Candidate cards */
+    .candidate-card { margin-bottom: 10px; }
+    .card-header { padding: 12px 14px; }
+    .candidate-name { font-size: 15px !important; }
+    .candidate-email { font-size: 12px !important; }
+    .candidate-avatar { width: 40px; height: 40px; font-size: 18px; }
+    .candidate-skills .skill-tag { font-size: 11px !important; padding: 4px 10px !important; }
+    .candidate-meta { flex-direction: column; gap: 4px; }
+    .candidate-meta .meta-item { font-size: 12px !important; }
+    .card-actions { flex-direction: row; flex-wrap: wrap; gap: 4px; }
+    .card-actions button { flex: 1; min-width: 80px; font-size: 12px !important; padding: 8px !important; }
+    
+    /* Dashboard */
+    .dashboard-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-card { padding: 12px; }
+    .stat-info h3 { font-size: 20px !important; }
+    
+    /* Filters */
     .filter-bar { 
         flex-direction: column; 
-        gap: 8px;
-    }
-    .filter-bar input, .filter-bar select { 
-        width: 100%; 
-        min-width: unset;
-    }
-    
-    .candidate-meta { 
-        flex-direction: column; 
-        align-items: flex-start; 
-        gap: 6px; 
-    }
-    .card-actions { flex-direction: column; }
-    .card-actions button { width: 100%; }
-    
-    .modal-content {
-        width: 100%;
-        margin: 0;
-        border-radius: 0;
-        max-height: 100vh;
-    }
-    .modal-grid {
-        grid-template-columns: 1fr;
+        gap: 6px;
         padding: 10px;
     }
+    .filter-bar input, .filter-bar select { width: 100%; }
     
-    .form-row { grid-template-columns: 1fr; }
+    /* Modals - full screen */
+    .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        height: 100vh;
+        max-height: 100vh;
+    }
+    .modal-body { max-height: calc(100vh - 60px) !important; }
+    .modal-grid { grid-template-columns: 1fr; padding: 8px; }
+    .modal-header { padding: 12px 16px; }
+    .modal-header h2 { font-size: 17px; }
+    .form-row { grid-template-columns: 1fr; gap: 4px; }
+    .modal-section { margin-bottom: 8px; padding: 10px; }
     
+    /* Kanban - vertical stack */
     #kanbanBoard {
         flex-direction: column !important;
-        gap: 10px;
+        gap: 8px;
     }
     #kanbanBoard > div {
         min-width: 100% !important;
         max-width: 100% !important;
+        min-height: auto !important;
     }
     
-    table, thead, tbody, th, td, tr { 
-        display: block; 
-    }
-    td { 
-        padding: 8px 10px;
+    /* Jobs/Candidate lists */
+    #jobsList .card, #candidatesList .card {
+        padding: 12px;
     }
     
+    /* Toast */
     .toast-container {
-        left: 10px;
-        right: 10px;
+        left: 8px;
+        right: 8px;
+        top: 60px;
         max-width: 100%;
     }
+    .toast { font-size: 14px; padding: 12px 14px; }
     
-    button, .btn {
-        padding: 10px 16px;
-        font-size: 14px;
+    /* Pipeline stats */
+    [style*="grid-template-columns: repeat(6, 1fr)"] {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 4px !important;
+    }
+    
+    /* Hide dark mode toggle on mobile header */
+    .dark-mode-toggle { font-size: 14px; padding: 8px 12px; }
+    
+    /* Scrollable panels */
+    #reportsPanel, #dashboardPanel, #jobsPanel, #candidatesPanel, 
+    #interviewsPanel, #analyzePanel, #kanbanPanel, #onboardedPanel, 
+    #usersPanel, #uploadPanel, #createJobPanel {
+        overflow-x: hidden;
+        padding: 0;
     }
 }
     /* ===== MODAL FORM LAYOUT ===== */
@@ -2946,7 +3016,8 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
         <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
     </div>
 </div>
-    
+
+   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
    <div class="sidebar-container" style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
     <!-- Mobile Menu Button -->
     <button class="mobile-menu-btn" onclick="toggleSidebar()">☰ Menu</button>
@@ -3741,8 +3812,12 @@ console.log('✅ viewOriginalResume:', typeof viewOriginalResume);
 // ============================================
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
     if (sidebar) {
         sidebar.classList.toggle('open');
+    }
+    if (overlay) {
+        overlay.classList.toggle('active');
     }
 }
 
