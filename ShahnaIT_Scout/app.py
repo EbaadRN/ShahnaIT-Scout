@@ -3423,6 +3423,11 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     <!-- Dashboard Panel -->
     <div id="dashboardPanel" style="display:none;">
         <div class="card no-click">
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button>
+    <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
+</div>
+<div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
             <h3>📊 Recruitment Dashboard</h3>
             <div style="display:flex;gap:8px;margin-bottom:10px;">
     <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
@@ -6487,6 +6492,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 });
+
+async function triggerBackup() {
+    const div = document.getElementById('backupStatus');
+    div.innerHTML = '<span style="color:#6366F1;">⏳ Creating backup...</span>';
+    try {
+        const res = await fetch('/api/admin/backup', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            const driveMsg = data.drive_upload ? '✅ Uploaded to Google Drive' : '⚠️ Local only';
+            div.innerHTML = `<span style="color:#10B981;">✅ Backup saved: ${data.filename}</span><br><span>${driveMsg}</span>`;
+        } else {
+            div.innerHTML = `<span style="color:#EF4444;">❌ ${data.error}</span>`;
+        }
+    } catch(e) {
+        div.innerHTML = '<span style="color:#EF4444;">❌ Backup failed</span>';
+    }
+}
+
+async function listBackups() {
+    const div = document.getElementById('backupStatus');
+    try {
+        const res = await fetch('/api/admin/backups');
+        const data = await res.json();
+        if (data.backups && data.backups.length > 0) {
+            div.innerHTML = '<strong>📂 Backups:</strong><br>' + data.backups.slice(0,10).map(b => 
+                `<a href="/api/admin/backup/download/${b.filename}" style="color:#1B2A4A;">📥 ${b.filename}</a> (${b.size})`
+            ).join('<br>');
+        } else {
+            div.innerHTML = '<span style="color:#666;">No backups found</span>';
+        }
+    } catch(e) {
+        div.innerHTML = '<span style="color:#EF4444;">Failed to load backups</span>';
+    }
+}
     
     async function loadDashboard() {
         try {
@@ -6950,26 +6989,6 @@ async function dropCandidate(event, stage) {
     loadKanban();
     toastSuccess('Stage updated!');
 }
-
-    
-    async function loadDashboard() {
-        try {
-            const res = await fetch('/api/dashboard-data');
-            const data = await res.json();
-            
-            document.getElementById('totalCandidates').textContent = data.total || 0;
-            document.getElementById('matchedCandidates').textContent = data.matched || 0;
-            document.getElementById('hiredCandidates').textContent = data.hired || 0;
-            document.getElementById('rejectedCandidates').textContent = data.rejected || 0;
-            
-            renderMatchChart(data.matchDistribution || {});
-            renderPipelineChart(data.pipeline || {});
-            renderSkillsCloud(data.skills || []);
-            renderTrendChart(data.trend || {});
-        } catch(e) {
-            console.error('Dashboard error:', e);
-        }
-    }
     
     function renderMatchChart(distribution) {
         const canvas = document.getElementById('matchChart');
@@ -7757,6 +7776,94 @@ def send_interview_email(interview_id):
     
     return jsonify({'error': 'Failed to send email'}), 500    
 
+@app.route('/api/admin/backup', methods=['POST'])
+@login_required('admin')
+def trigger_backup():
+    try:
+        result = perform_backup()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/backups', methods=['GET'])
+@login_required('admin')
+def list_backups():
+    backup_dir = '/data/backups'
+    os.makedirs(backup_dir, exist_ok=True)
+    backups = []
+    for f in sorted(os.listdir(backup_dir), reverse=True):
+        if f.endswith('.db'):
+            path = os.path.join(backup_dir, f)
+            size = os.path.getsize(path)
+            backups.append({
+                'filename': f,
+                'size': f'{size/1024/1024:.1f} MB' if size > 1024*1024 else f'{size/1024:.1f} KB',
+                'date': f[:10]
+            })
+    return jsonify({'backups': backups})
+
+def perform_backup():
+    backup_dir = '/data/backups'
+    os.makedirs(backup_dir, exist_ok=True)
+    date_str = datetime.now().strftime('%Y-%m-%d_%H%M')
+    backup_filename = f'shahnai_backup_{date_str}.db'
+    backup_path = os.path.join(backup_dir, backup_filename)
+    shutil.copy2(DB_PATH, backup_path)
+    all_backups = sorted([f for f in os.listdir(backup_dir) if f.endswith('.db')])
+    if len(all_backups) > 30:
+        for old_file in all_backups[:-30]:
+            os.remove(os.path.join(backup_dir, old_file))
+    drive_result = upload_to_drive(backup_path, backup_filename)
+    return {
+        'success': True,
+        'filename': backup_filename,
+        'drive_upload': drive_result,
+        'message': 'Backup created' + (' and uploaded to Drive' if drive_result else ' (local only)')
+    }
+
+def upload_to_drive(filepath, filename):
+    service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
+    folder_name = os.environ.get('GOOGLE_DRIVE_FOLDER', 'ShahnaIT-Backups')
+    if not service_account_json:
+        return False
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+        import tempfile
+        
+        sa_data = json.loads(service_account_json)
+        sa_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        json.dump(sa_data, sa_file)
+        sa_file.close()
+        
+        creds = service_account.Credentials.from_service_account_file(
+            sa_file.name, scopes=['https://www.googleapis.com/auth/drive.file'])
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        results = drive_service.files().list(
+            q=f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false", pageSize=1).execute()
+        if results.get('files'):
+            folder_id = results['files'][0]['id']
+        else:
+            folder = drive_service.files().create(body={'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder'}).execute()
+            folder_id = folder['id']
+        
+        media = MediaFileUpload(filepath, mimetype='application/octet-stream', resumable=True)
+        uploaded_file = drive_service.files().create(body={'name': filename, 'parents': [folder_id]}, media_body=media).execute()
+        
+        try:
+            drive_service.permissions().create(
+                fileId=uploaded_file['id'],
+                body={'type': 'user', 'role': 'reader', 'emailAddress': 'ibaadrn@shahnait.com'}).execute()
+        except:
+            pass
+        
+        os.unlink(sa_file.name)
+        return True
+    except Exception as e:
+        print(f"Drive error: {e}")
+        return False
 
 @app.route('/api/daily-report', methods=['GET'])
 @login_required()
