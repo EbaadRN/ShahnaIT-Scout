@@ -2731,56 +2731,121 @@ body.dark-mode .match-low { color: #FFFFFF !important; }
 
     /* ===== RESPONSIVE ===== */
     @media screen and (max-width: 768px) {
-        body {
-            padding: 12px;
-        }
-        .sidebar-container { 
-            flex-direction: column; 
-            gap: 12px; 
-        }
-        .mobile-menu-btn { display: block; }
-        .sidebar { 
-            width: 100%; 
-            display: none; 
-            border-radius: var(--radius-md); 
-        }
-        .sidebar.open { display: block; }
-        .dashboard-stats { 
-            grid-template-columns: 1fr 1fr; 
-            gap: 12px;
-        }
-        .stat-card {
-            padding: 16px;
-        }
-        .stat-info h3 {
-            font-size: 22px;
-        }
-        .candidate-meta { 
-            flex-direction: column; 
-            align-items: flex-start; 
-            gap: 8px; 
-        }
-        .card-actions { 
-            flex-direction: column; 
-        }
-        .card-actions button { 
-            width: 100%; 
-            justify-content: center; 
-        }
-        .filter-bar { 
-            flex-direction: column; 
-        }
-        .filter-bar input, .filter-bar select { 
-            width: 100%; 
-        }
-        .candidate-card {
-            margin-bottom: 14px;
-        }
-        .modal-content {
-            width: 95%;
-            margin: 30px auto;
-        }
+    body {
+        padding: 8px;
+        font-size: 14px;
     }
+    
+    .header {
+        padding: 16px 20px;
+    }
+    .header h1 { font-size: 22px; }
+    .header p { font-size: 13px; }
+    
+    .sidebar-container { 
+        flex-direction: column; 
+        gap: 8px; 
+    }
+    
+    .mobile-menu-btn { 
+        display: block !important;
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        background: #1B2A4A;
+        color: #fff;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 16px;
+    }
+    
+    .sidebar { 
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px !important;
+        height: 100vh;
+        z-index: 999;
+        display: none;
+        overflow-y: auto;
+        border-radius: 0 !important;
+        box-shadow: 0 0 30px rgba(0,0,0,0.3);
+    }
+    .sidebar.open { display: block; }
+    
+    .content-area {
+        width: 100%;
+        margin-top: 50px;
+    }
+    
+    .dashboard-stats { 
+        grid-template-columns: 1fr 1fr; 
+        gap: 10px;
+    }
+    .stat-card { padding: 14px; }
+    .stat-info h3 { font-size: 20px; }
+    
+    .card { padding: 14px 16px; }
+    
+    .filter-bar { 
+        flex-direction: column; 
+        gap: 8px;
+    }
+    .filter-bar input, .filter-bar select { 
+        width: 100%; 
+        min-width: unset;
+    }
+    
+    .candidate-meta { 
+        flex-direction: column; 
+        align-items: flex-start; 
+        gap: 6px; 
+    }
+    .card-actions { flex-direction: column; }
+    .card-actions button { width: 100%; }
+    
+    .modal-content {
+        width: 100%;
+        margin: 0;
+        border-radius: 0;
+        max-height: 100vh;
+    }
+    .modal-grid {
+        grid-template-columns: 1fr;
+        padding: 10px;
+    }
+    
+    .form-row { grid-template-columns: 1fr; }
+    
+    #kanbanBoard {
+        flex-direction: column !important;
+        gap: 10px;
+    }
+    #kanbanBoard > div {
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    table, thead, tbody, th, td, tr { 
+        display: block; 
+    }
+    td { 
+        padding: 8px 10px;
+    }
+    
+    .toast-container {
+        left: 10px;
+        right: 10px;
+        max-width: 100%;
+    }
+    
+    button, .btn {
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+}
     /* ===== MODAL FORM LAYOUT ===== */
 .modal-section { margin-bottom: 14px; background: #FAFBFC; border: 2px solid #E2E8F0; border-radius: 10px; padding: 14px; min-height: 100px; max-height: 250px; overflow-y: auto; }
 .modal-section-title { font-size: 14px; font-weight: 700; color: #1B2A4A; margin: 0 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #E2E8F0; }
