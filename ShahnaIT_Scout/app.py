@@ -2802,12 +2802,14 @@ body.dark-mode .match-low { color: #FFFFFF !important; }
     .sidebar-overlay.active { display: block; }
     
     /* Content area - full width */
-    .content-area {
-        width: 100%;
-        margin-top: 60px;
+        .content-area {
+        width: 100% !important;
+        flex: none !important;
+        min-width: 100% !important;
+        margin-top: 60px !important;
         margin-left: 0 !important;
-        padding: 8px;
-        overflow-x: hidden;
+        padding: 8px !important;
+        overflow-x: hidden !important;
     }
     
     /* Bigger touch-friendly inputs */
