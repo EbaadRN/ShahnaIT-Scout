@@ -3813,12 +3813,25 @@ console.log('✅ viewOriginalResume:', typeof viewOriginalResume);
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
-    if (sidebar) {
+    
+    if (window.innerWidth <= 768) {
+        if (sidebar.style.position !== 'fixed') {
+            sidebar.style.position = 'fixed';
+            sidebar.style.top = '0';
+            sidebar.style.left = '-280px';
+            sidebar.style.width = '260px';
+            sidebar.style.height = '100vh';
+            sidebar.style.zIndex = '1000';
+            sidebar.style.paddingTop = '60px';
+            sidebar.style.transition = 'left 0.3s ease';
+        }
+        sidebar.classList.toggle('open');
+        sidebar.style.left = sidebar.classList.contains('open') ? '0' : '-280px';
+    } else {
         sidebar.classList.toggle('open');
     }
-    if (overlay) {
-        overlay.classList.toggle('active');
-    }
+    
+    if (overlay) overlay.classList.toggle('active');
 }
 
 function toggleSidebarGroup(header) {
