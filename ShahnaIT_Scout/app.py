@@ -3425,6 +3425,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
         <div class="card no-click">
         <div style="display:flex;gap:8px;margin-bottom:10px;">
     <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button>
+    <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
     <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
 </div>
 <div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
