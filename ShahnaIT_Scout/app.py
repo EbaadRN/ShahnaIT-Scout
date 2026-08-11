@@ -4591,7 +4591,7 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -4601,9 +4601,11 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     if (target) target.style.display = 'block';
     
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    const tabMap = {
+     const tabMap = {
         'jobs': 'tabJobs', 'candidates': 'tabCandidates', 'upload': 'tabUpload',
-        'createJob': 'tabCreateJob', 'analyze': 'tabAnalyze', 'dashboard': 'tabDashboard'
+        'createJob': 'tabCreateJob', 'analyze': 'tabAnalyze', 'dashboard': 'tabDashboard',
+        'interviews': 'tabInterviews', 'kanban': 'tabKanban', 'reports': 'tabReports',
+        'users': 'tabUsers', 'onboarded': 'tabOnboarded', 'finance': 'tabFinance'
     };
     const tab = document.getElementById(tabMap[panel]);
     if (tab) tab.classList.add('active');
