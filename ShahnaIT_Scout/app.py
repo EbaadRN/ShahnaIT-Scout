@@ -3780,15 +3780,20 @@ async function checkAuth() {
                 tabUsers.style.display = 'none';
             }
             
-                        loadDashboard();
+                                   loadDashboard();
             if (currentUser.role === 'admin') {
                 document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
             }
+            document.querySelectorAll('.sidebar-group-header').forEach(h => {
+                if (h.textContent.includes('Finance')) {
+                    h.classList.add('open');
+                    h.nextElementSibling.classList.add('open');
+                }
+            });
         }
     } catch(e) {
         console.log('Not logged in');
     }
-}
 
 async function handleLogin(e) {
     e.preventDefault();
