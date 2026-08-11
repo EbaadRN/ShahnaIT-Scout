@@ -7875,7 +7875,7 @@ def upload_to_drive(filepath, filename):
         sa_file.close()
         
         creds = service_account.Credentials.from_service_account_file(
-            sa_file.name, scopes=['https://www.googleapis.com/auth/drive']
+            sa_file.name, scopes=['https://www.googleapis.com/auth/drive'])
         drive_service = build('drive', 'v3', credentials=creds)
         
         results = drive_service.files().list(
