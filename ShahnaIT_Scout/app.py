@@ -7784,7 +7784,34 @@ def test_drive():
         'length': len(service_account_json) if service_account_json else 0
     })
 
-@app.route('/api/admin/backup', methods=['POST'])
+@app.route('/test-drive-list')
+def test_drive_list():
+    service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        import tempfile
+        
+        sa_data = json.loads(service_account_json)
+        sa_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        json.dump(sa_data, sa_file)
+        sa_file.close()
+        
+        creds = service_account.Credentials.from_service_account_file(
+            sa_file.name, scopes=['https://www.googleapis.com/auth/drive.file'])
+        drive_service = build('drive', 'v3', credentials=creds)
+        
+        results = drive_service.files().list(pageSize=20, fields="files(id, name, parents)").execute()
+        files = results.get('files', [])
+        
+        os.unlink(sa_file.name)
+        
+        return jsonify({
+            'file_count': len(files),
+            'files': [{'name': f['name'], 'id': f['id']} for f in files]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @app.route('/api/admin/backup', methods=['POST'])
 @login_required('admin')
