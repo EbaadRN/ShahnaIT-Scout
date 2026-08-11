@@ -7909,6 +7909,62 @@ def download_backup(filename):
         return send_file(filepath, as_attachment=True, download_name=filename)
     return jsonify({'error': 'File not found'}), 404
 
+@app.route('/api/admin/export-pdf', methods=['GET'])
+@login_required('admin')
+def export_pdf():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font('Times', 'B', 16)
+    pdf.cell(0, 10, 'ShahnaIT Scout - Data Backup Report', ln=True, align='C')
+    pdf.set_font('Times', '', 10)
+    pdf.cell(0, 8, f'Generated: {datetime.now().strftime("%d %B %Y, %I:%M %p")}', ln=True, align='C')
+    pdf.ln(5)
+    
+    pdf.set_font('Times', 'B', 13)
+    pdf.cell(0, 8, 'Candidates', ln=True)
+    pdf.set_font('Times', '', 9)
+    c.execute('SELECT * FROM candidates ORDER BY id')
+    for cand in c.fetchall():
+        pdf.set_font('Times', 'B', 10)
+        pdf.cell(0, 6, f"{cand['first_name'] or ''} {cand['last_name'] or ''} - SIT-C-{str(cand['id']).zfill(3)}", ln=True)
+        pdf.set_font('Times', '', 9)
+        pdf.cell(0, 5, f"Email: {cand['email'] or 'N/A'} | Phone: {cand['phone'] or 'N/A'} | Stage: {cand['stage'] or 'new'} | Match: {cand['match_score'] or 0}%", ln=True)
+        pdf.ln(2)
+    
+    pdf.add_page()
+    pdf.set_font('Times', 'B', 13)
+    pdf.cell(0, 8, 'Jobs / Requirements', ln=True)
+    pdf.set_font('Times', '', 9)
+    c.execute('SELECT * FROM jobs ORDER BY id')
+    for job in c.fetchall():
+        pdf.set_font('Times', 'B', 10)
+        pdf.cell(0, 6, f"{job['title'] or 'N/A'} - {job['requirement_id'] or 'SIT-R-'+str(job['id']).zfill(3)}", ln=True)
+        pdf.set_font('Times', '', 9)
+        pdf.cell(0, 5, f"Client: {job['client_name'] or job['company'] or 'N/A'}", ln=True)
+        pdf.ln(2)
+    
+    pdf.ln(5)
+    pdf.set_font('Times', 'B', 13)
+    pdf.cell(0, 8, 'Interviews', ln=True)
+    pdf.set_font('Times', '', 9)
+    c.execute('SELECT * FROM interviews ORDER BY interview_date DESC')
+    for iv in c.fetchall():
+        pdf.set_font('Times', 'B', 10)
+        pdf.cell(0, 6, f"{iv['candidate_name'] or 'N/A'} - {iv['round'] or 'N/A'} ({iv['interview_date']})", ln=True)
+        pdf.set_font('Times', '', 9)
+        pdf.cell(0, 5, f"Verdict: {iv['verdict'] or 'Scheduled'}", ln=True)
+        pdf.ln(2)
+    
+    conn.close()
+    
+    pdf_path = '/data/backups/backup_report.pdf'
+    pdf.output(pdf_path)
+    return send_file(pdf_path, as_attachment=True, download_name=f'shahnai_report_{datetime.now().strftime("%Y%m%d")}.pdf')
+
 @app.route('/api/daily-report', methods=['GET'])
 @login_required()
 def daily_report():
