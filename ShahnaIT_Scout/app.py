@@ -31,6 +31,7 @@ import traceback
 from flask import Flask, render_template_string, request, jsonify, send_file, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from fpdf import FPDF
 
 # ============================================
 # DOCUMENT PARSING
