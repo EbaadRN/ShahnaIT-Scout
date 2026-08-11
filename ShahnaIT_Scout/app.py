@@ -3557,7 +3557,6 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 <div id="onboardedPanel" style="display:none;">
     <div class="card no-click">
         <h3>💼 Onboarded Resources</h3>
-        <h3>💼 Onboarded Resources</h3>
         <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
             <strong>➕ Onboard New Resource</strong>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
