@@ -7878,13 +7878,8 @@ def upload_to_drive(filepath, filename):
             sa_file.name, scopes=['https://www.googleapis.com/auth/drive'])
         drive_service = build('drive', 'v3', credentials=creds)
         
-        results = drive_service.files().list(
-            q=f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false", pageSize=1).execute()
-        if results.get('files'):
-            folder_id = results['files'][0]['id']
-        else:
-            folder = drive_service.files().create(body={'name': folder_name, 'mimeType': 'application/vnd.google-apps.folder'}).execute()
-            folder_id = folder['id']
+                # Use the shared folder in your Drive
+        folder_id = '1yMZ4QmG_9PCdC4ulQtRXJsELmeAcwXeb'
         
         media = MediaFileUpload(filepath, mimetype='application/octet-stream', resumable=True)
         uploaded_file = drive_service.files().create(body={'name': filename, 'parents': [folder_id]}, media_body=media).execute()
