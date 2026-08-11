@@ -7901,6 +7901,14 @@ def upload_to_drive(filepath, filename):
         print(f"Drive error: {error_msg}")
         return error_msg
 
+@app.route('/api/admin/backup/download/<filename>')
+@login_required('admin')
+def download_backup(filename):
+    filepath = os.path.join('/data/backups', secure_filename(filename))
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True, download_name=filename)
+    return jsonify({'error': 'File not found'}), 404
+
 @app.route('/api/daily-report', methods=['GET'])
 @login_required()
 def daily_report():
