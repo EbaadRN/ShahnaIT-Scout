@@ -4591,7 +4591,7 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -6867,6 +6867,38 @@ async function editOnboarded(id) {
         }
     };
 }
+async function loadFinance() {
+    const res = await fetch('/api/finance-dashboard');
+    const data = await res.json();
+    
+    document.getElementById('finTotalRevenue').textContent = '₹' + (data.total_revenue || 0).toLocaleString();
+    document.getElementById('finTotalSalary').textContent = '₹' + (data.total_salary || 0).toLocaleString();
+    document.getElementById('finTotalProfit').textContent = '₹' + (data.total_profit || 0).toLocaleString();
+    document.getElementById('finAvgMargin').textContent = (data.avg_margin || 0) + '%';
+    document.getElementById('finActiveResources').textContent = data.active_resources || 0;
+    
+    let html = '<h4>📊 Client-wise Breakdown</h4>';
+    const clients = data.clients || {};
+    
+    for (const [client, info] of Object.entries(clients)) {
+        const profit = info.revenue - info.salary;
+        const margin = info.revenue > 0 ? Math.round((profit / info.revenue) * 100) : 0;
+        html += `<div class="card" style="margin:8px 0;">
+            <h4>🏢 ${escapeHtml(client)} <span style="font-size:12px;color:#666;">(${info.count} resources)</span></h4>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:13px;">
+                <span>💰 Revenue: <strong>₹${info.revenue.toLocaleString()}</strong></span>
+                <span>💸 Salary: <strong>₹${info.salary.toLocaleString()}</strong></span>
+                <span style="color:${margin>=30?'#10B981':margin>=15?'#F59E0B':'#EF4444'};font-weight:bold;">📊 Margin: ${margin}% (₹${profit.toLocaleString()})</span>
+            </div>
+            <div style="margin-top:8px;font-size:12px;">`;
+        info.resources.forEach(r => {
+            html += `<div style="padding:2px 0;">👤 ${escapeHtml(r.name)} - Salary: ₹${r.salary.toLocaleString()} | Billing: ₹${r.billing.toLocaleString()} | Margin: ${r.margin}%</div>`;
+        });
+        html += `</div></div>`;
+    }
+    
+    document.getElementById('financeBreakdown').innerHTML = html || '<p style="color:#999;">No active resources</p>';
+}
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
@@ -8136,6 +8168,49 @@ def create_onboarded():
     conn.close()
     return jsonify({'message': 'Resource onboarded', 'id': resource_id})
 
+@app.route('/api/finance-dashboard', methods=['GET'])
+@login_required('admin')
+def finance_dashboard():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Get all active onboarded resources
+    c.execute('''SELECT * FROM onboarded_resources WHERE status = 'Active' ORDER BY client_name''')
+    resources = [dict(row) for row in c.fetchall()]
+    
+    total_revenue = sum(r['billing_rate'] or 0 for r in resources)
+    total_salary = sum(r['monthly_salary'] or 0 for r in resources)
+    total_profit = total_revenue - total_salary
+    avg_margin = round((total_profit / total_revenue * 100)) if total_revenue > 0 else 0
+    
+    # Group by client
+    clients = {}
+    for r in resources:
+        client = r['client_name'] or 'Unknown'
+        if client not in clients:
+            clients[client] = {'revenue': 0, 'salary': 0, 'count': 0, 'resources': []}
+        clients[client]['revenue'] += r['billing_rate'] or 0
+        clients[client]['salary'] += r['monthly_salary'] or 0
+        clients[client]['count'] += 1
+        clients[client]['resources'].append({
+            'id': r['id'],
+            'name': f"{r.get('first_name', '')} {r.get('last_name', '')}".strip() or 'N/A',
+            'salary': r['monthly_salary'] or 0,
+            'billing': r['billing_rate'] or 0,
+            'margin': round(((r['billing_rate'] or 0) - (r['monthly_salary'] or 0)) / (r['billing_rate'] or 1) * 100)
+        })
+    
+    conn.close()
+    
+    return jsonify({
+        'total_revenue': total_revenue,
+        'total_salary': total_salary,
+        'total_profit': total_profit,
+        'avg_margin': avg_margin,
+        'active_resources': len(resources),
+        'clients': clients
+    })
 
 @app.route('/api/onboarded/<int:resource_id>', methods=['PUT'])
 @login_required('manager')
