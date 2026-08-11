@@ -3493,7 +3493,6 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 </div>
 
 <div id="onboardedPanel" style="display:none;">
-<div id="financePanel" style="display:none;">
     <div class="card no-click">
         <h3>💰 Finance Dashboard</h3>
         
