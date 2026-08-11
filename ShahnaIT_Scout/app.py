@@ -3104,7 +3104,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <span>💰 Finance</span><i class="fas fa-chevron-down"></i>
             </div>
             <div class="sidebar-group-items">
-                <button class="tab-btn" onclick="toastInfo('Coming Soon')">📊 Finance Dashboard</button>
+                <button class="tab-btn" id="tabFinance">📊 Finance Dashboard</button>
                 <button class="tab-btn" onclick="toastInfo('Coming Soon')">🧾 Invoices</button>
                 <button class="tab-btn" onclick="toastInfo('Coming Soon')">💸 Expenses</button>
             </div>
@@ -4588,7 +4588,7 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); const tabReports = document.getElementById('tabReports'); if (tabReports) tabReports.onclick = function() { showPanel('reports'); document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadDailyReport(); }; if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
-    const tabOnboarded = document.getElementById('tabOnboarded'); if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
+    const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
     const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel'];
