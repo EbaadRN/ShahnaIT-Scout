@@ -3493,6 +3493,38 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 </div>
 
 <div id="onboardedPanel" style="display:none;">
+<div id="financePanel" style="display:none;">
+    <div class="card no-click">
+        <h3>💰 Finance Dashboard</h3>
+        
+        <!-- Summary Cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px;">
+            <div style="background:linear-gradient(135deg,#1B5E20,#43A047);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finTotalRevenue">₹0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Total Monthly Revenue</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#0D47A1,#1E88E5);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finTotalSalary">₹0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Total Monthly Salary</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#E65100,#F57C00);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finTotalProfit">₹0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Monthly Profit</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finAvgMargin">0%</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Avg Profit Margin</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#004D40,#00796B);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finActiveResources">0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Active Resources</div>
+            </div>
+        </div>
+        
+        <!-- Resource-wise Breakdown -->
+        <div id="financeBreakdown"></div>
+    </div>
+</div>
     <div class="card no-click">
         <h3>💼 Onboarded Resources</h3>
         <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
