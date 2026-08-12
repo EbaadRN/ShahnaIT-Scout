@@ -6929,8 +6929,82 @@ async function editOnboarded(id) {
         }
     };
 }
-function loadInvoices() {
-    document.getElementById('invoicesList').innerHTML = '<p style="text-align:center;padding:40px;color:#999;">Invoice features coming soon</p>';
+async function loadInvoices() {
+    const res = await fetch('/api/invoices');
+    const invoices = await res.json();
+    const container = document.getElementById('invoicesList');
+    
+    let html = `<div style="margin-bottom:15px;">
+        <strong>➕ Generate Invoice for Resource:</strong>
+        <select id="invoiceResourceSelect" class="form-input" style="width:250px;display:inline-block;margin:0 10px;">
+            <option value="">-- Select Resource --</option>
+        </select>
+        <input type="date" id="invoiceDate" class="form-input" style="width:150px;display:inline-block;margin-right:10px;" value="${new Date().toISOString().split('T')[0]}">
+        <button class="btn btn-primary" onclick="generateInvoice()">📄 Generate Invoice</button>
+    </div>`;
+    
+    if (!invoices.length) {
+        html += '<p style="text-align:center;padding:40px;color:#999;">No invoices yet</p>';
+    } else {
+        invoices.forEach(inv => {
+            const statusColor = inv.status === 'Paid' ? '#10B981' : inv.status === 'Sent' ? '#F59E0B' : inv.status === 'Overdue' ? '#EF4444' : '#6366F1';
+            html += `<div class="card" style="margin:8px 0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                    <div>
+                        <strong>${escapeHtml(inv.invoice_number)}</strong> - ${escapeHtml(inv.client_name)}
+                        <span style="background:${statusColor};color:#fff;padding:2px 10px;border-radius:10px;font-size:11px;margin-left:8px;">${inv.status}</span>
+                    </div>
+                    <div style="font-size:13px;">
+                        ₹${(inv.total_amount||0).toLocaleString()} | ${inv.invoice_date}
+                        <button class="btn btn-sm" onclick="viewInvoicePDF(${inv.id})" style="margin-left:8px;">📄 View</button>
+                        ${inv.status === 'Draft' || inv.status === 'Sent' ? `<button class="btn btn-sm btn-secondary" onclick="markInvoicePaid(${inv.id})" style="margin-left:4px;">✅ Mark Paid</button>` : ''}
+                    </div>
+                </div>
+            </div>`;
+        });
+    }
+    
+    container.innerHTML = html;
+    
+    // Populate resource dropdown
+    const resRes = await fetch('/api/onboarded');
+    const resources = await resRes.json();
+    document.getElementById('invoiceResourceSelect').innerHTML = '<option value="">-- Select Resource --</option>' + 
+        resources.map(r => `<option value="${r.id}">${escapeHtml(r.client_name||'N/A')} - ${escapeHtml(r.first_name||'')} ${escapeHtml(r.last_name||'')}</option>`).join('');
+}
+
+async function generateInvoice() {
+    const resourceId = document.getElementById('invoiceResourceSelect').value;
+    if (!resourceId) { toastError('Select a resource'); return; }
+    const date = document.getElementById('invoiceDate').value;
+    
+    const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ onboarded_resource_id: parseInt(resourceId), invoice_date: date, description: 'Professional Services' })
+    });
+    if (res.ok) {
+        toastSuccess('Invoice generated!');
+        loadInvoices();
+    } else {
+        toastError('Failed to generate invoice');
+    }
+}
+
+function viewInvoicePDF(invoiceId) {
+    window.open('/api/invoices/' + invoiceId + '/pdf', '_blank');
+}
+
+async function markInvoicePaid(invoiceId) {
+    const date = prompt('Payment date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+    if (!date) return;
+    const res = await fetch('/api/invoices/' + invoiceId, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ status: 'Paid', payment_date: date })
+    });
+    if (res.ok) { toastSuccess('Marked as paid!'); loadInvoices(); }
+    else { toastError('Failed to update'); }
 }
 async function loadFinance() {
     const res = await fetch('/api/finance-dashboard');
