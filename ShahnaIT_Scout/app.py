@@ -2986,6 +2986,10 @@ body.dark-mode .sidebar-group-header i { color: rgba(201,169,110,0.5); }
 body.dark-mode .sidebar-group-items .tab-btn { color: #A8B8D4 !important; }
 body.dark-mode .sidebar-group-items .tab-btn:hover { color: #FFFFFF !important; }
 body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important; }
+#financePanel .card.no-click {
+    max-width: 100% !important;
+    width: 100% !important;
+}
 </style>
     
 </head>
