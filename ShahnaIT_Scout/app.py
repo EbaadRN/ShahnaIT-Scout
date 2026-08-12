@@ -3109,7 +3109,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             </div>
             <div class="sidebar-group-items">
                 <button class="tab-btn" id="tabFinance">📊 Finance Dashboard</button>
-                <button class="tab-btn" onclick="toastInfo('Coming Soon')">🧾 Invoices</button>
+                <button class="tab-btn" id="tabInvoices">🧾 Invoices</button>
                 <button class="tab-btn" onclick="toastInfo('Coming Soon')">💸 Expenses</button>
             </div>
         </div>
@@ -3583,6 +3583,13 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
         </div>
         <div id="onboardedList"></div>
+    </div>
+</div>
+
+<div id="invoicesPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>🧾 Invoices</h3>
+        <div id="invoicesList"></div>
     </div>
 </div>
 
@@ -4620,10 +4627,10 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); const tabReports = document.getElementById('tabReports'); if (tabReports) tabReports.onclick = function() { showPanel('reports'); document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadDailyReport(); }; if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
-    const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
+    const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); const tabInvoices = document.getElementById('tabInvoices'); if (tabInvoices) tabInvoices.onclick = function() { showPanel('invoices'); loadInvoices(); }; if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel', 'invoicesPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -6933,6 +6940,78 @@ async function loadFinance() {
     
     document.getElementById('financeBreakdown').innerHTML = html || '<p style="color:#999;">No active resources</p>';
 }
+async function generatePayslip(resourceId) {
+    const res = await fetch('/api/onboarded');
+    const resources = await res.json();
+    const r = resources.find(r => r.id == resourceId);
+    if (!r) return;
+    
+    const win = window.open('', '_blank', 'width=800,height=900');
+    win.document.write(`
+        <html><head><title>Payslip</title>
+        <style>
+            body { font-family: 'Georgia', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #3D3D3D; background: #FFF; }
+            .header { text-align: center; border-bottom: 3px solid #0D9488; padding-bottom: 15px; margin-bottom: 20px; }
+            .header h1 { color: #1A237E; font-size: 22px; margin: 0; }
+            .header .subtitle { color: #0D9488; font-size: 13px; margin: 5px 0 0 0; }
+            .payslip-box { background: #F5F0E8; border: 2px solid #C9A96E; border-radius: 10px; padding: 15px 20px; margin: 15px 0; text-align: center; }
+            .payslip-box h2 { color: #1A237E; font-size: 24px; margin: 0; }
+            .payslip-box .address { font-size: 11px; color: #666; margin: 3px 0 0 0; }
+            .info-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            .info-table td { padding: 8px 12px; font-size: 13px; }
+            .info-table .label { font-weight: 700; color: #1A237E; width: 35%; background: #F5F0E8; }
+            .main-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            .main-table th { background: #0D9488; color: #FFF; padding: 10px; text-align: left; font-size: 13px; }
+            .main-table td { padding: 8px 10px; border-bottom: 1px solid #E2E0D8; font-size: 13px; }
+            .main-table .total td { font-weight: 700; color: #1A237E; border-top: 2px solid #C9A96E; }
+            .net-pay { background: #0D9488; color: #FFF; text-align: center; padding: 15px; border-radius: 8px; margin: 15px 0; }
+            .net-pay .fig { font-size: 26px; font-weight: 700; }
+            .net-pay .words { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+            .footer { text-align: center; font-size: 10px; color: #999; margin-top: 25px; font-style: italic; }
+        </style></head><body>
+        <div class="header">
+            <h1>ShahnaiT IT Consultancy & Managed Service</h1>
+            <div class="subtitle">ShahnaIT LLP</div>
+        </div>
+        <div class="payslip-box">
+            <h2>Payslip</h2>
+            <div class="address">Mansabdar Layout, Kalaburagi, Karnataka 585103</div>
+        </div>
+        <table class="info-table">
+            <tr><td class="label">Employee Name</td><td>${escapeHtml(r.first_name||'')} ${escapeHtml(r.last_name||'')}</td></tr>
+            <tr><td class="label">Designation</td><td>${escapeHtml(r.work_location||'N/A')}</td></tr>
+            <tr><td class="label">Pay Period</td><td>${new Date().toLocaleString('default', {month:'long'})} ${new Date().getFullYear()}</td></tr>
+            <tr><td class="label">Client</td><td>${escapeHtml(r.client_name||'N/A')}</td></tr>
+        </table>
+        <table class="main-table">
+            <tr><th>Earnings</th><th style="text-align:right;">Amount (₹)</th><th>Deductions</th><th style="text-align:right;">Amount (₹)</th></tr>
+            <tr><td>Basic Salary</td><td style="text-align:right;">${((r.monthly_salary||0)*0.4).toLocaleString()}</td><td>Provident Fund</td><td style="text-align:right;">${((r.monthly_salary||0)*0.12).toLocaleString()}</td></tr>
+            <tr><td>HRA</td><td style="text-align:right;">${((r.monthly_salary||0)*0.2).toLocaleString()}</td><td>Professional Tax</td><td style="text-align:right;">200</td></tr>
+            <tr><td>Conveyance</td><td style="text-align:right;">${((r.monthly_salary||0)*0.15).toLocaleString()}</td><td></td><td></td></tr>
+            <tr><td>Medical Allowance</td><td style="text-align:right;">${((r.monthly_salary||0)*0.1).toLocaleString()}</td><td></td><td></td></tr>
+            <tr><td>Special Allowance</td><td style="text-align:right;">${((r.monthly_salary||0)*0.15).toLocaleString()}</td><td></td><td></td></tr>
+            <tr class="total"><td>Gross Earnings</td><td style="text-align:right;">${(r.monthly_salary||0).toLocaleString()}</td><td>Total Deductions</td><td style="text-align:right;">${(((r.monthly_salary||0)*0.12)+200).toLocaleString()}</td></tr>
+        </table>
+        <div class="net-pay">
+            <div class="fig">Net Pay: ₹${((r.monthly_salary||0) - ((r.monthly_salary||0)*0.12) - 200).toLocaleString()}</div>
+            <div class="words">(Rupees ${numberToWords(Math.round((r.monthly_salary||0) - ((r.monthly_salary||0)*0.12) - 200))} only)</div>
+        </div>
+        <div class="footer">This is a system generated payslip</div>
+        </body></html>
+    `);
+}
+
+function numberToWords(num) {
+    if (num === 0) return 'Zero';
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    if (num < 20) return ones[num];
+    if (num < 100) return tens[Math.floor(num/10)] + (num%10 ? ' ' + ones[num%10] : '');
+    if (num < 1000) return ones[Math.floor(num/100)] + ' Hundred' + (num%100 ? ' ' + numberToWords(num%100) : '');
+    if (num < 100000) return numberToWords(Math.floor(num/1000)) + ' Thousand' + (num%1000 ? ' ' + numberToWords(num%1000) : '');
+    return numberToWords(Math.floor(num/100000)) + ' Lakh' + (num%100000 ? ' ' + numberToWords(num%100000) : '');
+}
+
 async function loadOnboarded() {
     const res = await fetch('/api/onboarded');
     const resources = await res.json();
@@ -6951,7 +7030,7 @@ async function loadOnboarded() {
                 <div style="font-size:12px;color:#777;">👤 ${escapeHtml(r.resource_owner||'N/A')} | 📍 ${escapeHtml(r.work_location||'N/A')}</div></div>
                 <div style="text-align:right;"><div>💰 Salary: ₹${(r.monthly_salary||0).toLocaleString()}</div>
                 <div>📊 Billing: ₹${(r.billing_rate||0).toLocaleString()}</div>
-                <div style="font-weight:bold;color:${margin>=30?'#10B981':margin>=15?'#F59E0B':'#EF4444'};">Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)</div> <button class="btn btn-sm" onclick="event.stopPropagation(); editOnboarded(${r.id})" style="margin-top:4px;">✏️ Edit</button></div>
+                <div style="font-weight:bold;color:${margin>=30?'#10B981':margin>=15?'#F59E0B':'#EF4444'};">Margin: ${margin}% (₹${revenue.toLocaleString()}/mo)</div> <button class="btn btn-sm" onclick="event.stopPropagation(); editOnboarded(${r.id})" style="margin-top:4px;">✏️ Edit</button> <button class="btn btn-sm" onclick="event.stopPropagation(); generatePayslip(${r.id})" style="margin-top:4px;background:#C9A96E;color:#fff;">📄 Payslip</button></div>
             </div></div>`;
     }).join('');
 }
