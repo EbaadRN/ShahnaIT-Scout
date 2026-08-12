@@ -6974,7 +6974,7 @@ async function generatePayslip(resourceId) {
     win.document.write(`
         <html><head><title>Payslip</title>
         <style>
-            body { font-family: 'Georgia', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #3D3D3D; background: #FFF; }
+            body { font-family: 'Times New Roman', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #3D3D3D; background: #FFF; }
             .header { text-align: center; border-bottom: 3px solid #0D9488; padding-bottom: 15px; margin-bottom: 20px; }
             .header h1 { color: #1A237E; font-size: 22px; margin: 0; }
             .header .subtitle { color: #0D9488; font-size: 13px; margin: 5px 0 0 0; }
@@ -6994,12 +6994,12 @@ async function generatePayslip(resourceId) {
             .footer { text-align: center; font-size: 10px; color: #999; margin-top: 25px; font-style: italic; }
         </style></head><body>
         <div class="header">
-            <h1>ShahnaiT IT Consultancy & Managed Service</h1>
+            <h1>ShahnaIT LLP</h1>             <div class="subtitle">IT Consultancy & Managed Service</div>
             <div class="subtitle">ShahnaIT LLP</div>
         </div>
         <div class="payslip-box">
             <h2>Payslip</h2>
-            <div class="address">Mansabdar Layout, Kalaburagi, Karnataka 585103</div>
+            <div class="address">Ground Floor, 4-617/113, Mansabdar Layout, Near Jamiya Masjid, MB Nagar, Kalaburagi, Karnataka 585105<br>GSTIN: 29AFPFS9563L1ZS | PAN: AFPFS9563L</div>
         </div>
         <table class="info-table">
             <tr><td class="label">Employee Name</td><td>${escapeHtml(r.first_name||'')} ${escapeHtml(r.last_name||'')}</td></tr>
