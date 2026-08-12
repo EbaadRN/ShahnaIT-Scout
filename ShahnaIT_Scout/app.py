@@ -550,6 +550,27 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
     )''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_number TEXT,
+        onboarded_resource_id INTEGER,
+        client_name TEXT,
+        resource_name TEXT,
+        amount REAL DEFAULT 0,
+        gst_percent REAL DEFAULT 18,
+        gst_amount REAL DEFAULT 0,
+        total_amount REAL DEFAULT 0,
+        invoice_date DATE,
+        due_date DATE,
+        description TEXT,
+        status TEXT DEFAULT 'Draft',
+        payment_date DATE,
+        payment_amount REAL DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (onboarded_resource_id) REFERENCES onboarded_resources(id)
+    )''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS interviews (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
