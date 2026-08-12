@@ -3494,35 +3494,33 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 
 <div id="onboardedPanel" style="display:none;">
     <div class="card no-click">
-        <h3>💰 Finance Dashboard</h3>
-        
-        <!-- Summary Cards -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px;">
-            <div style="background:linear-gradient(135deg,#1B5E20,#43A047);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size:28px;font-weight:700;" id="finTotalRevenue">₹0</div>
-                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Total Monthly Revenue</div>
+        <h3>💼 Onboarded Resources</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Onboard New Resource</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Candidate</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span><input type="text" id="onbCandidate" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbCandidateList" oninput="searchOnbCandidate()"></div><datalist id="onbCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Client</label><input type="text" id="onbClient" class="form-input" placeholder="Client name"></div>
+                <div><label style="font-size:12px;">DOJ</label><input type="date" id="onbDOJ" class="form-input"></div>
             </div>
-            <div style="background:linear-gradient(135deg,#0D47A1,#1E88E5);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size:28px;font-weight:700;" id="finTotalSalary">₹0</div>
-                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Total Monthly Salary</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Monthly Salary (₹)</label><input type="number" id="onbSalary" class="form-input" placeholder="50000"></div>
+                <div><label style="font-size:12px;">Billing Rate (₹)</label><input type="number" id="onbBilling" class="form-input" placeholder="75000"></div>
+                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="onbOwner" class="form-input" placeholder="HR Name"></div>
             </div>
-            <div style="background:linear-gradient(135deg,#E65100,#F57C00);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size:28px;font-weight:700;" id="finTotalProfit">₹0</div>
-                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Monthly Profit</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Work Location</label><input type="text" id="onbLocation" class="form-input" placeholder="Remote/Hybrid/Onsite"></div>
+                <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
             </div>
-            <div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size:28px;font-weight:700;" id="finAvgMargin">0%</div>
-                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Avg Profit Margin</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Requirement ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()"></div><datalist id="onbReqList"></datalist></div>
+                <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
             </div>
-            <div style="background:linear-gradient(135deg,#004D40,#00796B);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
-                <div style="font-size:28px;font-weight:700;" id="finActiveResources">0</div>
-                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Active Resources</div>
-            </div>
+            <div style="margin-top:10px;"><label style="font-size:12px;">Attach Documents (PO/SOW/Offer Letter)</label><input type="file" id="onbDocuments" multiple accept=".pdf,.docx,.doc" style="font-size:12px;"></div>
+            <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
         </div>
-        
-        </div>
+        <div id="onboardedList"></div>
+    </div>
 </div>
-</div>   <!-- closes the previous panel -->
 
 <div id="financePanel" style="display:none;">
     <div class="card no-click">
