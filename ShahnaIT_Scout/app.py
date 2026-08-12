@@ -8582,6 +8582,89 @@ def update_invoice(invoice_id):
     conn.close()
     return jsonify({'message': 'Invoice updated'})
 
+
+@app.route('/api/invoices/<int:invoice_id>/pdf', methods=['GET'])
+@login_required('admin')
+def invoice_pdf(invoice_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM invoices WHERE id = ?', (invoice_id,))
+    invoice = c.fetchone()
+    
+    if not invoice:
+        conn.close()
+        return jsonify({'error': 'Invoice not found'}), 404
+    
+    conn.close()
+    
+    client_name = invoice['client_name'] or 'Client'
+    resource_name = invoice['resource_name'] or 'N/A'
+    amount = invoice['amount'] or 0
+    gst_amount = invoice['gst_amount'] or 0
+    total = invoice['total_amount'] or 0
+    
+    html = f'''<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Invoice {invoice['invoice_number']}</title>
+<style>
+    body {{ font-family: 'Times New Roman', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #3D3D3D; background: #FFF; }}
+    .header {{ text-align: center; border-bottom: 3px solid #0D9488; padding-bottom: 15px; margin-bottom: 20px; }}
+    .header h1 {{ color: #1A237E; font-size: 26px; margin: 0; }}
+    .header .address {{ font-size: 12px; color: #555; margin: 5px 0 0 0; line-height: 1.5; }}
+    .company-details {{ font-size: 11px; color: #555; margin: 5px 0; }}
+    .invoice-title {{ text-align: center; background: #F5F0E8; border: 2px solid #C9A96E; border-radius: 8px; padding: 12px; margin: 15px 0; }}
+    .invoice-title h2 {{ color: #0D9488; font-size: 28px; margin: 0; }}
+    .info-row {{ display: flex; justify-content: space-between; margin: 15px 0; }}
+    .info-box {{ background: #F5F0E8; padding: 12px 16px; border-radius: 6px; border-left: 4px solid #0D9488; flex: 1; margin: 0 5px; }}
+    .info-box .label {{ font-size: 11px; color: #666; text-transform: uppercase; }}
+    .info-box .value {{ font-size: 14px; color: #1A237E; font-weight: 700; }}
+    .bill-to {{ background: #F5F0E8; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #C9A96E; }}
+    .bill-to h3 {{ color: #0D9488; margin: 0 0 8px 0; font-size: 14px; }}
+    table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
+    th {{ background: #0D9488; color: #FFF; padding: 10px; text-align: left; font-size: 13px; }}
+    td {{ padding: 8px 10px; border-bottom: 1px solid #E2E0D8; font-size: 13px; }}
+    .total-row td {{ font-weight: 700; color: #1A237E; font-size: 16px; border-top: 2px solid #0D9488; }}
+    .bank-details {{ background: #F5F0E8; padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 12px; }}
+    .bank-details h3 {{ color: #0D9488; margin: 0 0 8px 0; }}
+    .footer {{ text-align: center; font-size: 10px; color: #999; margin-top: 25px; }}
+</style></head><body>
+<div class="header">
+    <h1>ShahnaIT LLP</h1>
+    <div class="address">Ground Floor, 4-617/113, Mansabdar Layout<br>Near Jamiya Masjid, MB Nagar, Kalaburagi, Karnataka 585105</div>
+    <div class="company-details">GSTIN: 29AFPFS9563L1ZS | PAN: AFPFS9563L | TAN: BLRS15532N | LLPIN: ACO-6604</div>
+</div>
+<div class="invoice-title"><h2>INVOICE</h2></div>
+<div class="info-row">
+    <div class="info-box"><div class="label">Invoice No</div><div class="value">{invoice['invoice_number']}</div></div>
+    <div class="info-box"><div class="label">Date</div><div class="value">{invoice['invoice_date'] or 'N/A'}</div></div>
+    <div class="info-box"><div class="label">Due Date</div><div class="value">{invoice['due_date'] or 'N/A'}</div></div>
+</div>
+<div class="bill-to">
+    <h3>INVOICE TO</h3>
+    <strong>{client_name}</strong><br>
+    GSTIN: ______________________<br>
+    Address: __________________________________________
+</div>
+<table>
+    <tr><th>Description</th><th style="text-align:right;">Rate (₹)</th><th style="text-align:right;">Amount (₹)</th></tr>
+    <tr><td>{invoice['description'] or 'Professional Services - ' + resource_name}</td><td style="text-align:right;">{amount:,.2f}</td><td style="text-align:right;">{amount:,.2f}</td></tr>
+    <tr class="total-row"><td colspan="2" style="text-align:right;"><strong>Subtotal</strong></td><td style="text-align:right;">{amount:,.2f}</td></tr>
+    <tr><td colspan="2" style="text-align:right;">GST ({invoice['gst_percent']}%)</td><td style="text-align:right;">{gst_amount:,.2f}</td></tr>
+    <tr class="total-row"><td colspan="2" style="text-align:right;"><strong>Grand Total</strong></td><td style="text-align:right;font-size:18px;"><strong>₹ {total:,.2f}</strong></td></tr>
+</table>
+<div class="bank-details">
+    <h3>Bank Details</h3>
+    <strong>Account Name:</strong> ShahnaIT LLP<br>
+    <strong>Bank:</strong> ______________________<br>
+    <strong>Account No:</strong> ______________________<br>
+    <strong>IFSC Code:</strong> ______________________<br>
+    <strong>Branch:</strong> ______________________
+</div>
+<div class="footer">This is a computer generated invoice</div>
+</body></html>'''
+    
+    return html
+
 @app.route('/api/export-candidates', methods=['GET'])
 @app.route('/api/export-candidates', methods=['GET'])
 def export_candidates():
