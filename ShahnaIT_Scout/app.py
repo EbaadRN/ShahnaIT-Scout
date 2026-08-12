@@ -551,7 +551,7 @@ def init_db():
         FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
     )''')
 
-        c.execute('''CREATE TABLE IF NOT EXISTS invoices (
+    c.execute('''CREATE TABLE IF NOT EXISTS invoices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         invoice_number TEXT,
         onboarded_resource_id INTEGER,
