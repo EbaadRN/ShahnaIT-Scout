@@ -3523,7 +3523,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 </div>
 
 <div id="financePanel" style="display:none;">
-    <div class="card no-click">
+    <div class="card no-click" style="max-width:100%;">
         <h3>💰 Finance Dashboard</h3>
         <!-- Summary Cards -->
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px;">
