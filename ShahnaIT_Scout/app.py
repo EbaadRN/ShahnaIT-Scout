@@ -6908,6 +6908,9 @@ async function editOnboarded(id) {
         }
     };
 }
+function loadInvoices() {
+    document.getElementById('invoicesList').innerHTML = '<p style="text-align:center;padding:40px;color:#999;">Invoice features coming soon</p>';
+}
 async function loadFinance() {
     const res = await fetch('/api/finance-dashboard');
     const data = await res.json();
