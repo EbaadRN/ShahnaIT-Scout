@@ -610,6 +610,27 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (candidate_id) REFERENCES candidates(id)
     )''')
+
+     c.execute('''CREATE TABLE IF NOT EXISTS invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_number TEXT,
+        onboarded_resource_id INTEGER,
+        client_name TEXT,
+        resource_name TEXT,
+        amount REAL DEFAULT 0,
+        gst_percent REAL DEFAULT 18,
+        gst_amount REAL DEFAULT 0,
+        total_amount REAL DEFAULT 0,
+        invoice_date DATE,
+        due_date DATE,
+        description TEXT,
+        status TEXT DEFAULT 'Draft',
+        payment_date DATE,
+        payment_amount REAL DEFAULT 0,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (onboarded_resource_id) REFERENCES onboarded_resources(id)
+    )''')
     
     conn.commit()
     conn.close()
@@ -8370,6 +8391,73 @@ def update_onboarded(resource_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Resource updated'})
+
+# ============================================
+# INVOICES
+# ============================================
+
+@app.route('/api/invoices', methods=['GET'])
+@login_required('admin')
+def get_invoices():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM invoices ORDER BY created_at DESC')
+    invoices = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(invoices)
+
+@app.route('/api/invoices', methods=['POST'])
+@login_required('admin')
+def create_invoice():
+    data = request.json
+    resource_id = data.get('onboarded_resource_id')
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Get resource details
+    c.execute('SELECT o.*, c.first_name, c.last_name FROM onboarded_resources o LEFT JOIN candidates c ON o.candidate_id = c.id WHERE o.id = ?', (resource_id,))
+    resource = c.fetchone()
+    
+    if not resource:
+        conn.close()
+        return jsonify({'error': 'Resource not found'}), 404
+    
+    client = resource['client_name'] or 'Unknown'
+    resource_name = f"{resource['first_name'] or ''} {resource['last_name'] or ''}".strip()
+    amount = resource['billing_rate'] or 0
+    gst = data.get('gst_percent', 18)
+    gst_amount = round(amount * gst / 100, 2)
+    total = amount + gst_amount
+    
+    # Generate invoice number
+    c.execute('SELECT COUNT(*) as count FROM invoices')
+    count = c.fetchone()['count'] + 1
+    invoice_number = f"INV-{str(count).zfill(3)}"
+    
+    c.execute('''INSERT INTO invoices (invoice_number, onboarded_resource_id, client_name, resource_name, amount, gst_percent, gst_amount, total_amount, invoice_date, due_date, description, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (invoice_number, resource_id, client, resource_name, amount, gst, gst_amount, total,
+         data.get('invoice_date', datetime.now().strftime('%Y-%m-%d')),
+         data.get('due_date', ''), data.get('description', ''), 'Draft'))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Invoice created', 'invoice_number': invoice_number})
+
+@app.route('/api/invoices/<int:invoice_id>', methods=['PUT'])
+@login_required('admin')
+def update_invoice(invoice_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''UPDATE invoices SET status=?, payment_date=?, payment_amount=?, notes=? WHERE id=?''',
+        (data.get('status'), data.get('payment_date'), data.get('payment_amount', 0), data.get('notes', ''), invoice_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Invoice updated'})
 
 @app.route('/api/export-candidates', methods=['GET'])
 @app.route('/api/export-candidates', methods=['GET'])
