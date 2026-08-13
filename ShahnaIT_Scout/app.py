@@ -653,7 +653,7 @@ def init_db():
         FOREIGN KEY (onboarded_resource_id) REFERENCES onboarded_resources(id)
     )''')
 
-        c.execute('''CREATE TABLE IF NOT EXISTS company_settings (
+    c.execute('''CREATE TABLE IF NOT EXISTS company_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         setting_key TEXT UNIQUE,
         setting_value TEXT
