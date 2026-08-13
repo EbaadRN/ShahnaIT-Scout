@@ -7066,7 +7066,66 @@ async function generateInvoice() {
     }
 }
 
-function viewInvoicePDF(invoiceId) {
+async function viewInvoicePDF(invoiceId) {
+    const res = await fetch('/api/invoices');
+    const invoices = await res.json();
+    const inv = invoices.find(i => i.id == invoiceId);
+    if (!inv) return;
+    
+    // Get client details
+    const resRes = await fetch('/api/onboarded');
+    const resources = await resRes.json();
+    const resource = resources.find(r => r.id == inv.onboarded_resource_id);
+    
+    const settingsRes = await fetch('/api/company-settings');
+    const settings = await settingsRes.json();
+    
+    document.getElementById('editInvClient').value = inv.client_name || '';
+    document.getElementById('editInvGstin').value = (resource && resource.client_gstin) || '';
+    document.getElementById('editInvAddress').value = (resource && resource.client_address) || '';
+    document.getElementById('editInvDate').value = inv.invoice_date || '';
+    document.getElementById('editInvDueDate').value = inv.due_date || '';
+    document.getElementById('editInvDesc').value = inv.description || '';
+    document.getElementById('editInvAmount').value = inv.amount || 0;
+    document.getElementById('editInvGst').value = inv.gst_percent || 18;
+    document.getElementById('editInvBank').value = settings.bank_name || '';
+    document.getElementById('editInvAcc').value = settings.account_no || '';
+    document.getElementById('editInvIfsc').value = settings.ifsc_code || '';
+    document.getElementById('editInvBranch').value = settings.branch || '';
+    
+    document.getElementById('editInvoiceModal').style.display = 'block';
+    document.getElementById('editInvoiceModal').setAttribute('data-invoice-id', invoiceId);
+}
+
+function closeEditInvoice() {
+    document.getElementById('editInvoiceModal').style.display = 'none';
+}
+
+async function saveEditedInvoice() {
+    const invoiceId = document.getElementById('editInvoiceModal').getAttribute('data-invoice-id');
+    const data = {
+        client_name: document.getElementById('editInvClient').value,
+        invoice_date: document.getElementById('editInvDate').value,
+        due_date: document.getElementById('editInvDueDate').value,
+        description: document.getElementById('editInvDesc').value,
+        amount: parseFloat(document.getElementById('editInvAmount').value) || 0,
+        gst_percent: parseFloat(document.getElementById('editInvGst').value) || 0,
+        bank_name: document.getElementById('editInvBank').value,
+        account_no: document.getElementById('editInvAcc').value,
+        ifsc_code: document.getElementById('editInvIfsc').value,
+        branch: document.getElementById('editInvBranch').value,
+        client_gstin: document.getElementById('editInvGstin').value,
+        client_address: document.getElementById('editInvAddress').value
+    };
+    
+    // Save invoice edits
+    await fetch('/api/invoices/' + invoiceId + '/edit', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    closeEditInvoice();
     window.open('/api/invoices/' + invoiceId + '/pdf', '_blank');
 }
 
@@ -7532,6 +7591,31 @@ async function dropCandidate(event, stage) {
             <label>Authorized Signatory</label><input id="setSignatory" class="form-input">
             <label>Company Logo (PNG/JPG)</label><input type="file" id="logoFile" accept=".png,.jpg,.jpeg">
             <button class="btn btn-primary" onclick="saveCompanySettings()" style="margin-top:15px;">💾 Save Settings</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT INVOICE MODAL -->
+<div id="editInvoiceModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header"><h3>📄 Edit Invoice</h3><span class="close" onclick="closeEditInvoice()">&times;</span></div>
+        <div class="modal-body" style="padding:20px;max-height:80vh;overflow-y:auto;">
+            <label>Client Name</label><input id="editInvClient" class="form-input">
+            <label>Client GSTIN</label><input id="editInvGstin" class="form-input">
+            <label>Client Address</label><textarea id="editInvAddress" class="form-input" rows="2"></textarea>
+            <label>Invoice Date</label><input type="date" id="editInvDate" class="form-input">
+            <label>Due Date</label><input type="date" id="editInvDueDate" class="form-input">
+            <label>Description</label><textarea id="editInvDesc" class="form-input" rows="2"></textarea>
+            <label>Amount (₹)</label><input type="number" id="editInvAmount" class="form-input">
+            <label>GST %</label><input type="number" id="editInvGst" class="form-input" value="18">
+            <label>Bank Name</label><input id="editInvBank" class="form-input">
+            <label>Account No</label><input id="editInvAcc" class="form-input">
+            <label>IFSC Code</label><input id="editInvIfsc" class="form-input">
+            <label>Branch</label><input id="editInvBranch" class="form-input">
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button class="btn btn-primary" onclick="saveEditedInvoice()">💾 Save & View</button>
+                <button class="btn btn-secondary" onclick="closeEditInvoice()">Cancel</button>
+            </div>
         </div>
     </div>
 </div>
@@ -8441,6 +8525,41 @@ def fix_invoices_table():
     conn.close()
     return 'Invoices table created!'
 
+@app.route('/api/invoices/<int:invoice_id>/edit', methods=['PUT'])
+@login_required('admin')
+def edit_invoice(invoice_id):
+    data = request.json
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    
+    # Update invoice
+    c.execute('''UPDATE invoices SET client_name=?, invoice_date=?, due_date=?, description=?, amount=?, gst_percent=? WHERE id=?''',
+        (data.get('client_name'), data.get('invoice_date'), data.get('due_date'), 
+         data.get('description'), data.get('amount'), data.get('gst_percent'), invoice_id))
+    
+    # Recalculate GST and total
+    amount = data.get('amount', 0)
+    gst = data.get('gst_percent', 18)
+    gst_amount = round(amount * gst / 100, 2)
+    total = amount + gst_amount
+    c.execute('UPDATE invoices SET gst_amount=?, total_amount=? WHERE id=?', (gst_amount, total, invoice_id))
+    
+    # Update client GSTIN/address in onboarded resource
+    c.execute('SELECT onboarded_resource_id FROM invoices WHERE id=?', (invoice_id,))
+    row = c.fetchone()
+    if row:
+        c.execute('''UPDATE onboarded_resources SET client_gstin=?, client_address=? WHERE id=?''',
+            (data.get('client_gstin', ''), data.get('client_address', ''), row[0]))
+    
+    # Save bank details to company settings
+    for key, setting_key in [('bank_name','bank_name'), ('account_no','account_no'), ('ifsc_code','ifsc_code'), ('branch','branch')]:
+        if data.get(key):
+            c.execute('UPDATE company_settings SET setting_value=? WHERE setting_key=?', (data[key], setting_key))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Invoice updated'})
 
 @app.route('/fix-client-fields')
 def fix_client_fields():
