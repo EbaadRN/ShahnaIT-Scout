@@ -3644,7 +3644,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 
 <div id="invoicesPanel" style="display:none;">
     <div class="card no-click" style="max-width:100%;">
-        <h3>🧾 Invoices</h3>
+        <h3>🧾 Invoices <button class="btn btn-sm btn-secondary" onclick="openCompanySettings()" style="float:right;">⚙️ Company Settings</button></h3>
         <div id="invoicesList"></div>
     </div>
 </div>
@@ -6964,6 +6964,46 @@ async function editOnboarded(id) {
         }
     };
 }
+async function openCompanySettings() {
+    const res = await fetch('/api/company-settings');
+    const settings = await res.json();
+    document.getElementById('setBankName').value = settings.bank_name || '';
+    document.getElementById('setAccountNo').value = settings.account_no || '';
+    document.getElementById('setIfsc').value = settings.ifsc_code || '';
+    document.getElementById('setBranch').value = settings.branch || '';
+    document.getElementById('setSignatory').value = settings.authorized_signatory || '';
+    document.getElementById('companySettingsModal').style.display = 'block';
+}
+
+function closeCompanySettings() {
+    document.getElementById('companySettingsModal').style.display = 'none';
+}
+
+async function saveCompanySettings() {
+    const data = {
+        bank_name: document.getElementById('setBankName').value,
+        account_no: document.getElementById('setAccountNo').value,
+        ifsc_code: document.getElementById('setIfsc').value,
+        branch: document.getElementById('setBranch').value,
+        authorized_signatory: document.getElementById('setSignatory').value
+    };
+    
+    await fetch('/api/company-settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    const logoFile = document.getElementById('logoFile').files[0];
+    if (logoFile) {
+        const fd = new FormData();
+        fd.append('logo', logoFile);
+        await fetch('/api/upload-logo', { method: 'POST', body: fd });
+    }
+    
+    toastSuccess('Settings saved!');
+    closeCompanySettings();
+}
 async function loadInvoices() {
     const res = await fetch('/api/invoices');
     const invoices = await res.json();
@@ -7477,6 +7517,22 @@ async function dropCandidate(event, stage) {
         return m; 
     }); 
 }
+
+<!-- COMPANY SETTINGS & EDIT MODAL -->
+<div id="companySettingsModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header"><h3>⚙️ Company Settings</h3><span class="close" onclick="closeCompanySettings()">&times;</span></div>
+        <div class="modal-body" style="padding:20px;">
+            <label>Bank Name</label><input id="setBankName" class="form-input">
+            <label>Account No</label><input id="setAccountNo" class="form-input">
+            <label>IFSC Code</label><input id="setIfsc" class="form-input">
+            <label>Branch</label><input id="setBranch" class="form-input">
+            <label>Authorized Signatory</label><input id="setSignatory" class="form-input">
+            <label>Company Logo (PNG/JPG)</label><input type="file" id="logoFile" accept=".png,.jpg,.jpeg">
+            <button class="btn btn-primary" onclick="saveCompanySettings()" style="margin-top:15px;">💾 Save Settings</button>
+        </div>
+    </div>
+</div>
       
 </script>
 </body>
