@@ -7518,6 +7518,8 @@ async function dropCandidate(event, stage) {
     }); 
 }
 
+</script>
+
 <!-- COMPANY SETTINGS & EDIT MODAL -->
 <div id="companySettingsModal" class="modal" style="display:none;">
     <div class="modal-content" style="max-width:500px;">
@@ -7533,8 +7535,7 @@ async function dropCandidate(event, stage) {
         </div>
     </div>
 </div>
-      
-</script>
+
 </body>
 </html>
 '''
