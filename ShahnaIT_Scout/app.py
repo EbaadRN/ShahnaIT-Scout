@@ -652,6 +652,20 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (onboarded_resource_id) REFERENCES onboarded_resources(id)
     )''')
+
+        c.execute('''CREATE TABLE IF NOT EXISTS company_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        setting_key TEXT UNIQUE,
+        setting_value TEXT
+    )''')
+    
+    # Insert default empty settings if not exist
+    c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('bank_name', '')")
+    c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('account_no', '')")
+    c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('ifsc_code', '')")
+    c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('branch', '')")
+    c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('logo_path', '')")
+    c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('authorized_signatory', '')")
     
     conn.commit()
     conn.close()
@@ -8370,6 +8384,21 @@ def fix_invoices_table():
     conn.close()
     return 'Invoices table created!'
 
+
+@app.route('/fix-client-fields')
+def fix_client_fields():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE onboarded_resources ADD COLUMN client_gstin TEXT DEFAULT ''")
+    except: pass
+    try:
+        c.execute("ALTER TABLE onboarded_resources ADD COLUMN client_address TEXT DEFAULT ''")
+    except: pass
+    conn.commit()
+    conn.close()
+    return 'Client fields added!'
+
 # ============================================
 # ONBOARDED RESOURCES
 # ============================================
@@ -8582,6 +8611,50 @@ def update_invoice(invoice_id):
     conn.close()
     return jsonify({'message': 'Invoice updated'})
 
+@app.route('/api/company-settings', methods=['GET'])
+@login_required('admin')
+def get_company_settings():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT setting_key, setting_value FROM company_settings')
+    settings = {row[0]: row[1] for row in c.fetchall()}
+    conn.close()
+    return jsonify(settings)
+
+@app.route('/api/company-settings', methods=['POST'])
+@login_required('admin')
+def save_company_settings():
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    for key, value in data.items():
+        c.execute('UPDATE company_settings SET setting_value = ? WHERE setting_key = ?', (value, key))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Settings saved'})
+
+@app.route('/api/upload-logo', methods=['POST'])
+@login_required('admin')
+def upload_logo():
+    if 'logo' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['logo']
+    if file.filename == '':
+        return jsonify({'error': 'No file'}), 400
+    
+    filename = secure_filename(f"logo_{datetime.now().timestamp()}.{file.filename.split('.')[-1]}")
+    filepath = os.path.join('/data', filename)
+    file.save(filepath)
+    
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE company_settings SET setting_value = ? WHERE setting_key = 'logo_path'", (filepath,))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({'message': 'Logo uploaded', 'path': filepath})
+
+@app.route('/api/invoices/<int:invoice_id>/pdf', methods=['GET'])
 
 @app.route('/api/invoices/<int:invoice_id>/pdf', methods=['GET'])
 @login_required('admin')
