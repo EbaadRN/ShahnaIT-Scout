@@ -8712,8 +8712,6 @@ def upload_logo():
     return jsonify({'message': 'Logo uploaded', 'path': filepath})
 
 @app.route('/api/invoices/<int:invoice_id>/pdf', methods=['GET'])
-
-@app.route('/api/invoices/<int:invoice_id>/pdf', methods=['GET'])
 @login_required('admin')
 def invoice_pdf(invoice_id):
     conn = sqlite3.connect(DB_PATH)
@@ -8726,6 +8724,13 @@ def invoice_pdf(invoice_id):
         conn.close()
         return jsonify({'error': 'Invoice not found'}), 404
     
+    # Get company settings
+    c.execute('SELECT setting_key, setting_value FROM company_settings')
+    settings = {row['setting_key']: row['setting_value'] for row in c.fetchall()}
+    
+    # Get client GSTIN
+    c.execute('SELECT client_gstin, client_address FROM onboarded_resources WHERE id = ?', (invoice['onboarded_resource_id'],))
+    client = c.fetchone()
     conn.close()
     
     client_name = invoice['client_name'] or 'Client'
@@ -8734,86 +8739,100 @@ def invoice_pdf(invoice_id):
     gst_amount = invoice['gst_amount'] or 0
     total = invoice['total_amount'] or 0
     
+    # Invoice number format: 005SIT NA-26
+    seq = str(invoice['id']).zfill(3)
+    invoice_number_display = f"{seq}SIT NA-{datetime.now().strftime('%y')}"
+    
+    client_gstin = client['client_gstin'] if client and client['client_gstin'] else '______________________'
+    client_address = client['client_address'] if client and client['client_address'] else '__________________________________________'
+    
+    bank_name = settings.get('bank_name', '______________________')
+    account_no = settings.get('account_no', '______________________')
+    ifsc_code = settings.get('ifsc_code', '______________________')
+    branch = settings.get('branch', '______________________')
+    logo_path = settings.get('logo_path', '')
+    
     html = f'''<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Invoice {invoice['invoice_number']}</title>
+<html><head><meta charset="UTF-8"><title>Invoice {invoice_number_display}</title>
 <style>
-    body {{ font-family: 'Times New Roman', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #3D3D3D; background: #FFF; }}
-    .header {{ text-align: center; border-bottom: 3px solid #0D9488; padding-bottom: 15px; margin-bottom: 20px; }}
-    .header h1 {{ color: #1A237E; font-size: 26px; margin: 0; }}
-    .header .address {{ font-size: 12px; color: #555; margin: 5px 0 0 0; line-height: 1.5; }}
-    .company-details {{ font-size: 11px; color: #555; margin: 5px 0; }}
-    .invoice-title {{ text-align: center; background: #F5F0E8; border: 2px solid #C9A96E; border-radius: 8px; padding: 12px; margin: 15px 0; }}
-    .invoice-title h2 {{ color: #0D9488; font-size: 28px; margin: 0; }}
-    .info-row {{ display: flex; justify-content: space-between; margin: 15px 0; }}
-    .info-box {{ background: #F5F0E8; padding: 12px 16px; border-radius: 6px; border-left: 4px solid #0D9488; flex: 1; margin: 0 5px; }}
-    .info-box .label {{ font-size: 11px; color: #666; text-transform: uppercase; }}
-    .info-box .value {{ font-size: 14px; color: #1A237E; font-weight: 700; }}
-    .bill-to {{ background: #F5F0E8; padding: 15px; border-radius: 6px; margin: 15px 0; border: 1px solid #C9A96E; }}
-    .bill-to h3 {{ color: #0D9488; margin: 0 0 8px 0; font-size: 14px; }}
-    table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
-    th {{ background: #0D9488; color: #FFF; padding: 10px; text-align: left; font-size: 13px; }}
-    td {{ padding: 8px 10px; border-bottom: 1px solid #E2E0D8; font-size: 13px; }}
-    .total-row td {{ font-weight: 700; color: #1A237E; font-size: 16px; border-top: 2px solid #0D9488; }}
-    .bank-details {{ background: #F5F0E8; padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 12px; }}
-    .bank-details h3 {{ color: #0D9488; margin: 0 0 8px 0; }}
-    .footer {{ text-align: center; font-size: 10px; color: #999; margin-top: 25px; }}
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ font-family: Arial, Helvetica, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #555555; background: #FFFFFF; }}
+    
+    .invoice-from {{ font-weight: bold; font-size: 13px; color: #1A237E; margin-bottom: 8px; }}
+    .address {{ font-size: 10px; color: #555555; line-height: 1.4; margin-bottom: 15px; }}
+    
+    .invoice-no {{ text-align: right; font-weight: bold; font-size: 11px; color: #1A237E; margin-bottom: 20px; }}
+    .invoice-no .label {{ color: #666666; }}
+    
+    .invoice-to {{ font-weight: bold; font-size: 11px; color: #1A237E; margin-bottom: 5px; }}
+    .customer-name {{ font-weight: bold; font-size: 13px; color: #1A237E; margin-bottom: 3px; }}
+    .gstin {{ font-size: 10px; color: #666666; margin-bottom: 15px; }}
+    .gstin .value {{ color: #555555; }}
+    
+    .description {{ font-size: 10px; color: #555555; margin-bottom: 3px; }}
+    .date-range {{ font-size: 9px; color: #666666; margin-bottom: 15px; }}
+    
+    .logo-area {{ text-align: right; margin: 20px 0; min-height: 100px; }}
+    .logo-area img {{ max-width: 300px; max-height: 100px; }}
+    
+    .grand-total {{ text-align: right; margin-top: 25px; padding-top: 15px; border-top: 2px solid #E2E8F0; }}
+    .grand-total .label {{ font-weight: bold; font-size: 14px; color: #333333; }}
+    .grand-total .amount {{ font-weight: bold; font-size: 17px; color: #0D9488; margin-left: 10px; }}
+    
+    .bank-details {{ margin-top: 30px; padding: 15px; background: #F8FAFC; border-radius: 8px; font-size: 10px; color: #555555; }}
+    .bank-details h3 {{ font-size: 11px; color: #1A237E; margin-bottom: 8px; }}
 </style></head><body>
-<div class="header">
-    <h1>ShahnaIT LLP</h1>
-    <div class="address">Ground Floor, 4-617/113, Mansabdar Layout<br>Near Jamiya Masjid, MB Nagar, Kalaburagi, Karnataka 585105</div>
-    <div class="company-details">GSTIN: 29AFPFS9563L1ZS | PAN: AFPFS9563L | TAN: BLRS15532N | LLPIN: ACO-6604</div>
+
+<div class="invoice-from">INVOICE FROM</div>
+<div class="address">
+    Ground Floor 4-617/113 Mansabdarr Layout<br>
+    Near Jamiya Masjid MB Nagar<br>
+    Kalaburagi<br>
+    Karnataka 585105
 </div>
-<div class="invoice-title"><h2>INVOICE</h2></div>
-<div class="info-row">
-    <div class="info-box"><div class="label">Invoice No</div><div class="value">{invoice['invoice_number']}</div></div>
-    <div class="info-box"><div class="label">Date</div><div class="value">{invoice['invoice_date'] or 'N/A'}</div></div>
-    <div class="info-box"><div class="label">Due Date</div><div class="value">{invoice['due_date'] or 'N/A'}</div></div>
+
+<div class="invoice-no"><span class="label">NO.</span> {invoice_number_display}</div>
+
+<div class="invoice-to">INVOICE TO</div>
+<div class="customer-name">{client_name}</div>
+<div class="gstin">GSTIN: <span class="value">{client_gstin}</span></div>
+
+<div class="description">{invoice['description'] or 'Professional Services'}</div>
+<div class="date-range">Invoice generated for the billing period</div>
+
+<div class="logo-area">
+    {f'<img src="/api/logo" style="max-width:300px;max-height:100px;">' if logo_path else '<div style="border:2px dashed #E2E8F0;border-radius:8px;padding:20px;color:#999;font-size:10px;">Company Logo / Stamp</div>'}
 </div>
-<div class="bill-to">
-    <h3>INVOICE TO</h3>
-    <strong>{client_name}</strong><br>
-    GSTIN: ______________________<br>
-    Address: __________________________________________
+
+<div class="grand-total">
+    <span class="label">Grand Total</span>
+    <span class="amount">₹ {total:,.2f} INR</span>
 </div>
-<table>
-    <tr><th>Description</th><th style="text-align:right;">Rate (₹)</th><th style="text-align:right;">Amount (₹)</th></tr>
-    <tr><td>{invoice['description'] or 'Professional Services - ' + resource_name}</td><td style="text-align:right;">{amount:,.2f}</td><td style="text-align:right;">{amount:,.2f}</td></tr>
-    <tr class="total-row"><td colspan="2" style="text-align:right;"><strong>Subtotal</strong></td><td style="text-align:right;">{amount:,.2f}</td></tr>
-    <tr><td colspan="2" style="text-align:right;">GST ({invoice['gst_percent']}%)</td><td style="text-align:right;">{gst_amount:,.2f}</td></tr>
-    <tr class="total-row"><td colspan="2" style="text-align:right;"><strong>Grand Total</strong></td><td style="text-align:right;font-size:18px;"><strong>₹ {total:,.2f}</strong></td></tr>
-</table>
+
 <div class="bank-details">
     <h3>Bank Details</h3>
-    <strong>Account Name:</strong> ShahnaIT LLP<br>
-    <strong>Bank:</strong> ______________________<br>
-    <strong>Account No:</strong> ______________________<br>
-    <strong>IFSC Code:</strong> ______________________<br>
-    <strong>Branch:</strong> ______________________
+    <strong>Bank:</strong> {bank_name}<br>
+    <strong>Account No:</strong> {account_no}<br>
+    <strong>IFSC Code:</strong> {ifsc_code}<br>
+    <strong>Branch:</strong> {branch}
 </div>
-<div class="footer">This is a computer generated invoice</div>
+
+<script>window.print();</script>
 </body></html>'''
     
     return html
 
-@app.route('/api/export-candidates', methods=['GET'])
-@app.route('/api/export-candidates', methods=['GET'])
-def export_candidates():
+@app.route('/api/logo')
+def serve_logo():
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute('SELECT id, first_name, last_name, email, phone, current_role, match_score, created_at FROM candidates ORDER BY created_at DESC')
-    rows = c.fetchall()
+    c.execute("SELECT setting_value FROM company_settings WHERE setting_key = 'logo_path'")
+    row = c.fetchone()
     conn.close()
+    if row and row[0] and os.path.exists(row[0]):
+        return send_file(row[0], mimetype='image/png')
+    return jsonify({'error': 'No logo'}), 404
     
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Current Role', 'Match Score', 'Created Date'])
-    for row in rows:
-        writer.writerow([row['id'], row['first_name'] or '', row['last_name'] or '',
-                         row['email'] or '', row['phone'] or '', row['current_role'] or '',
-                         row['match_score'] or 0, row['created_at']])
-    output.seek(0)
-    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=candidates.csv'})
 @app.route('/api/batch-analyze', methods=['POST'])
 def batch_analyze():
     data = request.json
