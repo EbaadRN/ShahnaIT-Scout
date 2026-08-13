@@ -7178,59 +7178,96 @@ async function generatePayslip(resourceId) {
     const r = resources.find(r => r.id == resourceId);
     if (!r) return;
     
+    const salary = r.monthly_salary || 0;
+    
+    document.getElementById('editPayName').value = `${r.first_name||''} ${r.last_name||''}`.trim();
+    document.getElementById('editPayDesignation').value = r.work_location || '';
+    document.getElementById('editPayPeriod').value = `${new Date().toLocaleString('default',{month:'long'})} ${new Date().getFullYear()}`;
+    document.getElementById('editPayBasic').value = Math.round(salary * 0.4);
+    document.getElementById('editPayHra').value = Math.round(salary * 0.2);
+    document.getElementById('editPayConveyance').value = Math.round(salary * 0.15);
+    document.getElementById('editPayMedical').value = Math.round(salary * 0.1);
+    document.getElementById('editPaySpecial').value = Math.round(salary * 0.15);
+    document.getElementById('editPayPf').value = Math.round(salary * 0.12);
+    document.getElementById('editPayPt').value = 200;
+    
+    document.getElementById('editPayslipModal').style.display = 'block';
+}
+
+function closeEditPayslip() {
+    document.getElementById('editPayslipModal').style.display = 'none';
+}
+
+function saveEditedPayslip() {
+    const name = document.getElementById('editPayName').value;
+    const designation = document.getElementById('editPayDesignation').value;
+    const period = document.getElementById('editPayPeriod').value;
+    const days = parseInt(document.getElementById('editPayDays').value) || 30;
+    const basic = parseFloat(document.getElementById('editPayBasic').value) || 0;
+    const hra = parseFloat(document.getElementById('editPayHra').value) || 0;
+    const conveyance = parseFloat(document.getElementById('editPayConveyance').value) || 0;
+    const medical = parseFloat(document.getElementById('editPayMedical').value) || 0;
+    const special = parseFloat(document.getElementById('editPaySpecial').value) || 0;
+    const pf = parseFloat(document.getElementById('editPayPf').value) || 0;
+    const pt = parseFloat(document.getElementById('editPayPt').value) || 0;
+    
+    const gross = basic + hra + conveyance + medical + special;
+    const deductions = pf + pt;
+    const netPay = gross - deductions;
+    
+    closeEditPayslip();
+    
     const win = window.open('', '_blank', 'width=800,height=900');
-    win.document.write(`
-        <html><head><title>Payslip</title>
-        <style>
-            body { font-family: 'Times New Roman', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #3D3D3D; background: #FFF; }
-            .header { text-align: center; border-bottom: 3px solid #0D9488; padding-bottom: 15px; margin-bottom: 20px; }
-            .header h1 { color: #1A237E; font-size: 22px; margin: 0; }
-            .header .subtitle { color: #0D9488; font-size: 13px; margin: 5px 0 0 0; }
-            .payslip-box { background: #F5F0E8; border: 2px solid #C9A96E; border-radius: 10px; padding: 15px 20px; margin: 15px 0; text-align: center; }
-            .payslip-box h2 { color: #1A237E; font-size: 24px; margin: 0; }
-            .payslip-box .address { font-size: 11px; color: #666; margin: 3px 0 0 0; }
-            .info-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            .info-table td { padding: 8px 12px; font-size: 13px; }
-            .info-table .label { font-weight: 700; color: #1A237E; width: 35%; background: #F5F0E8; }
-            .main-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            .main-table th { background: #0D9488; color: #FFF; padding: 10px; text-align: left; font-size: 13px; }
-            .main-table td { padding: 8px 10px; border-bottom: 1px solid #E2E0D8; font-size: 13px; }
-            .main-table .total td { font-weight: 700; color: #1A237E; border-top: 2px solid #C9A96E; }
-            .net-pay { background: #0D9488; color: #FFF; text-align: center; padding: 15px; border-radius: 8px; margin: 15px 0; }
-            .net-pay .fig { font-size: 26px; font-weight: 700; }
-            .net-pay .words { font-size: 13px; opacity: 0.9; margin-top: 4px; }
-            .footer { text-align: center; font-size: 10px; color: #999; margin-top: 25px; font-style: italic; }
-        </style></head><body>
-        <div class="header">
-            <h1>ShahnaIT LLP</h1>             <div class="subtitle">IT Consultancy & Managed Service</div>
-            <div class="subtitle">ShahnaIT LLP</div>
-        </div>
-        <div class="payslip-box">
-            <h2>Payslip</h2>
-            <div class="address">Ground Floor, 4-617/113, Mansabdar Layout, Near Jamiya Masjid, MB Nagar, Kalaburagi, Karnataka 585105<br>GSTIN: 29AFPFS9563L1ZS | PAN: AFPFS9563L</div>
-        </div>
-        <table class="info-table">
-            <tr><td class="label">Employee Name</td><td>${escapeHtml(r.first_name||'')} ${escapeHtml(r.last_name||'')}</td></tr>
-            <tr><td class="label">Designation</td><td>${escapeHtml(r.work_location||'N/A')}</td></tr>
-            <tr><td class="label">Pay Period</td><td>${new Date().toLocaleString('default', {month:'long'})} ${new Date().getFullYear()}</td></tr>
-            <tr><td class="label">Client</td><td>${escapeHtml(r.client_name||'N/A')}</td></tr>
-        </table>
-        <table class="main-table">
-            <tr><th>Earnings</th><th style="text-align:right;">Amount (₹)</th><th>Deductions</th><th style="text-align:right;">Amount (₹)</th></tr>
-            <tr><td>Basic Salary</td><td style="text-align:right;">${((r.monthly_salary||0)*0.4).toLocaleString()}</td><td>Provident Fund</td><td style="text-align:right;">${((r.monthly_salary||0)*0.12).toLocaleString()}</td></tr>
-            <tr><td>HRA</td><td style="text-align:right;">${((r.monthly_salary||0)*0.2).toLocaleString()}</td><td>Professional Tax</td><td style="text-align:right;">200</td></tr>
-            <tr><td>Conveyance</td><td style="text-align:right;">${((r.monthly_salary||0)*0.15).toLocaleString()}</td><td></td><td></td></tr>
-            <tr><td>Medical Allowance</td><td style="text-align:right;">${((r.monthly_salary||0)*0.1).toLocaleString()}</td><td></td><td></td></tr>
-            <tr><td>Special Allowance</td><td style="text-align:right;">${((r.monthly_salary||0)*0.15).toLocaleString()}</td><td></td><td></td></tr>
-            <tr class="total"><td>Gross Earnings</td><td style="text-align:right;">${(r.monthly_salary||0).toLocaleString()}</td><td>Total Deductions</td><td style="text-align:right;">${(((r.monthly_salary||0)*0.12)+200).toLocaleString()}</td></tr>
-        </table>
-        <div class="net-pay">
-            <div class="fig">Net Pay: ₹${((r.monthly_salary||0) - ((r.monthly_salary||0)*0.12) - 200).toLocaleString()}</div>
-            <div class="words">(Rupees ${numberToWords(Math.round((r.monthly_salary||0) - ((r.monthly_salary||0)*0.12) - 200))} only)</div>
-        </div>
-        <div class="footer">This is a system generated payslip</div>
-        </body></html>
-    `);
+    win.document.write(`<html><head><title>Payslip</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; max-width: 750px; margin: 0 auto; padding: 30px; color: #3D3D3D; background: #FFF; }
+        .header { text-align: center; border-bottom: 3px solid #0D9488; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: #1A237E; font-size: 22px; margin: 0; }
+        .header .subtitle { color: #0D9488; font-size: 13px; margin: 5px 0 0 0; }
+        .payslip-box { background: #F5F0E8; border: 2px solid #C9A96E; border-radius: 10px; padding: 15px 20px; margin: 15px 0; text-align: center; }
+        .payslip-box h2 { color: #1A237E; font-size: 24px; margin: 0; }
+        .payslip-box .address { font-size: 11px; color: #666; margin: 3px 0 0 0; }
+        .info-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .info-table td { padding: 8px 12px; font-size: 13px; }
+        .info-table .label { font-weight: 700; color: #1A237E; width: 35%; background: #F5F0E8; }
+        .main-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        .main-table th { background: #0D9488; color: #FFF; padding: 10px; text-align: left; font-size: 13px; }
+        .main-table td { padding: 8px 10px; border-bottom: 1px solid #E2E0D8; font-size: 13px; }
+        .main-table .total td { font-weight: 700; color: #1A237E; border-top: 2px solid #C9A96E; }
+        .net-pay { background: #0D9488; color: #FFF; text-align: center; padding: 15px; border-radius: 8px; margin: 15px 0; }
+        .net-pay .fig { font-size: 26px; font-weight: 700; }
+        .net-pay .words { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+        .footer { text-align: center; font-size: 10px; color: #999; margin-top: 25px; font-style: italic; }
+    </style></head><body>
+    <div class="header">
+        <h1>ShahnaIT LLP</h1>
+        <div class="subtitle">IT Consultancy & Managed Service</div>
+    </div>
+    <div class="payslip-box">
+        <h2>Payslip</h2>
+        <div class="address">Ground Floor, 4-617/113, Mansabdar Layout, Near Jamiya Masjid, MB Nagar, Kalaburagi, Karnataka 585105</div>
+    </div>
+    <table class="info-table">
+        <tr><td class="label">Employee Name</td><td>${name}</td></tr>
+        <tr><td class="label">Designation</td><td>${designation}</td></tr>
+        <tr><td class="label">Pay Period</td><td>${period}</td></tr>
+        <tr><td class="label">Worked Days</td><td>${days}</td></tr>
+    </table>
+    <table class="main-table">
+        <tr><th>Earnings</th><th style="text-align:right;">Amount (₹)</th><th>Deductions</th><th style="text-align:right;">Amount (₹)</th></tr>
+        <tr><td>Basic Salary</td><td style="text-align:right;">${basic.toLocaleString()}</td><td>Provident Fund</td><td style="text-align:right;">${pf.toLocaleString()}</td></tr>
+        <tr><td>HRA</td><td style="text-align:right;">${hra.toLocaleString()}</td><td>Professional Tax</td><td style="text-align:right;">${pt.toLocaleString()}</td></tr>
+        <tr><td>Conveyance</td><td style="text-align:right;">${conveyance.toLocaleString()}</td><td></td><td></td></tr>
+        <tr><td>Medical Allowance</td><td style="text-align:right;">${medical.toLocaleString()}</td><td></td><td></td></tr>
+        <tr><td>Special Allowance</td><td style="text-align:right;">${special.toLocaleString()}</td><td></td><td></td></tr>
+        <tr class="total"><td>Gross Earnings</td><td style="text-align:right;">${gross.toLocaleString()}</td><td>Total Deductions</td><td style="text-align:right;">${deductions.toLocaleString()}</td></tr>
+    </table>
+    <div class="net-pay">
+        <div class="fig">Net Pay: ₹${netPay.toLocaleString()}</div>
+        <div class="words">(Rupees ${numberToWords(Math.round(netPay))} only)</div>
+    </div>
+    <div class="footer">This is a system generated payslip</div>
+    </body></html>`);
 }
 
 function numberToWords(num) {
@@ -7615,6 +7652,30 @@ async function dropCandidate(event, stage) {
             <div style="margin-top:15px;display:flex;gap:10px;">
                 <button class="btn btn-primary" onclick="saveEditedInvoice()">💾 Save & View</button>
                 <button class="btn btn-secondary" onclick="closeEditInvoice()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT PAYSLIP MODAL -->
+<div id="editPayslipModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header"><h3>📄 Edit Payslip</h3><span class="close" onclick="closeEditPayslip()">&times;</span></div>
+        <div class="modal-body" style="padding:20px;max-height:80vh;overflow-y:auto;">
+            <label>Employee Name</label><input id="editPayName" class="form-input">
+            <label>Designation</label><input id="editPayDesignation" class="form-input">
+            <label>Pay Period</label><input id="editPayPeriod" class="form-input" placeholder="e.g., August 2026">
+            <label>Worked Days</label><input type="number" id="editPayDays" class="form-input" value="30">
+            <label>Basic Salary (₹)</label><input type="number" id="editPayBasic" class="form-input">
+            <label>HRA (₹)</label><input type="number" id="editPayHra" class="form-input">
+            <label>Conveyance (₹)</label><input type="number" id="editPayConveyance" class="form-input">
+            <label>Medical Allowance (₹)</label><input type="number" id="editPayMedical" class="form-input">
+            <label>Special Allowance (₹)</label><input type="number" id="editPaySpecial" class="form-input">
+            <label>Provident Fund (₹)</label><input type="number" id="editPayPf" class="form-input">
+            <label>Professional Tax (₹)</label><input type="number" id="editPayPt" class="form-input" value="200">
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button class="btn btn-primary" onclick="saveEditedPayslip()">💾 Save & View</button>
+                <button class="btn btn-secondary" onclick="closeEditPayslip()">Cancel</button>
             </div>
         </div>
     </div>
