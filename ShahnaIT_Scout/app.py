@@ -3190,7 +3190,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <span>📈 Reports</span><i class="fas fa-chevron-down"></i>
             </div>
             <div class="sidebar-group-items">
-                <button class="tab-btn" onclick="toastInfo('Coming Soon')">📄 Reports & Exports</button>
+                <button class="tab-btn" id="tabReportsFull">📈 Reports & Exports</button>
             </div>
         </div>
 
@@ -3656,6 +3656,35 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     </div>
 </div>
 
+<div id="reportsFullPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>📈 Reports & Exports</h3>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
+            <div class="card">
+                <h4>📊 Candidate Reports</h4>
+                <button class="btn btn-primary" onclick="exportCandidatesCSV()">📥 Export Candidates CSV</button>
+                <button class="btn btn-primary" onclick="exportCandidatesPDF()">📄 Export Candidates PDF</button>
+            </div>
+            <div class="card">
+                <h4>💰 Finance Reports</h4>
+                <button class="btn btn-primary" onclick="exportFinancePDF()">📄 Finance Report PDF</button>
+                <button class="btn btn-primary" onclick="exportInvoicesCSV()">📥 Invoices CSV</button>
+                <button class="btn btn-primary" onclick="exportExpensesCSV()">📥 Expenses CSV</button>
+            </div>
+            <div class="card">
+                <h4>📅 Interview Reports</h4>
+                <button class="btn btn-primary" onclick="exportInterviewsCSV()">📥 Interviews CSV</button>
+            </div>
+            <div class="card">
+                <h4>💾 Backup</h4>
+                <button class="btn btn-primary" onclick="triggerBackup()">💾 Backup Now</button>
+                <button class="btn btn-secondary" onclick="listBackups()">📂 View Backups</button>
+                <div id="backupStatus2" style="font-size:12px;margin-top:5px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
 <div id="expensesPanel" style="display:none;">
     <div class="card no-click" style="max-width:100%;">
         <h3>💸 Expenses</h3>
@@ -4731,10 +4760,10 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); const tabReports = document.getElementById('tabReports'); if (tabReports) tabReports.onclick = function() { showPanel('reports'); document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadDailyReport(); }; if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
-    const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); const tabInvoices = document.getElementById('tabInvoices'); const tabExpenses = document.getElementById('tabExpenses'); if (tabExpenses) tabExpenses.onclick = function() { showPanel('expenses'); loadExpenses(); }; if (tabInvoices) tabInvoices.onclick = function() { showPanel('invoices'); loadInvoices(); }; if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
+    const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); const tabInvoices = document.getElementById('tabInvoices'); const tabExpenses = document.getElementById('tabExpenses'); const tabReportsFull = document.getElementById('tabReportsFull'); if (tabReportsFull) tabReportsFull.onclick = function() { showPanel('reportsFull'); }; if (tabExpenses) tabExpenses.onclick = function() { showPanel('expenses'); loadExpenses(); }; if (tabInvoices) tabInvoices.onclick = function() { showPanel('invoices'); loadInvoices(); }; if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel', 'invoicesPanel', 'expensesPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel', 'invoicesPanel', 'expensesPanel', 'reportsFullPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -7222,6 +7251,12 @@ async function markInvoicePaid(invoiceId) {
     if (res.ok) { toastSuccess('Marked as paid!'); loadInvoices(); }
     else { toastError('Failed to update'); }
 }
+function exportCandidatesCSV() { window.open('/api/export-candidates', '_blank'); }
+function exportCandidatesPDF() { window.open('/api/admin/export-pdf', '_blank'); }
+function exportInvoicesCSV() { window.open('/api/export-invoices', '_blank'); }
+function exportExpensesCSV() { window.open('/api/export-expenses', '_blank'); }
+function exportInterviewsCSV() { window.open('/api/export-interviews', '_blank'); }
+function exportFinancePDF() { window.open('/api/export-finance-pdf', '_blank'); }
 async function loadExpenses() {
     const res = await fetch('/api/expenses');
     const expenses = await res.json();
@@ -8787,6 +8822,105 @@ def download_expense_bill(expense_id):
     if row and row[0] and os.path.exists(row[0]):
         return send_file(row[0], as_attachment=False)
     return jsonify({'error': 'File not found'}), 404
+
+@app.route('/api/export-invoices', methods=['GET'])
+@login_required('admin')
+def export_invoices():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM invoices ORDER BY created_at DESC')
+    rows = c.fetchall()
+    conn.close()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Invoice No', 'Client', 'Resource', 'Amount', 'GST', 'Total', 'Date', 'Status'])
+    for row in rows:
+        writer.writerow([row['invoice_number'], row['client_name'], row['resource_name'], 
+                         row['amount'], row['gst_amount'], row['total_amount'], row['invoice_date'], row['status']])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=invoices.csv'})
+
+@app.route('/api/export-expenses', methods=['GET'])
+@login_required('admin')
+def export_expenses():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM expenses ORDER BY expense_date DESC')
+    rows = c.fetchall()
+    conn.close()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Date', 'Category', 'Description', 'Amount', 'Vendor', 'Paid By'])
+    for row in rows:
+        writer.writerow([row['expense_date'], row['category'], row['description'], 
+                         row['amount'], row['vendor'], row['paid_by']])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=expenses.csv'})
+
+@app.route('/api/export-interviews', methods=['GET'])
+@login_required('admin')
+def export_interviews():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM interviews ORDER BY interview_date DESC')
+    rows = c.fetchall()
+    conn.close()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Date', 'Time', 'Candidate', 'Round', 'Client', 'Verdict', 'Resource Owner'])
+    for row in rows:
+        writer.writerow([row['interview_date'], row['interview_time'], row['candidate_name'],
+                         row['round'], row['client_name'], row['verdict'], row['resource_owner']])
+    output.seek(0)
+    return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=interviews.csv'})
+
+@app.route('/api/export-finance-pdf', methods=['GET'])
+@login_required('admin')
+def export_finance_pdf():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute("SELECT * FROM onboarded_resources WHERE status = 'Active'")
+    resources = [dict(row) for row in c.fetchall()]
+    
+    total_revenue = sum(r['billing_rate'] or 0 for r in resources)
+    total_salary = sum(r['monthly_salary'] or 0 for r in resources)
+    total_profit = total_revenue - total_salary
+    
+    c.execute('SELECT SUM(amount) as total FROM expenses')
+    total_expenses = c.fetchone()['total'] or 0
+    conn.close()
+    
+    net_profit = total_profit - total_expenses
+    
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font('Times', 'B', 16)
+    pdf.cell(0, 10, 'ShahnaIT LLP - Finance Report', ln=True, align='C')
+    pdf.ln(5)
+    pdf.set_font('Times', 'B', 12)
+    pdf.cell(0, 8, 'Summary', ln=True)
+    pdf.set_font('Times', '', 11)
+    pdf.cell(0, 7, f'Total Monthly Revenue: Rs. {total_revenue:,.2f}', ln=True)
+    pdf.cell(0, 7, f'Total Monthly Salary: Rs. {total_salary:,.2f}', ln=True)
+    pdf.cell(0, 7, f'Gross Profit: Rs. {total_profit:,.2f}', ln=True)
+    pdf.cell(0, 7, f'Total Expenses: Rs. {total_expenses:,.2f}', ln=True)
+    pdf.cell(0, 7, f'Net Profit: Rs. {net_profit:,.2f}', ln=True)
+    pdf.ln(8)
+    
+    pdf.set_font('Times', 'B', 12)
+    pdf.cell(0, 8, 'Resource-wise Breakdown', ln=True)
+    pdf.set_font('Times', '', 10)
+    for r in resources:
+        margin = ((r['billing_rate'] or 0) - (r['monthly_salary'] or 0)) / (r['billing_rate'] or 1) * 100
+        pdf.cell(0, 6, f"{r.get('first_name','')} {r.get('last_name','')} - {r['client_name']} - Margin: {margin:.1f}%", ln=True)
+    
+    pdf_path = '/data/backups/finance_report.pdf'
+    pdf.output(pdf_path)
+    return send_file(pdf_path, as_attachment=True, download_name='finance_report.pdf')
 
 @app.route('/fix-client-fields')
 def fix_client_fields():
