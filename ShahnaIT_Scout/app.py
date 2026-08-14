@@ -666,6 +666,20 @@ def init_db():
     c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('branch', '')")
     c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('logo_path', '')")
     c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('authorized_signatory', '')")
+
+    c.execute('''CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        expense_date DATE,
+        category TEXT,
+        description TEXT,
+        amount REAL DEFAULT 0,
+        paid_by TEXT,
+        payment_method TEXT,
+        vendor TEXT,
+        invoice_ref TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
     
     conn.commit()
     conn.close()
@@ -3166,7 +3180,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             <div class="sidebar-group-items">
                 <button class="tab-btn" id="tabFinance">📊 Finance Dashboard</button>
                 <button class="tab-btn" id="tabInvoices">🧾 Invoices</button>
-                <button class="tab-btn" onclick="toastInfo('Coming Soon')">💸 Expenses</button>
+                <button class="tab-btn" id="tabExpenses">💸 Expenses</button>
             </div>
         </div>
 
@@ -3642,6 +3656,40 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     </div>
 </div>
 
+<div id="expensesPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>💸 Expenses</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Add Expense</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Date</label><input type="date" id="expDate" class="form-input"></div>
+                <div>
+                    <label style="font-size:12px;">Category</label>
+                    <select id="expCategory" class="form-input">
+                        <option value="Office Rent">Office Rent</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Internet">Internet</option>
+                        <option value="Software Subscription">Software Subscription</option>
+                        <option value="Recruitment">Recruitment</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Salary">Salary</option>
+                        <option value="Professional Services">Professional Services</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div><label style="font-size:12px;">Amount (₹)</label><input type="number" id="expAmount" class="form-input" placeholder="1000"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Vendor / Payee</label><input type="text" id="expVendor" class="form-input" placeholder="Vendor name"></div>
+                <div><label style="font-size:12px;">Paid By</label><input type="text" id="expPaidBy" class="form-input" placeholder="Name"></div>
+            </div>
+            <div style="margin-top:10px;"><label style="font-size:12px;">Description</label><textarea id="expDesc" class="form-input" rows="2" placeholder="What was this expense for?"></textarea></div>
+            <button id="addExpenseBtn" class="btn btn-primary" style="margin-top:12px;">💸 Add Expense</button>
+        </div>
+        <div id="expensesList"></div>
+    </div>
+</div>
 <div id="invoicesPanel" style="display:none;">
     <div class="card no-click" style="max-width:100%;">
         <h3>🧾 Invoices <button class="btn btn-sm btn-secondary" onclick="openCompanySettings()" style="float:right;">⚙️ Company Settings</button></h3>
@@ -4683,10 +4731,10 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); const tabReports = document.getElementById('tabReports'); if (tabReports) tabReports.onclick = function() { showPanel('reports'); document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadDailyReport(); }; if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
-    const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); const tabInvoices = document.getElementById('tabInvoices'); if (tabInvoices) tabInvoices.onclick = function() { showPanel('invoices'); loadInvoices(); }; if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
+    const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); const tabInvoices = document.getElementById('tabInvoices'); const tabExpenses = document.getElementById('tabExpenses'); if (tabExpenses) tabExpenses.onclick = function() { showPanel('expenses'); loadExpenses(); }; if (tabInvoices) tabInvoices.onclick = function() { showPanel('invoices'); loadInvoices(); }; if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel', 'invoicesPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel', 'invoicesPanel', 'expensesPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -4868,7 +4916,35 @@ async function updateInterviewVerdict(interviewId, verdict) {
 document.addEventListener('DOMContentLoaded', function() {
        const scheduleInterviewBtn = document.getElementById('scheduleInterviewBtn');
     if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
-        
+    const addExpenseBtn = document.getElementById('addExpenseBtn');
+if (addExpenseBtn) addExpenseBtn.onclick = async function() {
+    const data = {
+        expense_date: document.getElementById('expDate').value,
+        category: document.getElementById('expCategory').value,
+        description: document.getElementById('expDesc').value,
+        amount: parseFloat(document.getElementById('expAmount').value) || 0,
+        paid_by: document.getElementById('expPaidBy').value,
+        vendor: document.getElementById('expVendor').value
+    };
+    if (!data.expense_date || !data.amount) { toastError('Date and amount required'); return; }
+    
+    const res = await fetch('/api/expenses', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    if (res.ok) {
+        toastSuccess('Expense added!');
+        document.getElementById('expDate').value = '';
+        document.getElementById('expDesc').value = '';
+        document.getElementById('expAmount').value = '';
+        document.getElementById('expVendor').value = '';
+        document.getElementById('expPaidBy').value = '';
+        loadExpenses();
+    } else {
+        toastError('Failed to add expense');
+    }
+};    
     // Onboard button
     const onboardBtn = document.getElementById('onboardBtn');
     if (onboardBtn) onboardBtn.onclick = async function() {
@@ -7140,6 +7216,35 @@ async function markInvoicePaid(invoiceId) {
     if (res.ok) { toastSuccess('Marked as paid!'); loadInvoices(); }
     else { toastError('Failed to update'); }
 }
+async function loadExpenses() {
+    const res = await fetch('/api/expenses');
+    const expenses = await res.json();
+    const container = document.getElementById('expensesList');
+    
+    if (!expenses.length) {
+        container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">No expenses yet</p>';
+        return;
+    }
+    
+    let total = 0;
+    expenses.forEach(e => total += e.amount || 0);
+    
+    let html = `<div class="alert-success" style="margin:10px 0;"><strong>Total Expenses: ₹${total.toLocaleString()}</strong> (${expenses.length} entries)</div>`;
+    
+    expenses.forEach(e => {
+        html += `<div class="card" style="margin:8px 0;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+                <div>
+                    <strong>${escapeHtml(e.category)}</strong> - ${escapeHtml(e.description||'N/A')}
+                    <div style="font-size:12px;color:#777;">📅 ${e.expense_date} | 👤 ${escapeHtml(e.paid_by||'N/A')} | 🏢 ${escapeHtml(e.vendor||'N/A')}</div>
+                </div>
+                <div style="font-size:16px;font-weight:bold;color:#EF4444;">₹${(e.amount||0).toLocaleString()}</div>
+            </div>
+        </div>`;
+    });
+    
+    container.innerHTML = html;
+}
 async function loadFinance() {
     const res = await fetch('/api/finance-dashboard');
     const data = await res.json();
@@ -8621,6 +8726,31 @@ def edit_invoice(invoice_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Invoice updated'})
+
+@app.route('/api/expenses', methods=['GET'])
+@login_required('admin')
+def get_expenses():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM expenses ORDER BY expense_date DESC')
+    expenses = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(expenses)
+
+@app.route('/api/expenses', methods=['POST'])
+@login_required('admin')
+def create_expense():
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''INSERT INTO expenses (expense_date, category, description, amount, paid_by, vendor)
+        VALUES (?, ?, ?, ?, ?, ?)''',
+        (data.get('expense_date'), data.get('category'), data.get('description'),
+         float(data.get('amount', 0)), data.get('paid_by'), data.get('vendor')))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Expense added'})
 
 @app.route('/fix-client-fields')
 def fix_client_fields():
