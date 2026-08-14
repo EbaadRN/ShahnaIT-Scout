@@ -3684,7 +3684,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <div><label style="font-size:12px;">Vendor / Payee</label><input type="text" id="expVendor" class="form-input" placeholder="Vendor name"></div>
                 <div><label style="font-size:12px;">Paid By</label><input type="text" id="expPaidBy" class="form-input" placeholder="Name"></div>
             </div>
-            <div style="margin-top:10px;"><label style="font-size:12px;">Description</label><textarea id="expDesc" class="form-input" rows="2" placeholder="What was this expense for?"></textarea></div>
+            <div style="margin-top:10px;"><label style="font-size:12px;">Description</label><textarea id="expDesc" class="form-input" rows="2" placeholder="What was this expense for?"></textarea></div> <div style="margin-top:10px;"><label style="font-size:12px;">Attach Bill (PDF/DOCX/JPG/PNG)</label><input type="file" id="expFile" accept=".pdf,.docx,.jpg,.jpeg,.png"></div> <div style="margin-top:10px;"><label style="font-size:12px;">Attach Bill (PDF/DOCX/JPG/PNG)</label><input type="file" id="expFile" accept=".pdf,.docx,.jpg,.jpeg,.png"></div>
             <button id="addExpenseBtn" class="btn btn-primary" style="margin-top:12px;">💸 Add Expense</button>
         </div>
         <div id="expensesList"></div>
@@ -4918,21 +4918,26 @@ document.addEventListener('DOMContentLoaded', function() {
     if (scheduleInterviewBtn) scheduleInterviewBtn.onclick = scheduleInterview;
     const addExpenseBtn = document.getElementById('addExpenseBtn');
 if (addExpenseBtn) addExpenseBtn.onclick = async function() {
-    const data = {
-        expense_date: document.getElementById('expDate').value,
-        category: document.getElementById('expCategory').value,
-        description: document.getElementById('expDesc').value,
-        amount: parseFloat(document.getElementById('expAmount').value) || 0,
-        paid_by: document.getElementById('expPaidBy').value,
-        vendor: document.getElementById('expVendor').value
-    };
-    if (!data.expense_date || !data.amount) { toastError('Date and amount required'); return; }
+    const formData = new FormData();
+    formData.append('expense_date', document.getElementById('expDate').value);
+    formData.append('category', document.getElementById('expCategory').value);
+    formData.append('description', document.getElementById('expDesc').value);
+    formData.append('amount', document.getElementById('expAmount').value);
+    formData.append('paid_by', document.getElementById('expPaidBy').value);
+    formData.append('vendor', document.getElementById('expVendor').value);
+    
+    const fileInput = document.getElementById('expFile');
+    if (fileInput.files[0]) {
+        formData.append('bill_file', fileInput.files[0]);
+    }
+    
+    if (!formData.get('expense_date') || !formData.get('amount')) { toastError('Date and amount required'); return; }
     
     const res = await fetch('/api/expenses', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
+        body: formData
     });
+    
     if (res.ok) {
         toastSuccess('Expense added!');
         document.getElementById('expDate').value = '';
@@ -4940,6 +4945,7 @@ if (addExpenseBtn) addExpenseBtn.onclick = async function() {
         document.getElementById('expAmount').value = '';
         document.getElementById('expVendor').value = '';
         document.getElementById('expPaidBy').value = '';
+        document.getElementById('expFile').value = '';
         loadExpenses();
     } else {
         toastError('Failed to add expense');
@@ -7237,6 +7243,7 @@ async function loadExpenses() {
                 <div>
                     <strong>${escapeHtml(e.category)}</strong> - ${escapeHtml(e.description||'N/A')}
                     <div style="font-size:12px;color:#777;">📅 ${e.expense_date} | 👤 ${escapeHtml(e.paid_by||'N/A')} | 🏢 ${escapeHtml(e.vendor||'N/A')}</div>
+                    ${e.invoice_ref ? `<a href="/api/expenses/${e.id}/download-bill" style="font-size:12px;color:#1B2A4A;text-decoration:underline;">📎 View Bill</a>` : ''}
                 </div>
                 <div style="font-size:16px;font-weight:bold;color:#EF4444;">₹${(e.amount||0).toLocaleString()}</div>
             </div>
@@ -8741,16 +8748,45 @@ def get_expenses():
 @app.route('/api/expenses', methods=['POST'])
 @login_required('admin')
 def create_expense():
-    data = request.json
+    data = request.form.to_dict() if request.form else request.json
+    if not data:
+        data = request.json
+    
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute('''INSERT INTO expenses (expense_date, category, description, amount, paid_by, vendor)
         VALUES (?, ?, ?, ?, ?, ?)''',
         (data.get('expense_date'), data.get('category'), data.get('description'),
          float(data.get('amount', 0)), data.get('paid_by'), data.get('vendor')))
+    
+    expense_id = c.lastrowid
+    
+    # Handle file upload
+    if 'bill_file' in request.files:
+        file = request.files['bill_file']
+        if file.filename:
+            doc_dir = f'/data/expense_docs/{expense_id}'
+            os.makedirs(doc_dir, exist_ok=True)
+            filename = secure_filename(f"{datetime.now().timestamp()}_{file.filename}")
+            filepath = os.path.join(doc_dir, filename)
+            file.save(filepath)
+            c.execute('UPDATE expenses SET invoice_ref = ? WHERE id = ?', (filepath, expense_id))
+    
     conn.commit()
     conn.close()
     return jsonify({'message': 'Expense added'})
+
+@app.route('/api/expenses/<int:expense_id>/download-bill')
+@login_required('admin')
+def download_expense_bill(expense_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT invoice_ref FROM expenses WHERE id = ?', (expense_id,))
+    row = c.fetchone()
+    conn.close()
+    if row and row[0] and os.path.exists(row[0]):
+        return send_file(row[0], as_attachment=False)
+    return jsonify({'error': 'File not found'}), 404
 
 @app.route('/fix-client-fields')
 def fix_client_fields():
