@@ -6027,16 +6027,17 @@ if (parseBtn) parseBtn.onclick = async function() {
             }
             
             // Ask for uploader name
+                        // Ask for uploader name
             let uploaded_by = 'Siraj';
-const upRes = await fetch('/api/uploaders');
-const upList = await upRes.json();
-if (upList.length) {
-    const choice = prompt('Select uploader:\n' + upList.map((n, i) => (i+1) + '. ' + n).join('\n'), '1');
-    const idx = parseInt(choice) - 1;
-    if (!isNaN(idx) && upList[idx]) uploaded_by = upList[idx];
-    else if (upList.includes(choice)) uploaded_by = choice;
-}
-result.uploaded_by = uploaded_by;
+            const upRes = await fetch('/api/uploaders');
+            const upList = await upRes.json();
+            if (upList.length) {
+                const choice = prompt('Select uploader:\n' + upList.map((n, i) => (i+1) + '. ' + n).join('\n'), '1');
+                const idx = parseInt(choice) - 1;
+                if (!isNaN(idx) && upList[idx]) uploaded_by = upList[idx];
+                else if (upList.includes(choice)) uploaded_by = choice;
+            }
+            result.uploaded_by = uploaded_by;
             
             const saveRes = await fetch('/api/candidates', { 
                 method: 'POST', 
