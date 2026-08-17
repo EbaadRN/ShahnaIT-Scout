@@ -6032,7 +6032,7 @@ if (parseBtn) parseBtn.onclick = async function() {
             const upRes = await fetch('/api/uploaders');
             const upList = await upRes.json();
             if (upList.length) {
-                const choice = prompt('Select uploader: ' + uplist.join(', '), 'Siraj'):
+                const choice = prompt('Select uploader: ' + upList.join(', '), 'Siraj');
                 const idx = parseInt(choice) - 1;
                 if (!isNaN(idx) && upList[idx]) uploaded_by = upList[idx];
                 else if (upList.includes(choice)) uploaded_by = choice;
