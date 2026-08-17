@@ -6046,7 +6046,6 @@ if (parseBtn) parseBtn.onclick = async function() {
             let uploaded_by = 'Siraj'; const uploadersRes = await fetch('/api/uploaders'); const uploaders = await uploadersRes.json(); if (uploaders.length) {     uploaded_by = prompt('Select uploader name:
 ' + uploaders.map((n,i) => (i+1) + '. ' + n).join('
 '), '1');     if (uploaded_by && !isNaN(uploaded_by)) {         uploaded_by = uploaders[parseInt(uploaded_by) - 1] || uploaders[0];     } else if (uploaded_by) {         uploaded_by = uploaders.includes(uploaded_by) ? uploaded_by : uploaders[0];     } else {         uploaded_by = uploaders[0];     } } result.uploaded_by = uploaded_by;
-            result.uploaded_by = uploaded_by || 'ShahnaIT';
             
             const saveRes = await fetch('/api/candidates', { 
                 method: 'POST', 
