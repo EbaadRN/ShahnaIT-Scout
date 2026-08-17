@@ -689,19 +689,15 @@ def init_db():
     c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('logo_path', '')")
     c.execute("INSERT OR IGNORE INTO company_settings (setting_key, setting_value) VALUES ('authorized_signatory', '')")
 
-    c.execute('''CREATE TABLE IF NOT EXISTS expenses (
+    c.execute('''CREATE TABLE IF NOT EXISTS uploaders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        expense_date DATE,
-        category TEXT,
-        description TEXT,
-        amount REAL DEFAULT 0,
-        paid_by TEXT,
-        payment_method TEXT,
-        vendor TEXT,
-        invoice_ref TEXT,
-        notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        name TEXT UNIQUE NOT NULL
     )''')
+    
+    c.execute('SELECT COUNT(*) FROM uploaders')
+    if c.fetchone()[0] == 0:
+        for name in ['Siraj', 'Ibaad', 'Saniya', 'Sumaiya', 'Muhiuddin']:
+            c.execute('INSERT INTO uploaders (name) VALUES (?)', (name,))
     
     conn.commit()
     conn.close()
