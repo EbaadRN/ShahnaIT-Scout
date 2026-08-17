@@ -702,18 +702,6 @@ def init_db():
         notes TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
-
-    c.execute('''CREATE TABLE IF NOT EXISTS uploaders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL
-    )''')
-    
-    # Insert default uploaders if table empty
-    c.execute('SELECT COUNT(*) FROM uploaders')
-    if c.fetchone()[0] == 0:
-        default_uploaders = ['Siraj', 'Ibaad', 'Saniya', 'Sumaiya', 'Muhiuddin']
-        for name in default_uploaders:
-            c.execute('INSERT INTO uploaders (name) VALUES (?)', (name,))
     
     conn.commit()
     conn.close()
@@ -6042,22 +6030,9 @@ if (parseBtn) parseBtn.onclick = async function() {
                 if (!skip) { toastInfo('Skipped duplicate'); return; }
             }
             
-                        // Ask for uploader name
-            let uploaded_by = 'Siraj';
-            const uploadersRes = await fetch('/api/uploaders');
-            const uploaders = await uploadersRes.json();
-            if (uploaders.length) {
-                const choice = prompt('Select uploader name:\n' + uploaders.map((n, i) => (i + 1) + 
-'. ' + n).join('\n'), '1');
-                if (choice && !isNaN(choice)) {
-                    uploaded_by = uploaders[parseInt(choice) - 1] || uploaders[0];
-                } else if (choice && uploaders.includes(choice)) {
-                    uploaded_by = choice;
-                } else {
-                    uploaded_by = uploaders[0];
-                }
-            }
-            result.uploaded_by = uploaded_by;
+            // Ask for uploader name
+            const uploaded_by = prompt('Enter your name (for tracking):', 'HR Team');
+            result.uploaded_by = uploaded_by || 'ShahnaIT';
             
             const saveRes = await fetch('/api/candidates', { 
                 method: 'POST', 
@@ -8540,34 +8515,6 @@ def send_daily_digest():
     
     send_telegram_message(message)
     return jsonify({'message': 'Digest sent'})
-
-@app.route('/api/uploaders', methods=['GET'])
-@login_required()
-def get_uploaders():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('SELECT name FROM uploaders ORDER BY name')
-    uploaders = [row[0] for row in c.fetchall()]
-    conn.close()
-    return jsonify(uploaders)
-
-@app.route('/api/uploaders', methods=['POST'])
-@login_required('admin')
-def add_uploader():
-    data = request.json
-    name = data.get('name', '').strip()
-    if not name:
-        return jsonify({'error': 'Name required'}), 400
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    try:
-        c.execute('INSERT INTO uploaders (name) VALUES (?)', (name,))
-        conn.commit()
-    except:
-        conn.close()
-        return jsonify({'error': 'Name already exists'}), 400
-    conn.close()
-    return jsonify({'message': 'Uploader added'})
 
 @app.route('/test-drive')
 def test_drive():
