@@ -99,6 +99,28 @@ def send_email(to_email, subject, body):
         print(f"Email error: {e}")
         return False
 
+def send_telegram_message(message):
+    """Send message to Telegram group"""
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
+    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    
+    if not bot_token or not chat_id:
+        print("⚠️ Telegram not configured")
+        return False
+    
+    try:
+        url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload = {
+            'chat_id': chat_id,
+            'text': message,
+            'parse_mode': 'HTML'
+        }
+        response = requests.post(url, json=payload, timeout=10)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"Telegram error: {e}")
+        return False
+
 # Download required NLTK data
 try:
     nltk.download('punkt', quiet=True)
@@ -3499,7 +3521,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     <div id="dashboardPanel" style="display:none;">
         <div class="card no-click">
         <div style="display:flex;gap:8px;margin-bottom:10px;">
-    <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button>
+    <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button> <button class="btn btn-sm btn-secondary" onclick="testTelegram()">📱 Test Telegram</button>
     <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
     <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
 </div>
@@ -6735,6 +6757,15 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 
+async function testTelegram() {
+    const res = await fetch('/api/telegram/daily-digest', { method: 'POST' });
+    if (res.ok) {
+        toastSuccess('Telegram message sent! Check the group.');
+    } else {
+        toastError('Failed to send Telegram message');
+    }
+}
+
 async function triggerBackup() {
     const div = document.getElementById('backupStatus');
     div.innerHTML = '<span style="color:#6366F1;">⏳ Creating backup...</span>';
@@ -8341,6 +8372,19 @@ def create_interview():
          data.get('scheduled_by', 'HR')))
     conn.commit()
     conn.close()
+
+    # Send Telegram notification
+    notification = f"""📅 <b>New Interview Scheduled</b>
+
+👤 <b>Candidate:</b> {data.get('candidate_name')}
+🎯 <b>Round:</b> {data.get('round')}
+📅 <b>Date:</b> {data.get('interview_date')}
+🕐 <b>Time:</b> {data.get('interview_time', 'TBD')}
+🏢 <b>Client:</b> {data.get('client_name', 'N/A')}
+👤 <b>Scheduled By:</b> {session.get('user_name', 'HR')}"""
+    
+    send_telegram_message(notification)
+    
     return jsonify({'message': 'Interview scheduled'})
 
 @app.route('/api/interviews/<int:interview_id>', methods=['PUT'])
@@ -8352,6 +8396,18 @@ def update_interview(interview_id):
               (data.get('verdict'), data.get('feedback', ''), interview_id))
     conn.commit()
     conn.close()
+    
+    # Send Telegram notification
+    verdict = data.get('verdict', 'Scheduled')
+    feedback = data.get('feedback', '')
+    notification = f"""📊 <b>Interview Verdict Updated</b>
+
+🎯 <b>Verdict:</b> {verdict}
+💬 <b>Feedback:</b> {feedback if feedback else 'N/A'}
+👤 <b>Updated By:</b> {session.get('user_name', 'HR')}"""
+    
+    send_telegram_message(notification)
+    
     return jsonify({'message': 'Interview updated'})
 @app.route('/api/interviews/<int:interview_id>/send-email', methods=['POST'])
 def send_interview_email(interview_id):
@@ -8436,6 +8492,29 @@ def send_interview_email(interview_id):
         return jsonify({'message': 'Email sent successfully'})
     
     return jsonify({'error': 'Failed to send email'}), 500    
+
+
+@app.route('/api/telegram/daily-digest', methods=['POST'])
+@login_required('admin')
+def send_daily_digest():
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM interviews WHERE interview_date = ? ORDER BY interview_time', (today,))
+    interviews = [dict(row) for row in c.fetchall()]
+    conn.close()
+    
+    if not interviews:
+        message = f"📅 <b>Daily Interview Digest - {today}</b>\n\n✅ No interviews scheduled today."
+    else:
+        message = f"📅 <b>Daily Interview Digest - {today}</b>\n\n"
+        for i in interviews:
+            message += f"🕐 {i['interview_time'] or 'TBD'} - {i['candidate_name']} ({i['round']}) - {i['client_name'] or 'N/A'}\n"
+    
+    send_telegram_message(message)
+    return jsonify({'message': 'Digest sent'})
 
 @app.route('/test-drive')
 def test_drive():
