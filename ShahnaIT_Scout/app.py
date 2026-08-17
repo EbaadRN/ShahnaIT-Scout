@@ -6047,7 +6047,8 @@ if (parseBtn) parseBtn.onclick = async function() {
             const uploadersRes = await fetch('/api/uploaders');
             const uploaders = await uploadersRes.json();
             if (uploaders.length) {
-                const choice = prompt('Select uploader name:\n' + uploaders.map((n, i) => (i + 1) + '. ' + n).join('\n'), '1');
+                const choice = prompt('Select uploader name:\n' + uploaders.map((n, i) => (i + 1) + '. ' + n).join
+                ('\n'), '1');
                 if (choice && !isNaN(choice)) {
                     uploaded_by = uploaders[parseInt(choice) - 1] || uploaders[0];
                 } else if (choice && uploaders.includes(choice)) {
