@@ -6027,8 +6027,16 @@ if (parseBtn) parseBtn.onclick = async function() {
             }
             
             // Ask for uploader name
-            const uploaded_by = prompt('Enter your name (for tracking):', 'HR Team');
-            result.uploaded_by = uploaded_by || 'ShahnaIT';
+            let uploaded_by = 'Siraj';
+const upRes = await fetch('/api/uploaders');
+const upList = await upRes.json();
+if (upList.length) {
+    const choice = prompt('Select uploader:\n' + upList.map((n, i) => (i+1) + '. ' + n).join('\n'), '1');
+    const idx = parseInt(choice) - 1;
+    if (!isNaN(idx) && upList[idx]) uploaded_by = upList[idx];
+    else if (upList.includes(choice)) uploaded_by = choice;
+}
+result.uploaded_by = uploaded_by;
             
             const saveRes = await fetch('/api/candidates', { 
                 method: 'POST', 
@@ -8512,6 +8520,44 @@ def send_daily_digest():
     send_telegram_message(message)
     return jsonify({'message': 'Digest sent'})
 
+@app.route('/api/uploaders', methods=['GET'])
+@login_required()
+def get_uploaders():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT name FROM uploaders ORDER BY name')
+    uploaders = [row[0] for row in c.fetchall()]
+    conn.close()
+    return jsonify(uploaders)
+
+@app.route('/api/uploaders', methods=['POST'])
+@login_required('admin')
+def add_uploader():
+    data = request.json
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'error': 'Name required'}), 400
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute('INSERT INTO uploaders (name) VALUES (?)', (name,))
+        conn.commit()
+    except:
+        conn.close()
+        return jsonify({'error': 'Name already exists'}), 400
+    conn.close()
+    return jsonify({'message': 'Uploader added'})
+
+@app.route('/api/uploaders/<name>', methods=['DELETE'])
+@login_required('admin')
+def delete_uploader(name):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM uploaders WHERE name = ?', (name,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Uploader deleted'})
+    
 @app.route('/test-drive')
 def test_drive():
     service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
