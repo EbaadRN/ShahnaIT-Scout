@@ -6042,10 +6042,21 @@ if (parseBtn) parseBtn.onclick = async function() {
                 if (!skip) { toastInfo('Skipped duplicate'); return; }
             }
             
-            // Ask for uploader name
-            let uploaded_by = 'Siraj'; const uploadersRes = await fetch('/api/uploaders'); const uploaders = await uploadersRes.json(); if (uploaders.length) {     uploaded_by = prompt('Select uploader name:
-' + uploaders.map((n,i) => (i+1) + '. ' + n).join('
-'), '1');     if (uploaded_by && !isNaN(uploaded_by)) {         uploaded_by = uploaders[parseInt(uploaded_by) - 1] || uploaders[0];     } else if (uploaded_by) {         uploaded_by = uploaders.includes(uploaded_by) ? uploaded_by : uploaders[0];     } else {         uploaded_by = uploaders[0];     } } result.uploaded_by = uploaded_by;
+                        // Ask for uploader name
+            let uploaded_by = 'Siraj';
+            const uploadersRes = await fetch('/api/uploaders');
+            const uploaders = await uploadersRes.json();
+            if (uploaders.length) {
+                const choice = prompt('Select uploader name:\n' + uploaders.map((n, i) => (i + 1) + '. ' + n).join('\n'), '1');
+                if (choice && !isNaN(choice)) {
+                    uploaded_by = uploaders[parseInt(choice) - 1] || uploaders[0];
+                } else if (choice && uploaders.includes(choice)) {
+                    uploaded_by = choice;
+                } else {
+                    uploaded_by = uploaders[0];
+                }
+            }
+            result.uploaded_by = uploaded_by;
             
             const saveRes = await fetch('/api/candidates', { 
                 method: 'POST', 
