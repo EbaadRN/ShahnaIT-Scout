@@ -703,7 +703,7 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
-        c.execute('''CREATE TABLE IF NOT EXISTS uploaders (
+    c.execute('''CREATE TABLE IF NOT EXISTS uploaders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE NOT NULL
     )''')
@@ -8529,7 +8529,6 @@ def send_daily_digest():
     
     send_telegram_message(message)
     return jsonify({'message': 'Digest sent'})
-
 
 @app.route('/api/uploaders', methods=['GET'])
 @login_required()
