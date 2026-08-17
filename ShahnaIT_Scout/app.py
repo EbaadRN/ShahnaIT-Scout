@@ -703,7 +703,7 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
-    c.execute('''CREATE TABLE IF NOT EXISTS uploaders (
+        c.execute('''CREATE TABLE IF NOT EXISTS uploaders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT UNIQUE NOT NULL
     )''')
