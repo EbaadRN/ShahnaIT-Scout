@@ -8816,7 +8816,7 @@ def daily_report():
         'interviews_completed': len(completed_interviews),
         'completed_interviews': completed_interviews,
         'candidates_added': len(candidates_added),
-        'candidates': candidates_added
+        'candidates': candidates_added,
         'proposals_by_recruiter': proposals_by_recruiter
     })
 
