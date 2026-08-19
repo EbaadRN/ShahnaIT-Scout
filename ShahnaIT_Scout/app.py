@@ -5107,9 +5107,9 @@ async function loadJobs() {
     if (j.years_of_experience) {
         badges += `<span style="background:#8B5CF6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${j.years_of_experience}+ Yrs</span>`;
     }
-    if (j.budget) {
-        badges += `<span style="background:#EC4899;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 ${escapeHtml(j.budget)}</span>`;
-    }
+    if (j.budget && currentUser && currentUser.role === 'admin') {
+    badges += `<span style="background:#EC4899;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 ${escapeHtml(j.budget)}</span>`;
+}
     if (j.headcount && j.headcount > 1) {
         badges += `<span style="background:#14B8A6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;">👥 ${j.headcount}</span>`;
     }
@@ -5760,7 +5760,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div class="form-group"><label>Years of Experience</label><input type="number" id="editJobExperience" class="form-input" value="${job.years_of_experience || 0}" min="0"></div>
-                <div class="form-group"><label>Budget</label><input type="text" id="editJobBudget" class="form-input" value="${escapeHtml(job.budget || '')}"></div>
+                ${currentUser && currentUser.role === 'admin' ? `<div class="form-group"><label>Budget</label><input type="text" id="editJobBudget" class="form-input" value="${escapeHtml(job.budget || '')}"></div>` : ''}
                 <div class="form-group"><label>Headcount</label><input type="number" id="editJobHeadcount" class="form-input" value="${job.headcount || 1}" min="1"></div>
             </div>
             <div class="form-group"><label>Roles & Responsibilities</label><textarea id="editJobRoles" class="form-input" rows="4">${escapeHtml(job.roles_responsibilities || '')}</textarea></div>
@@ -7902,7 +7902,7 @@ def get_jobs():
     return jsonify(jobs)
 
 @app.route('/api/jobs', methods=['POST']) 
-@login_required('manager')
+@login_required('admin')
 def create_job():
     data = request.json
     conn = sqlite3.connect(DB_PATH)
