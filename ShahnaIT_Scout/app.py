@@ -9918,7 +9918,8 @@ def auto_daily_digest():
     while True:
         time_module.sleep(1800)  # check every 30 minutes
         now = datetime.now()
-        if now.hour == 9 and now.minute < 30:
+                # 9 AM IST = 3:30 AM UTC
+        if now.hour == 3 and now.minute >= 30 and now.minute < 60:
             today = now.strftime('%Y-%m-%d')
             
             conn = sqlite3.connect(DB_PATH)
