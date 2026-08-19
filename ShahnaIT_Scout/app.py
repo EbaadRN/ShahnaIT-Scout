@@ -8797,7 +8797,7 @@ def daily_report():
     c.execute("SELECT * FROM interviews WHERE interview_date = ? AND verdict != 'Scheduled'", (date,))
     completed_interviews = [dict(row) for row in c.fetchall()]
 
-        # Proposals by recruiter
+    # Proposals by recruiter
     c.execute("""SELECT uploaded_by_name, COUNT(*) as count 
                  FROM candidates 
                  WHERE date(created_at) = ? AND uploaded_by_name IS NOT NULL
