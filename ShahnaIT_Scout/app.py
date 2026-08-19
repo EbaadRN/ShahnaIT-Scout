@@ -5543,8 +5543,6 @@ if (!Array.isArray(skills)) skills = [];
                         <i class="fas fa-file-pdf"></i> Export PDF
                     </button>
                     ${(currentUser && (currentUser.role === 'admin' || currentUser.full_name === 'Siraj' || currentUser.full_name === 'Ibaad')) ? `<button class="btn-danger" onclick="event.stopPropagation(); deleteCandidate(${c.id})"><i class="fas fa-trash"></i></button>` : ''}
-                        <i class="fas fa-trash"></i>
-                    </button>
                 </div>
             </div>
             
