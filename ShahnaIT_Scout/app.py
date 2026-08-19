@@ -8796,6 +8796,14 @@ def daily_report():
     
     c.execute("SELECT * FROM interviews WHERE interview_date = ? AND verdict != 'Scheduled'", (date,))
     completed_interviews = [dict(row) for row in c.fetchall()]
+
+        # Proposals by recruiter
+    c.execute("""SELECT uploaded_by_name, COUNT(*) as count 
+                 FROM candidates 
+                 WHERE date(created_at) = ? AND uploaded_by_name IS NOT NULL
+                 GROUP BY uploaded_by_name
+                 ORDER BY count DESC""", (date,))
+    proposals_by_recruiter = [dict(row) for row in c.fetchall()]
     
     conn.close()
     
@@ -8809,6 +8817,7 @@ def daily_report():
         'completed_interviews': completed_interviews,
         'candidates_added': len(candidates_added),
         'candidates': candidates_added
+        'proposals_by_recruiter': proposals_by_recruiter
     })
 
 
