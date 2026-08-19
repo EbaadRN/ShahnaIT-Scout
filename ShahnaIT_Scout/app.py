@@ -7947,9 +7947,10 @@ def update_candidate(candidate_id):
         
         # Check ownership - admin can edit all, others only own
         if session.get('role') != 'admin':
-            c.execute('SELECT uploaded_by_name FROM candidates WHERE id = ?', (candidate_id,))
+            c.execute('SELECT uploaded_by_name, uploaded_by FROM candidates WHERE id = ?', (candidate_id,))
             row = c.fetchone()
-            if not row or (row[0] or '') != (session.get('user_name') or ''):
+            user_name = session.get('user_name') or ''
+            if not row or ((row[0] or '') != user_name and (row[1] or '') != user_name):
                 conn.close()
                 return jsonify({"success": False, "error": "You can only edit your own candidates"}), 403
         
