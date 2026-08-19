@@ -3360,14 +3360,19 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
         <div class="card no-click">
             <h3>📄 Single Resume Upload</h3>
             <input type="file" id="resumeFile" accept=".pdf,.docx">
-            <button id="parseBtn">🔍 Parse & Save</button>
+<select id="uploaderSelect" class="form-input" style="margin:10px 0;">
+    <option value="">-- Select Uploader --</option>
+</select>
+<button id="parseBtn">🔍 Parse & Save</button>
             <div id="parseResult"></div>
         </div>
         
         <div class="card no-click" style="margin-top: 20px;">
             <h3>📚 Bulk Resume Upload (Select Multiple Files)</h3>
             <p>Hold Ctrl (or Cmd on Mac) to select multiple PDF/DOCX files</p>
-            <input type="file" id="multiResumeFiles" multiple accept=".pdf,.docx">
+            <input type="file" id="multiResumeFiles" multiple accept=".pdf,.docx"> <select id="bulkUploaderSelect" class="form-input" style="margin:10px 0;">
+    <option value="">-- Select Uploader --</option>
+</select>
             <div id="selectedFilesList" class="file-list" style="display:none;"></div>
             <button id="bulkUploadBtn" class="btn">🚀 Upload & Parse All</button>
             <div id="bulkUploadResult"></div>
@@ -4689,6 +4694,18 @@ console.log('✅ loadCandidates defined');
 
 // Call loadCandidates when page loads
 loadCandidates();
+
+async function loadUploaderDropdown() {
+    const res = await fetch('/api/uploaders');
+    const uploaders = await res.json();
+    const select = document.getElementById('uploaderSelect');
+    const bulkSelect = document.getElementById('bulkUploaderSelect');
+    const options = '<option value="">-- Select Uploader --</option>' + 
+        uploaders.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+    if (select) select.innerHTML = options;
+    if (bulkSelect) bulkSelect.innerHTML = options;
+}
+loadUploaderDropdown();
 
 // Open first sidebar group by default
 document.querySelector('.sidebar-group-header').classList.add('open');
@@ -6028,16 +6045,12 @@ if (parseBtn) parseBtn.onclick = async function() {
             
             // Ask for uploader name
                         // Ask for uploader name
-            let uploaded_by = 'Siraj';
-            const upRes = await fetch('/api/uploaders');
-            const upList = await upRes.json();
-            if (upList.length) {
-                const choice = prompt('Select uploader: ' + upList.join(', '), 'Siraj');
-                const idx = parseInt(choice) - 1;
-                if (!isNaN(idx) && upList[idx]) uploaded_by = upList[idx];
-                else if (upList.includes(choice)) uploaded_by = choice;
-            }
-            result.uploaded_by = uploaded_by;
+            const uploaded_by = document.getElementById('uploaderSelect').value;
+if (!uploaded_by) {
+    toastError('Please select uploader first');
+    return;
+}
+result.uploaded_by = uploaded_by;
             
             const saveRes = await fetch('/api/candidates', { 
                 method: 'POST', 
@@ -6467,6 +6480,12 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
                     }
                     
                     // Save candidate
+                                        // Save candidate
+                    const bulkUploader = document.getElementById('bulkUploaderSelect').value;
+                    if (!bulkUploader) { toastError('Please select uploader first'); return; }
+                    result.uploaded_by = bulkUploader;
+                    result.uploaded_by_name = bulkUploader;
+                    
                     const saveRes = await fetch('/api/candidates', { 
                         method: 'POST', 
                         headers: {'Content-Type': 'application/json'}, 
