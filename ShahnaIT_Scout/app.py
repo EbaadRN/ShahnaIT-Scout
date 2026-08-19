@@ -5542,7 +5542,7 @@ if (!Array.isArray(skills)) skills = [];
                     <button class="btn-secondary" onclick="event.stopPropagation(); exportPDF(${c.id}, event)">
                         <i class="fas fa-file-pdf"></i> Export PDF
                     </button>
-                    <button class="btn-danger" onclick="event.stopPropagation(); deleteCandidate(${c.id})">
+                    ${(currentUser && (currentUser.role === 'admin' || currentUser.full_name === 'Siraj' || currentUser.full_name === 'Ibaad')) ? `<button class="btn-danger" onclick="event.stopPropagation(); deleteCandidate(${c.id})"><i class="fas fa-trash"></i></button>` : ''}
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -8137,8 +8137,16 @@ def create_candidate():
 # ============================================
 @app.route('/api/candidates/<int:candidate_id>', methods=['DELETE'])
 def delete_candidate(candidate_id):
-    """Delete a candidate and their documents"""
+    """Delete a candidate and their documents - only Siraj, Ibaad or Admin"""
     try:
+        # Check if user is allowed to delete
+        allowed_deleters = ['Siraj', 'Ibaad']
+        user_name = session.get('user_name', '')
+        user_role = session.get('role', '')
+        
+        if user_role != 'admin' and user_name not in allowed_deleters:
+            return jsonify({'error': 'You are not authorized to delete candidates. Contact Siraj or Ibaad.'}), 403
+        
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         
@@ -8149,7 +8157,7 @@ def delete_candidate(candidate_id):
             if os.path.exists(file[0]):
                 os.remove(file[0])
         
-        # Delete candidate (cascade will delete notes and documents)
+        # Delete candidate
         c.execute('DELETE FROM candidates WHERE id = ?', (candidate_id,))
         conn.commit()
         conn.close()
