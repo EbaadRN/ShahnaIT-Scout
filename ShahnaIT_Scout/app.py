@@ -7579,8 +7579,19 @@ async function loadDailyReport() {
             </div>`;
         });
     }
+        // Proposals by Recruiter
+    html += `<div class="card" style="margin:10px 0;"><h4>📊 Proposals by Recruiter</h4>`;
+    if (data.proposals_by_recruiter && data.proposals_by_recruiter.length > 0) {
+        data.proposals_by_recruiter.forEach(p => {
+            html += `<div style="font-size:14px;padding:4px 0;border-bottom:1px solid #eee;">
+                👤 <strong>${escapeHtml(p.uploaded_by_name || 'N/A')}</strong>: ${p.count} proposal(s)
+            </div>`;
+        });
+    } else {
+        html += '<p style="color:#999;">No proposals on this date</p>';
+    }
     html += `</div>`;
-    
+       
     container.innerHTML = html;
 }
 async function loadKanban() {
