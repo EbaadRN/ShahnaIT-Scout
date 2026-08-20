@@ -3040,6 +3040,80 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 @media screen and (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
 @media screen and (max-width: 900px) { .modal-grid { grid-template-columns: 1fr; } }
 
+#clientsPanel .card.no-click,
+#financePanel .card.no-click,
+#reportsPanel .card.no-click {
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+#clientsList,
+#financeBreakdown,
+#dailyReportContent {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+#clientsList .card,
+#financeBreakdown .card,
+#dailyReportContent .card {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+#clientsList [style*="grid-template-columns"],
+#financeBreakdown [style*="grid-template-columns"],
+#dailyReportContent [style*="grid-template-columns"] {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    overflow: hidden;
+}
+
+#clientsPanel, #financePanel, #reportsPanel {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    display: block;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#clientsPanel .card.no-click,
+#financePanel .card.no-click,
+#reportsPanel .card.no-click {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+#clientsList,
+#financeBreakdown,
+#dailyReportContent {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+#clientsList .card,
+#financeBreakdown .card,
+#dailyReportContent .card {
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+#clientsList [style*="grid-template-columns"],
+#financeBreakdown [style*="grid-template-columns"],
+#dailyReportContent [style*="grid-template-columns"] {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+    overflow: hidden;
+}
+
 /* Sidebar Dropdown Groups */
 .sidebar-group { border-bottom: 1px solid rgba(255,255,255,0.08); }
 .sidebar-group-header {
