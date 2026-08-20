@@ -3139,6 +3139,26 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     display: block;
 }
 
+#editJobModalBody form {
+    overflow: hidden;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+#editJobModalBody .form-group,
+#editJobModalBody input,
+#editJobModalBody textarea,
+#editJobModalBody select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+#editJobModalBody [style*="grid-template-columns"] {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    overflow: hidden;
+}
+
 #candidatesPanel .candidate-inventory.shrink {
     padding: 5px 10px;
 }
