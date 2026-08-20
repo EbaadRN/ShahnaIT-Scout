@@ -3116,10 +3116,27 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 
 /* Sticky Shrinking Candidate Inventory */
 #candidatesPanel .candidate-inventory {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    transition: all 0.3s ease;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 100 !important;
+    transition: all 0.3s ease !important;
+}
+
+#candidatesPanel .candidate-inventory.shrink {
+    padding: 5px 10px !important;
+    background: #F5F0E8 !important;
+}
+
+#candidatesPanel .candidate-inventory.shrink > div {
+    display: none !important;
+}
+
+#candidatesPanel .candidate-inventory.shrink::before {
+    content: '👥 Candidate Inventory';
+    font-size: 16px;
+    font-weight: bold;
+    color: #1B2A4A;
+    display: block;
 }
 
 #candidatesPanel .candidate-inventory.shrink {
