@@ -3764,7 +3764,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 </div>
 
 <div id="clientsPanel" style="display:none;">
-    <div class="card no-click" style="max-width:100%;width:100%;">
+    <div class="card no-click" style="max-width:100%;">
         <h3>🏢 Client Analytics</h3>
         <div id="clientsList"></div>
     </div>
