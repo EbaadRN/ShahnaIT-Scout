@@ -5233,7 +5233,7 @@ if (addExpenseBtn) addExpenseBtn.onclick = async function() {
 
 async function toggleJobActive(jobId) {
     const job = allJobs.find(j => j.id == jobId);
-    const newStatus = (job.is_active !== false) ? 0 : 1;
+    const newStatus = (job.is_active === 1 || job.is_active === true) ? 0 : 1;
     const res = await fetch('/api/jobs/' + jobId + '/toggle-active', {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
@@ -5285,7 +5285,7 @@ async function loadJobs() {
             ${badges ? `<div style="margin:8px 0;">${badges}</div>` : ''}
             <small>📅 ${new Date(j.created_at).toLocaleDateString()}</small>
         </div>
-        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button> <button class="btn btn-sm" onclick="event.stopPropagation(); toggleJobActive(${j.id})" style="margin-top:8px;background:${j.is_active ? '#EF4444' : '#10B981'};">${j.is_active !== false ? '🔒 Close' : '🔓 Reopen'}</button>
+        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button> <button class="btn btn-sm" onclick="event.stopPropagation(); toggleJobActive(${j.id})" style="margin-top:8px;background:${(j.is_active === 1 || j.is_active === true) ? '#EF4444' : '#10B981'};">${j.is_active === 1 || j.is_active === true ? '🔒 Close' : '🔓 Reopen'}</button>
         <button class="btn btn-sm" onclick="event.stopPropagation(); viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="margin-top:8px;">👥 View Candidates</button>
     </div>`;
 }).join('');
