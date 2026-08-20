@@ -3114,6 +3114,24 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     overflow: hidden;
 }
 
+/* Sticky Shrinking Candidate Inventory */
+#candidatesPanel .candidate-inventory {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+#candidatesPanel .candidate-inventory.shrink {
+    padding: 5px 10px;
+}
+
+#candidatesPanel .candidate-inventory.shrink .stats-bar,
+#candidatesPanel .candidate-inventory.shrink .pipeline-stats,
+#candidatesPanel .candidate-inventory.shrink .filter-bar {
+    display: none;
+}
+
 /* Sidebar Dropdown Groups */
 .sidebar-group { border-bottom: 1px solid rgba(255,255,255,0.08); }
 .sidebar-group-header {
@@ -3318,7 +3336,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     <div id="jobsPanel"><div id="jobsList"></div></div>
     <div id="candidatesPanel" style="display:none;">
     <!-- Static Dashboard Header - Stays at top while scrolling -->
-    <div style="position: sticky; top: 0; background: #F5F0E8; z-index: 10; padding-bottom: 10px;">
+    <div class="candidate-inventory" style="position: sticky; top: 0; background: #F5F0E8; z-index: 10; padding-bottom: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div>
                 <span style="font-size: 20px; font-weight: bold;">👥 Candidate Inventory</span>
@@ -4142,6 +4160,17 @@ console.log('✅ viewOriginalResume:', typeof viewOriginalResume);
 // ============================================
 // SIDEBAR TOGGLE FOR MOBILE
 // ============================================
+window.addEventListener('scroll', function() {
+    const inv = document.querySelector('.candidate-inventory');
+    if (inv) {
+        if (window.scrollY > 50) {
+            inv.classList.add('shrink');
+        } else {
+            inv.classList.remove('shrink');
+        }
+    }
+});
+
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
