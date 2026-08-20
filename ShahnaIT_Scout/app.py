@@ -5536,7 +5536,7 @@ if (!Array.isArray(skills)) skills = [];
                 </div>
                 
                 <div class="card-actions">
-                    <button class="btn-primary" onclick="event.stopPropagation(); viewCandidate(${c.id})">
+                    <button class="btn-primary" onclick="event.stopPropagation(); viewCandidate(${c.id})"> ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;">✅ Proposed ${escapeHtml(c.proposed_date||'')}</span>`}
                         <i class="fas fa-eye"></i> View Details
                     </button>
                     <button class="btn-secondary" onclick="event.stopPropagation(); exportPDF(${c.id}, event)">
@@ -5668,6 +5668,22 @@ async function deleteNote(noteId, candidateId) {
 // ============================================
 // DELETE CANDIDATE
 // ============================================
+async function markProposed(candidateId) {
+    if (!confirm('Mark this candidate as proposed?')) return;
+    const date = new Date().toISOString().split('T')[0];
+    const res = await fetch('/api/candidates/' + candidateId + '/propose', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ proposed_date: date })
+    });
+    if (res.ok) {
+        toastSuccess('Marked as proposed!');
+        loadCandidates();
+    } else {
+        toastError('Failed to mark');
+    }
+}
+
 async function deleteCandidate(candidateId) {
     if (!confirm('Delete this candidate?')) return;
     
@@ -7948,6 +7964,18 @@ def create_job():
     conn.close()
     return jsonify({'message': 'Job created'})
 
+@app.route('/api/candidates/<int:candidate_id>/propose', methods=['PUT'])
+@login_required()
+def mark_proposed(candidate_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('UPDATE candidates SET proposed_date = ? WHERE id = ?', 
+              (data.get('proposed_date'), candidate_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Marked as proposed'})
+
 @app.route('/api/candidates/<int:candidate_id>', methods=['PUT']) 
 @login_required()
 def update_candidate(candidate_id):
@@ -8802,7 +8830,7 @@ def daily_report():
     c.execute('SELECT * FROM interviews WHERE interview_date = ? ORDER BY interview_time', (date,))
     interviews = [dict(row) for row in c.fetchall()]
     
-    c.execute("SELECT id, first_name, last_name, email, uploaded_by_name, proposed_client, proposed_requirement, created_at FROM candidates WHERE date(created_at) = ? ORDER BY created_at DESC", (date,))
+    c.execute("SELECT id, first_name, last_name, email, uploaded_by_name, proposed_client, proposed_requirement, created_at, proposed_date FROM candidates WHERE date(proposed_date) = ? ORDER BY proposed_date DESC", (date,))
     candidates_added = [dict(row) for row in c.fetchall()]
     
     c.execute("SELECT * FROM interviews WHERE interview_date = ? AND verdict != 'Scheduled'", (date,))
@@ -8811,7 +8839,7 @@ def daily_report():
     # Proposals by recruiter
     c.execute("""SELECT uploaded_by_name, COUNT(*) as count 
                  FROM candidates 
-                 WHERE date(created_at) = ? AND uploaded_by_name IS NOT NULL
+                 WHERE date(proposed_date) = ? AND uploaded_by_name IS NOT NULL
                  GROUP BY uploaded_by_name
                  ORDER BY count DESC""", (date,))
     proposals_by_recruiter = [dict(row) for row in c.fetchall()]
@@ -9103,6 +9131,18 @@ def fix_client_fields():
     conn.commit()
     conn.close()
     return 'Client fields added!'
+
+@app.route('/fix-proposed-date')
+def fix_proposed_date():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE candidates ADD COLUMN proposed_date DATE")
+    except:
+        pass
+    conn.commit()
+    conn.close()
+    return 'Proposed date column added!'
 
 # ============================================
 # ONBOARDED RESOURCES
