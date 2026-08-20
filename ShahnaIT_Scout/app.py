@@ -8846,7 +8846,7 @@ def daily_report():
     c.execute('SELECT * FROM interviews WHERE interview_date = ? ORDER BY interview_time', (date,))
     interviews = [dict(row) for row in c.fetchall()]
     
-c.execute("SELECT id, first_name, last_name, email, uploaded_by_name, proposed_client, proposed_requirement, created_at, proposed_date FROM candidates WHERE date(proposed_date) = ? ORDER BY proposed_date DESC", (date,))    candidates_added = [dict(row) for row in c.fetchall()]
+    c.execute("SELECT id, first_name, last_name, email, uploaded_by_name, proposed_client, proposed_requirement, created_at, proposed_date FROM candidates WHERE date(proposed_date) = ? ORDER BY proposed_date DESC", (date,))     candidates_added = [dict(row) for row in c.fetchall()]
     
     c.execute("SELECT * FROM interviews WHERE interview_date = ? AND verdict != 'Scheduled'", (date,))
     completed_interviews = [dict(row) for row in c.fetchall()]
