@@ -3078,6 +3078,20 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     max-width: 100% !important;
     width: 100% !important;
 }
+#clientsPanel {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    display: block;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+#clientsPanel .card.no-click {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+}
 </style>
     
 </head>
