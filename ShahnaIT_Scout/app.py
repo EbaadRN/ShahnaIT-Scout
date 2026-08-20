@@ -5536,7 +5536,7 @@ if (!Array.isArray(skills)) skills = [];
                 </div>
                 
                 <div class="card-actions">
-                    <button class="btn-primary" onclick="event.stopPropagation(); viewCandidate(${c.id})"> ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;margin-left:4px;">✅ ${escapeHtml(c.proposed_date||'')}</span>`} ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;">✅ Proposed ${escapeHtml(c.proposed_date||'')}</span>`}
+                    <button class="btn-primary" onclick="event.stopPropagation(); viewCandidate(${c.id})"> ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;margin-left:4px;">✅ ${escapeHtml(c.proposed_date||'')}</span>`} ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;margin-left:4px;">✅ ${escapeHtml(c.proposed_date||'')}</span>`} ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;">✅ Proposed ${escapeHtml(c.proposed_date||'')}</span>`}
                         <i class="fas fa-eye"></i> View Details
                     </button>
                     <button class="btn-secondary" onclick="event.stopPropagation(); exportPDF(${c.id}, event)">
@@ -5668,22 +5668,6 @@ async function deleteNote(noteId, candidateId) {
 // ============================================
 // DELETE CANDIDATE
 // ============================================
-async function markProposed(candidateId) {
-    if (!confirm('Mark this candidate as proposed?')) return;
-    const date = new Date().toISOString().split('T')[0];
-    const res = await fetch('/api/candidates/' + candidateId + '/propose', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ proposed_date: date })
-    });
-    if (res.ok) {
-        toastSuccess('Marked as proposed!');
-        loadCandidates();
-    } else {
-        toastError('Failed to mark');
-    }
-}
-
 async function markProposed(candidateId) {
     if (!confirm('Mark this candidate as proposed?')) return;
     const date = new Date().toISOString().split('T')[0];
