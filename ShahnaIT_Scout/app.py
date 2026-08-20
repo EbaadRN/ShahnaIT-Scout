@@ -5536,7 +5536,7 @@ if (!Array.isArray(skills)) skills = [];
                 </div>
                 
                 <div class="card-actions">
-                    <button class="btn-primary" onclick="event.stopPropagation(); viewCandidate(${c.id})"> ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;">✅ Proposed ${escapeHtml(c.proposed_date||'')}</span>`}
+                    <button class="btn-primary" onclick="event.stopPropagation(); viewCandidate(${c.id})"> ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;margin-left:4px;">✅ ${escapeHtml(c.proposed_date||'')}</span>`} ${!c.proposed_date ? `<button class="btn-secondary" onclick="event.stopPropagation(); markProposed(${c.id})" style="background:#C9A96E;">📤 Propose</button>` : `<span style="font-size:11px;color:#10B981;">✅ Proposed ${escapeHtml(c.proposed_date||'')}</span>`}
                         <i class="fas fa-eye"></i> View Details
                     </button>
                     <button class="btn-secondary" onclick="event.stopPropagation(); exportPDF(${c.id}, event)">
@@ -5668,6 +5668,22 @@ async function deleteNote(noteId, candidateId) {
 // ============================================
 // DELETE CANDIDATE
 // ============================================
+async function markProposed(candidateId) {
+    if (!confirm('Mark this candidate as proposed?')) return;
+    const date = new Date().toISOString().split('T')[0];
+    const res = await fetch('/api/candidates/' + candidateId + '/propose', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ proposed_date: date })
+    });
+    if (res.ok) {
+        toastSuccess('Marked as proposed!');
+        loadCandidates();
+    } else {
+        toastError('Failed to mark');
+    }
+}
+
 async function markProposed(candidateId) {
     if (!confirm('Mark this candidate as proposed?')) return;
     const date = new Date().toISOString().split('T')[0];
@@ -8830,8 +8846,7 @@ def daily_report():
     c.execute('SELECT * FROM interviews WHERE interview_date = ? ORDER BY interview_time', (date,))
     interviews = [dict(row) for row in c.fetchall()]
     
-    c.execute("SELECT id, first_name, last_name, email, uploaded_by_name, proposed_client, proposed_requirement, created_at, proposed_date FROM candidates WHERE date(proposed_date) = ? ORDER BY proposed_date DESC", (date,))
-    candidates_added = [dict(row) for row in c.fetchall()]
+c.execute("SELECT id, first_name, last_name, email, uploaded_by_name, proposed_client, proposed_requirement, created_at, proposed_date FROM candidates WHERE date(proposed_date) = ? ORDER BY proposed_date DESC", (date,))    candidates_added = [dict(row) for row in c.fetchall()]
     
     c.execute("SELECT * FROM interviews WHERE interview_date = ? AND verdict != 'Scheduled'", (date,))
     completed_interviews = [dict(row) for row in c.fetchall()]
