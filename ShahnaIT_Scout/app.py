@@ -3218,7 +3218,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <span>⚙️ Admin</span><i class="fas fa-chevron-down"></i>
             </div>
             <div class="sidebar-group-items">
-                <button class="tab-btn" id="tabUsers">👥 Users</button>
+                <button class="tab-btn" id="tabUsers">👥 Users</button> <button class="tab-btn" id="tabClients">🏢 Client Analytics</button>
             </div>
         </div>
     </div>
@@ -3746,6 +3746,13 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     <div class="card no-click" style="max-width:100%;">
         <h3>🧾 Invoices <button class="btn btn-sm btn-secondary" onclick="openCompanySettings()" style="float:right;">⚙️ Company Settings</button></h3>
         <div id="invoicesList"></div>
+    </div>
+</div>
+
+<div id="clientsPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>🏢 Client Analytics</h3>
+        <div id="clientsList"></div>
     </div>
 </div>
 
@@ -4795,10 +4802,11 @@ document.querySelector('.sidebar-group-items').classList.add('open');
     const tabAnalyze = document.getElementById('tabAnalyze'); if (tabAnalyze) tabAnalyze.onclick = function() { showPanel('analyze'); loadJobs(); loadCandidates(); };
     const tabDashboard = document.getElementById('tabDashboard'); const tabKanban = document.getElementById('tabKanban'); const tabReports = document.getElementById('tabReports'); if (tabReports) tabReports.onclick = function() { showPanel('reports'); document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadDailyReport(); }; if (tabKanban) tabKanban.onclick = function() { showPanel('kanban'); loadKanban(); }; if (tabDashboard) tabDashboard.onclick = function() { showPanel('dashboard'); loadDashboard(); };
     const tabUsers = document.getElementById('tabUsers'); if (tabUsers) tabUsers.onclick = function() { showPanel('users'); loadUsers(); };
+    const tabClients = document.getElementById('tabClients'); if (tabClients) tabClients.onclick = function() { showPanel('clients'); loadClients(); };
     const tabOnboarded = document.getElementById('tabOnboarded'); const tabFinance = document.getElementById('tabFinance'); const tabInvoices = document.getElementById('tabInvoices'); const tabExpenses = document.getElementById('tabExpenses'); const tabReportsFull = document.getElementById('tabReportsFull'); if (tabReportsFull) tabReportsFull.onclick = function() { showPanel('reportsFull'); }; if (tabExpenses) tabExpenses.onclick = function() { showPanel('expenses'); loadExpenses(); }; if (tabInvoices) tabInvoices.onclick = function() { showPanel('invoices'); loadInvoices(); }; if (tabFinance) tabFinance.onclick = function() { showPanel('finance'); loadFinance(); }; if (tabOnboarded) tabOnboarded.onclick = function() { showPanel('onboarded'); loadOnboarded(); };
     
    function showPanel(panel) {
-    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'onboardedPanel', 'financePanel', 'invoicesPanel', 'expensesPanel', 'reportsFullPanel'];
+    const allPanels = ['jobsPanel', 'candidatesPanel', 'uploadPanel', 'createJobPanel', 'interviewsPanel', 'analyzePanel', 'dashboardPanel', 'kanbanPanel', 'reportsPanel', 'usersPanel', 'clientsPanel', 'onboardedPanel', 'financePanel', 'invoicesPanel', 'expensesPanel', 'reportsFullPanel'];
     allPanels.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
@@ -6718,6 +6726,50 @@ document.getElementById(`liveStatus${i}`).innerHTML = result.error ? '❌ Parse 
 // ============================================
 // USER MANAGEMENT
 // ============================================
+
+async function loadClients() {
+    const res = await fetch('/api/client-analytics');
+    const clients = await res.json();
+    const container = document.getElementById('clientsList');
+    
+    if (!clients.length) {
+        container.innerHTML = '<p style="text-align:center;padding:40px;color:#999;">No client data yet</p>';
+        return;
+    }
+    
+    container.innerHTML = clients.map(c => {
+        const convColor = c.conversion >= 30 ? '#10B981' : c.conversion >= 15 ? '#F59E0B' : '#EF4444';
+        return `<div class="card" style="margin:8px 0;">
+            <h4 style="margin:0;">🏢 ${escapeHtml(c.name)}</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px;">
+                <div style="background:#F0F4FA;padding:10px;border-radius:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:bold;color:#1B2A4A;">${c.requirements}</div>
+                    <div style="font-size:11px;color:#666;">Requirements</div>
+                </div>
+                <div style="background:#F0F4FA;padding:10px;border-radius:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:bold;color:#1B2A4A;">${c.proposals}</div>
+                    <div style="font-size:11px;color:#666;">Proposals</div>
+                </div>
+                <div style="background:#F0F4FA;padding:10px;border-radius:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:bold;color:#1B2A4A;">${c.interviews}</div>
+                    <div style="font-size:11px;color:#666;">Interviews</div>
+                </div>
+                <div style="background:#F0F4FA;padding:10px;border-radius:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:bold;color:#1B2A4A;">${c.closures}</div>
+                    <div style="font-size:11px;color:#666;">Closures</div>
+                </div>
+                <div style="background:#F0F4FA;padding:10px;border-radius:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:bold;color:#0D9488;">₹${(c.revenue||0).toLocaleString()}</div>
+                    <div style="font-size:11px;color:#666;">Monthly Revenue</div>
+                </div>
+                <div style="background:#F0F4FA;padding:10px;border-radius:8px;text-align:center;">
+                    <div style="font-size:18px;font-weight:bold;color:${convColor};">${c.conversion}%</div>
+                    <div style="font-size:11px;color:#666;">Conversion</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
 
 async function loadUsers() {
     try {
@@ -9203,6 +9255,74 @@ def create_onboarded():
     conn.commit()
     conn.close()
     return jsonify({'message': 'Resource onboarded', 'id': resource_id})
+
+@app.route('/api/client-analytics', methods=['GET'])
+@login_required('admin')
+def client_analytics():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    # Get all unique clients from jobs, candidates, interviews, onboarded
+    clients = {}
+    
+    # From jobs
+    c.execute("SELECT DISTINCT COALESCE(client_name, company, 'Unknown') as client FROM jobs WHERE client_name IS NOT NULL OR company IS NOT NULL")
+    for row in c.fetchall():
+        if row['client'] not in clients:
+            clients[row['client']] = {'requirements': 0, 'proposals': 0, 'interviews': 0, 'closures': 0, 'revenue': 0}
+    
+    # From onboarded
+    c.execute("SELECT DISTINCT client_name FROM onboarded_resources WHERE client_name IS NOT NULL")
+    for row in c.fetchall():
+        if row['client_name'] not in clients:
+            clients[row['client_name']] = {'requirements': 0, 'proposals': 0, 'interviews': 0, 'closures': 0, 'revenue': 0}
+    
+    # Count requirements per client
+    c.execute("SELECT COALESCE(client_name, company, 'Unknown') as client, COUNT(*) as count FROM jobs GROUP BY client")
+    for row in c.fetchall():
+        if row['client'] in clients:
+            clients[row['client']]['requirements'] = row['count']
+    
+    # Count proposals per client
+    c.execute("SELECT COALESCE(proposed_client, 'Unknown') as client, COUNT(*) as count FROM candidates WHERE proposed_client IS NOT NULL GROUP BY client")
+    for row in c.fetchall():
+        if row['client'] in clients:
+            clients[row['client']]['proposals'] = row['count']
+    
+    # Count interviews per client
+    c.execute("SELECT COALESCE(client_name, 'Unknown') as client, COUNT(*) as count FROM interviews GROUP BY client")
+    for row in c.fetchall():
+        if row['client'] in clients:
+            clients[row['client']]['interviews'] = row['count']
+    
+    # Count closures + revenue per client
+    c.execute("SELECT client_name, COUNT(*) as count, SUM(billing_rate) as revenue FROM onboarded_resources WHERE status = 'Active' GROUP BY client_name")
+    for row in c.fetchall():
+        if row['client_name'] in clients:
+            clients[row['client_name']]['closures'] = row['count']
+            clients[row['client_name']]['revenue'] = row['revenue'] or 0
+    
+    conn.close()
+    
+    # Convert to list
+    client_list = []
+    for name, data in clients.items():
+        conversion = round((data['closures'] / data['proposals'] * 100)) if data['proposals'] > 0 else 0
+        client_list.append({
+            'name': name,
+            'requirements': data['requirements'],
+            'proposals': data['proposals'],
+            'interviews': data['interviews'],
+            'closures': data['closures'],
+            'revenue': data['revenue'],
+            'conversion': conversion
+        })
+    
+    # Sort by revenue descending
+    client_list.sort(key=lambda x: x['revenue'], reverse=True)
+    
+    return jsonify(client_list)
 
 @app.route('/api/finance-dashboard', methods=['GET'])
 @login_required('admin')
