@@ -3750,7 +3750,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 </div>
 
 <div id="clientsPanel" style="display:none;">
-    <div class="card no-click" style="max-width:100%;">
+    <div class="card no-click" style="max-width:100%;width:100%;">
         <h3>🏢 Client Analytics</h3>
         <div id="clientsList"></div>
     </div>
@@ -6739,7 +6739,7 @@ async function loadClients() {
     
     container.innerHTML = clients.map(c => {
         const convColor = c.conversion >= 30 ? '#10B981' : c.conversion >= 15 ? '#F59E0B' : '#EF4444';
-        return `<div class="card" style="margin:8px 0;">
+        return `<div class="card" style="margin:8px 0;width:100%;max-width:100%;">
             <h4 style="margin:0;">🏢 ${escapeHtml(c.name)}</h4>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:10px;">
                 <div style="background:#F0F4FA;padding:10px;border-radius:8px;text-align:center;">
