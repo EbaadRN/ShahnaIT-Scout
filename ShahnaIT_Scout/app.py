@@ -5502,8 +5502,10 @@ function filterCandidates() {
     
     // 4. Uploader filter
     if (uploaderFilter) {
-        filtered = filtered.filter(c => (c.uploaded_by || 'ShahnaIT').toLowerCase().includes(uploaderFilter));
-    }
+    filtered = filtered.filter(c => 
+        (c.uploaded_by_name || c.uploaded_by || 'ShahnaIT').toLowerCase().includes(uploaderFilter.toLowerCase())
+    );
+}
     
     // 5. Sorting
     if (sortBy === 'score') {
