@@ -5235,6 +5235,13 @@ if (addExpenseBtn) addExpenseBtn.onclick = async function() {
     };
 });
 
+async function deleteJob(jobId) {
+    if (!confirm('Delete this requirement?')) return;
+    const res = await fetch('/api/jobs/' + jobId, { method: 'DELETE' });
+    if (res.ok) { toastSuccess('Job deleted'); loadJobs(); }
+    else { toastError('Failed to delete'); }
+}
+
 async function toggleJobActive(jobId) {
     const job = allJobs.find(j => j.id == jobId);
     const newStatus = (job.is_active === 1 || job.is_active === true) ? 0 : 1;
@@ -5289,7 +5296,7 @@ async function loadJobs() {
             ${badges ? `<div style="margin:8px 0;">${badges}</div>` : ''}
             <small>📅 ${new Date(j.created_at).toLocaleDateString()}</small>
         </div>
-        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button> <button class="btn btn-sm" onclick="event.stopPropagation(); toggleJobActive(${j.id})" style="margin-top:8px;background:${(j.is_active === 1 || j.is_active === true) ? '#EF4444' : '#10B981'};">${j.is_active === 1 || j.is_active === true ? '🔒 Close' : '🔓 Reopen'}</button>
+        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button> ${currentUser && currentUser.role === 'admin' ? `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteJob(${j.id})" style="margin-top:8px;">🗑️ Delete</button>` : ''} <button class="btn btn-sm" onclick="event.stopPropagation(); toggleJobActive(${j.id})" style="margin-top:8px;background:${(j.is_active === 1 || j.is_active === true) ? '#EF4444' : '#10B981'};">${j.is_active === 1 || j.is_active === true ? '🔒 Close' : '🔓 Reopen'}</button>
         <button class="btn btn-sm" onclick="event.stopPropagation(); viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="margin-top:8px;">👥 View Candidates</button>
     </div>`;
 }).join('');
@@ -8273,9 +8280,27 @@ def update_job(job_id):
         data.get('headcount', 1),
         job_id
     ))
+        conn.commit()
+    conn.close()
+    
+    # Send Telegram notification
+    user_name = session.get('user_name', 'Manager')
+    user_role = session.get('role', '')
+    if user_role == 'manager':
+        notification = f"""✏️ <b>Job Edited</b>\n\n👤 <b>Edited By:</b> {user_name}\n📋 <b>Job ID:</b> {job_id}\n🔹 <b>Title:</b> {data.get('title', 'N/A')}"""
+        send_telegram_message(notification)
+    
+    return jsonify({'message': 'Job updated'})
+
+@app.route('/api/jobs/<int:job_id>', methods=['DELETE'])
+@login_required('admin')
+def delete_job(job_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM jobs WHERE id = ?', (job_id,))
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Job updated'})
+    return jsonify({'message': 'Job deleted'})
 
 @app.route('/api/jobs/<int:job_id>/toggle-active', methods=['PUT'])
 @login_required('admin')
