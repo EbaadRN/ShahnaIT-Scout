@@ -3664,7 +3664,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     <!-- Dashboard Panel -->
     <div id="dashboardPanel" style="display:none;">
         <div class="card no-click">
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <div class="admin-only" style="display:none;gap:8px;margin-bottom:10px;">
     <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button> <button class="btn btn-sm btn-secondary" onclick="testTelegram()">📱 Test Telegram</button>
     <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
     <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
@@ -3842,11 +3842,11 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <h4>📅 Interview Reports</h4>
                 <button class="btn btn-primary" onclick="exportInterviewsCSV()">📥 Interviews CSV</button>
             </div>
-            <div class="card">
-                <h4>💾 Backup</h4>
-                <button class="btn btn-primary" onclick="triggerBackup()">💾 Backup Now</button>
-                <button class="btn btn-secondary" onclick="listBackups()">📂 View Backups</button>
-                <div id="backupStatus2" style="font-size:12px;margin-top:5px;"></div>
+            <div class="card admin-only" style="display:none;">
+                 <h4>💾 Backup</h4>
+                 <button class="btn btn-primary" onclick="triggerBackup()">💾 Backup Now</button>
+                 <button class="btn btn-secondary" onclick="listBackups()">📂 View Backups</button>
+                 <div id="backupStatus2" style="font-size:12px;margin-top:5px;"></div>
             </div>
         </div>
     </div>
