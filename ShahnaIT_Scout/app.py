@@ -3143,6 +3143,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     overflow: hidden;
     box-sizing: border-box;
     max-width: 100%;
+    padding: 10px;
 }
 
 #editJobModalBody .form-group,
@@ -3151,6 +3152,7 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
 #editJobModalBody select {
     max-width: 100%;
     box-sizing: border-box;
+    width: 100%;
 }
 
 #editJobModalBody [style*="grid-template-columns"] {
