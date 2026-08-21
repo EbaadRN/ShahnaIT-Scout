@@ -5503,7 +5503,7 @@ function filterCandidates() {
     // 4. Uploader filter
     if (uploaderFilter) {
     filtered = filtered.filter(c => 
-        (c.uploaded_by_name || c.uploaded_by || 'ShahnaIT').toLowerCase().includes(uploaderFilter.toLowerCase())
+        (c.uploaded_by || c.uploaded_by_name || 'ShahnaIT').toLowerCase().includes(uploaderFilter.toLowerCase())
     );
 }
     
