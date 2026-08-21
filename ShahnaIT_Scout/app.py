@@ -3582,7 +3582,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
         <!-- Row 4: Experience, Budget, Headcount -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
             <div class="form-group"><label>Years of Experience</label><input type="number" id="jobExperience" class="form-input" value="0" min="0"></div>
-            <div class="form-group"><label>Budget</label><input type="text" id="jobBudget" class="form-input" placeholder="e.g. 15-20 LPA"></div>
+            <div class="form-group"><label>Budget</label><input type="text" id="jobBudget" class="form-input" placeholder="e.g. 15-20 LPA"></div> <div class="form-group"><label>Max Salary (₹)</label><input type="number" id="jobMaxSalary" class="form-input" placeholder="e.g. 150000"></div>
             <div class="form-group"><label>Headcount</label><input type="number" id="jobHeadcount" class="form-input" value="1" min="1"></div>
         </div>
         
@@ -5280,7 +5280,9 @@ async function loadJobs() {
     if (j.years_of_experience) {
         badges += `<span style="background:#8B5CF6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${j.years_of_experience}+ Yrs</span>`;
     }
-    if (j.budget && currentUser && currentUser.role === 'admin') {
+    if (j.budget && currentUser && currentUser.role === 'admin') { if (j.max_salary) {
+    badges += `<span style="background:#F59E0B;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 Max: ₹${j.max_salary.toLocaleString()}</span>`;
+}
     badges += `<span style="background:#EC4899;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 ${escapeHtml(j.budget)}</span>`;
 }
     if (j.headcount && j.headcount > 1) {
@@ -6313,6 +6315,7 @@ if (createJobBtn) createJobBtn.onclick = async function() {
         end_client: document.getElementById('jobEndClient').value,
         years_of_experience: parseInt(document.getElementById('jobExperience').value) || 0,
         budget: document.getElementById('jobBudget').value,
+        max_salary: parseFloat(document.getElementById('jobMaxSalary').value) || 0,
         headcount: parseInt(document.getElementById('jobHeadcount').value) || 1,
         roles_responsibilities: document.getElementById('jobRoles').value,
         qualifications: document.getElementById('jobQualifications').value,
@@ -8158,8 +8161,8 @@ def create_job():
         required_skills, certifications_required, requirement_id,
         working_mode, hybrid_days, business_model,
         payroll_company, client_name, end_client,
-        years_of_experience, budget, headcount
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        years_of_experience, budget, max_salary, headcount
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
     (
         data.get('title'),
         data.get('company'),
@@ -8177,12 +8180,12 @@ def create_job():
         data.get('end_client', ''),
         data.get('years_of_experience', 0),
         data.get('budget', ''),
+        data.get('max_salary', 0),
         data.get('headcount', 1)
     ))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Job created'})
-
 @app.route('/api/candidates/<int:candidate_id>/propose', methods=['PUT'])
 @login_required()
 def mark_proposed(candidate_id):
@@ -9380,6 +9383,18 @@ def fix_proposed_date():
     conn.commit()
     conn.close()
     return 'Proposed date column added!'
+
+@app.route('/fix-max-salary')
+def fix_max_salary():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE jobs ADD COLUMN max_salary REAL DEFAULT 0")
+    except:
+        pass
+    conn.commit()
+    conn.close()
+    return 'Max salary column added!'
 
 # ============================================
 # ONBOARDED RESOURCES
