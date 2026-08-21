@@ -5282,9 +5282,12 @@ async function loadJobs() {
     }
     if (j.budget && currentUser && currentUser.role === 'admin') { if (j.max_salary) {
     badges += `<span style="background:#F59E0B;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 Max: ₹${j.max_salary.toLocaleString()}</span>`;
-}
+    }
     badges += `<span style="background:#EC4899;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 ${escapeHtml(j.budget)}</span>`;
-}
+    }
+    if (j.max_salary) {
+    badges += `<span style="background:#F59E0B;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💵 Max: ₹${j.max_salary.toLocaleString()}</span>`;
+    }
     if (j.headcount && j.headcount > 1) {
         badges += `<span style="background:#14B8A6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;">👥 ${j.headcount}</span>`;
     }
@@ -5953,9 +5956,9 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div class="form-group"><label>Years of Experience</label><input type="number" id="editJobExperience" class="form-input" value="${job.years_of_experience || 0}" min="0"></div>
-                ${currentUser && currentUser.role === 'admin' ? `<div class="form-group"><label>Budget</label><input type="text" id="editJobBudget" class="form-input" value="${escapeHtml(job.budget || '')}"></div>` : ''}
-                <div class="form-group"><label>Headcount</label><input type="number" id="editJobHeadcount" class="form-input" value="${job.headcount || 1}" min="1"></div>
-            </div>
+               ${currentUser && currentUser.role === 'admin' ? `<div class="form-group"><label>Budget</label><input type="text" id="editJobBudget" class="form-input" value="${escapeHtml(job.budget || '')}"></div>` : ''}
+<div class="form-group"><label>Max Salary (₹)</label><input type="number" id="editJobMaxSalary" class="form-input" value="${job.max_salary || 0}"></div>
+<div class="form-group"><label>Headcount</label><input type="number" id="editJobHeadcount" class="form-input" value="${job.headcount || 1}" min="1"></div>
             <div class="form-group"><label>Roles & Responsibilities</label><textarea id="editJobRoles" class="form-input" rows="4">${escapeHtml(job.roles_responsibilities || '')}</textarea></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div class="form-group"><label>Qualifications</label><textarea id="editJobQualifications" class="form-input" rows="3">${escapeHtml(job.qualifications || '')}</textarea></div>
@@ -6000,7 +6003,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
                 payroll_company: document.getElementById('editJobPayroll').value,
                 end_client: document.getElementById('editJobEndClient').value,
                 years_of_experience: parseInt(document.getElementById('editJobExperience').value) || 0,
-                budget: document.getElementById('editJobBudget').value,
+                budget: document.getElementById('editJobBudget').value, max_salary: parseFloat(document.getElementById('editJobMaxSalary').value) || 0,
                 headcount: parseInt(document.getElementById('editJobHeadcount').value) || 1,
                 roles_responsibilities: document.getElementById('editJobRoles').value,
                 qualifications: document.getElementById('editJobQualifications').value,
@@ -8263,7 +8266,7 @@ def update_job(job_id):
         required_skills = ?, certifications_required = ?,
         working_mode = ?, hybrid_days = ?, business_model = ?,
         payroll_company = ?, client_name = ?, end_client = ?,
-        years_of_experience = ?, budget = ?, headcount = ?
+        years_of_experience = ?, budget = ?, max_salary = ?, headcount = ?
     WHERE id = ?''', (
         data.get('title'),
         data.get('company'),
@@ -8280,10 +8283,11 @@ def update_job(job_id):
         data.get('end_client', ''),
         data.get('years_of_experience', 0),
         data.get('budget', ''),
+        data.get('max_salary', 0),
         data.get('headcount', 1),
         job_id
     ))
-        conn.commit()
+    conn.commit()
     conn.close()
     
     # Send Telegram notification
