@@ -3285,7 +3285,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             </div>
             <div class="sidebar-group-items">
                 <button class="tab-btn active" id="tabJobs">📋 View Jobs</button>
-                <button class="tab-btn" id="tabCreateJob">➕ Create Job</button>
+                <button class="tab-btn manager-only" id="tabCreateJob" style="display:none;">➕ Create Job</button>
             </div>
         </div>
 
@@ -4125,9 +4125,13 @@ async function checkAuth() {
                 tabUsers.style.display = 'none';
             }
             
-                        loadDashboard();
+            loadDashboard();
             if (currentUser.role === 'admin') {
                 document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+            }
+            if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+                document.querySelectorAll('.manager-only').forEach(el => el.style.display = 'block'
+);
             }
         }
     } catch(e) {
