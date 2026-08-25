@@ -4273,6 +4273,16 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
 // ============================================
 // VIEW CANDIDATE - FULL MODAL VERSION
 // ============================================
+async function loadClientsDropdown() {
+    const res = await fetch('/api/jobs');
+    const jobs = await res.json();
+    const clients = [...new Set(jobs.map(j => j.client_name || j.company).filter(Boolean))];
+    const select = document.getElementById('edit_proposed_client');
+    if (select) {
+        select.innerHTML = '<option value="">-- Select Client --</option>' + 
+            clients.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    }
+}
 window.viewCandidate = function(id) {
     console.log('Opening candidate:', id);
     currentCandidateId = id;
@@ -4341,6 +4351,9 @@ window.viewCandidate = function(id) {
     
     // Notes
     document.getElementById('edit_notes').value = candidate.notes || '';
+    
+    // Load clients dropdown
+    loadClientsDropdown();
     
     // Show modal
     document.getElementById('candidateModal').style.display = 'block';
