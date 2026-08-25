@@ -5303,7 +5303,7 @@ async function loadJobs() {
             ${badges ? `<div style="margin:8px 0;">${badges}</div>` : ''}
             <small>📅 ${new Date(j.created_at).toLocaleDateString()}</small>
         </div>
-        ${currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button>` : ''} ${currentUser && currentUser.role === 'admin' ? `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteJob(${j.id})" style="margin-top:8px;">🗑️ Delete</button>` : ''} <button class="btn btn-sm" onclick="event.stopPropagation(); toggleJobActive(${j.id})" style="margin-top:8px;background:${(j.is_active === 1 || j.is_active === true) ? '#EF4444' : '#10B981'};">${j.is_active === 1 || j.is_active === true ? '🔒 Close' : '🔓 Reopen'}</button>
+        ${currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? `<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation(); editJob(${j.id})" style="margin-top:8px;">✏️ Edit</button>` : ''} ${currentUser && currentUser.role === 'admin' ? `<button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); deleteJob(${j.id})" style="margin-top:8px;">🗑️ Delete</button>` : ''} ${currentUser && (currentUser.role === 'admin' || currentUser.role === 'manager') ? `<button class="btn btn-sm" onclick="event.stopPropagation(); toggleJobActive(${j.id})" style="margin-top:8px;background:${(j.is_active === 1 || j.is_active === true) ? '#EF4444' : '#10B981'};">${j.is_active === 1 || j.is_active === true ? '🔒 Close' : '🔓 Reopen'}</button>` : ''}
         <button class="btn btn-sm" onclick="event.stopPropagation(); viewCandidatesForRequirement('${escapeHtml(requirementId)}')" style="margin-top:8px;">👥 View Candidates</button>
     </div>`;
 }).join('');
@@ -8321,7 +8321,7 @@ def delete_job(job_id):
     return jsonify({'message': 'Job deleted'})
 
 @app.route('/api/jobs/<int:job_id>/toggle-active', methods=['PUT'])
-@login_required('admin')
+@login_required('manager')
 def toggle_job_active(job_id):
     data = request.json
     conn = sqlite3.connect(DB_PATH)
@@ -8330,6 +8330,12 @@ def toggle_job_active(job_id):
               (data.get('is_active', 0), job_id))
     conn.commit()
     conn.close()
+    
+    status = 'Closed' if data.get('is_active', 0) == 0 else 'Reopened'
+    user_name = session.get('user_name', 'Manager')
+    notification = f"""🔄 <b>Job {status}</b>\n\n👤 <b>By:</b> {user_name}\n📋 <b>Job ID:</b> {job_id}"""
+    send_telegram_message(notification)
+    
     return jsonify({'message': 'Job status updated'})
 
 @app.route('/api/jobs/<int:job_id>/documents', methods=['GET'])
