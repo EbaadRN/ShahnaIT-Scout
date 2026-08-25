@@ -6082,11 +6082,16 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
 // VIEW ORIGINAL RESUME (Opens in new tab)
 // ============================================
 function viewOriginalResume(candidateId) {
-    // Get the resume URL
+    const candidate = allCandidates.find(c => c.id == candidateId);
+    const filename = candidate ? (candidate.resume_original_filename || '') : '';
     const url = `/api/candidates/${candidateId}/view-resume`;
     
-    // Open in new tab
-    window.open(url, '_blank');
+    if (filename.endsWith('.docx') || filename.endsWith('.doc')) {
+        const fullUrl = window.location.origin + url;
+        window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(fullUrl)}`, '_blank');
+    } else {
+        window.open(url, '_blank');
+    }
 }
 
 // ============================================
