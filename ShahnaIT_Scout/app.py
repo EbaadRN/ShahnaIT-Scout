@@ -99,10 +99,10 @@ def send_email(to_email, subject, body):
         print(f"Email error: {e}")
         return False
 
-def send_telegram_message(message):
-    """Send message to Telegram group"""
+def send_telegram_message(message, to_admin=False):
+    """Send message to Telegram group or admin"""
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')
-    chat_id = os.environ.get('TELEGRAM_CHAT_ID')
+    chat_id = os.environ.get('TELEGRAM_ADMIN_CHAT_ID') if to_admin else os.environ.get('TELEGRAM_CHAT_ID')
     
     if not bot_token or not chat_id:
         print("⚠️ Telegram not configured")
@@ -8199,7 +8199,7 @@ def create_job():
     user_role = session.get('role', '')
     if user_role == 'manager':
         notification = f"""🆕 <b>New Job Created</b>\n\n👤 <b>Created By:</b> {user_name}\n🔹 <b>Title:</b> {data.get('title', 'N/A')}\n🏢 <b>Company:</b> {data.get('company', 'N/A')}"""
-        send_telegram_message(notification)
+        send_telegram_message(notification, to_admin=True)
     
     return jsonify({'message': 'Job created'})
 @app.route('/api/candidates/<int:candidate_id>/propose', methods=['PUT'])
@@ -8308,7 +8308,7 @@ def update_job(job_id):
     user_role = session.get('role', '')
     if user_role == 'manager':
         notification = f"""✏️ <b>Job Edited</b>\n\n👤 <b>Edited By:</b> {user_name}\n📋 <b>Job ID:</b> {job_id}\n🔹 <b>Title:</b> {data.get('title', 'N/A')}"""
-        send_telegram_message(notification)
+        send_telegram_message(notification, to_admin=True)
     
     return jsonify({'message': 'Job updated'})
 
@@ -8336,7 +8336,7 @@ def toggle_job_active(job_id):
     status = 'Closed' if data.get('is_active', 0) == 0 else 'Reopened'
     user_name = session.get('user_name', 'Manager')
     notification = f"""🔄 <b>Job {status}</b>\n\n👤 <b>By:</b> {user_name}\n📋 <b>Job ID:</b> {job_id}"""
-    send_telegram_message(notification)
+    send_telegram_message(notification, to_admin=True)
     
     return jsonify({'message': 'Job status updated'})
 
