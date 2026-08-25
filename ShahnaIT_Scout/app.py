@@ -5273,27 +5273,23 @@ async function loadJobs() {
     
     // Build info badges
     let badges = '';
-    if (j.working_mode && j.working_mode !== 'Not Specified') {
-        const modeColors = { 'Remote': '#10B981', 'Hybrid': '#F59E0B', 'Onsite': '#EF4444' };
-        const color = modeColors[j.working_mode] || '#6B7280';
-        badges += `<span style="background:${color};color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${escapeHtml(j.working_mode)}${j.working_mode === 'Hybrid' && j.hybrid_days ? ' (' + j.hybrid_days + 'd)' : ''}</span>`;
+        if (j.working_mode && j.working_mode !== 'Not Specified') {
+        badges += `<span style="background:#E8F0FE;color:#1A73E8;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">${escapeHtml(j.working_mode)}${j.working_mode === 'Hybrid' && j.hybrid_days ? ' (' + j.hybrid_days + 'd)' : ''}</span>`;
     }
     if (j.business_model && j.business_model !== 'Not Specified') {
-        badges += `<span style="background:#6366F1;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${escapeHtml(j.business_model)}</span>`;
+        badges += `<span style="background:#E8F0FE;color:#1A73E8;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">${escapeHtml(j.business_model)}</span>`;
     }
     if (j.years_of_experience) {
-        badges += `<span style="background:#8B5CF6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">${j.years_of_experience}+ Yrs</span>`;
+        badges += `<span style="background:#F1F3F4;color:#5F6368;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">${j.years_of_experience}+ Yrs</span>`;
     }
-    if (j.budget && currentUser && currentUser.role === 'admin') { if (j.max_salary) {
-    badges += `<span style="background:#F59E0B;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 Max: ₹${j.max_salary.toLocaleString()}</span>`;
-    }
-    badges += `<span style="background:#EC4899;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💰 ${escapeHtml(j.budget)}</span>`;
+    if (j.budget && currentUser && currentUser.role === 'admin') {
+        badges += `<span style="background:#E8F0FE;color:#1A73E8;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">💰 ${escapeHtml(j.budget)}</span>`;
     }
     if (j.max_salary) {
-    badges += `<span style="background:#F59E0B;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-right:4px;">💵 Max: ₹${j.max_salary.toLocaleString()}</span>`;
+        badges += `<span style="background:#E8F0FE;color:#1A73E8;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">💵 Max: ₹${j.max_salary.toLocaleString()}</span>`;
     }
     if (j.headcount && j.headcount > 1) {
-        badges += `<span style="background:#14B8A6;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;">👥 ${j.headcount}</span>`;
+        badges += `<span style="background:#F1F3F4;color:#5F6368;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">👥 ${j.headcount}</span>`;
     }
     
     return `<div class="card" style="cursor:pointer;">
