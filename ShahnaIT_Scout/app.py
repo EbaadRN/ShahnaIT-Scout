@@ -3586,7 +3586,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
         <!-- Row 4: Experience, Budget, Headcount -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
             <div class="form-group"><label>Years of Experience</label><input type="number" id="jobExperience" class="form-input" value="0" min="0"></div>
-            <div class="form-group"><label>Budget</label><input type="text" id="jobBudget" class="form-input" placeholder="e.g. 15-20 LPA"></div> <div class="form-group"><label>Max Salary (₹)</label><input type="number" id="jobMaxSalary" class="form-input" placeholder="e.g. 150000"></div>
+            <div class="form-group"><label>Budget</label><input type="text" id="jobBudget" class="form-input" placeholder="e.g. 15-20 LPA"></div> <div class="form-group"><label>Max Salary</label><input type="text" id="jobMaxSalary" class="form-input" placeholder="e.g. 200K per month"></div>
             <div class="form-group"><label>Headcount</label><input type="number" id="jobHeadcount" class="form-input" value="1" min="1"></div>
         </div>
         
@@ -5286,7 +5286,7 @@ async function loadJobs() {
         badges += `<span style="background:#E8F0FE;color:#1A73E8;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">💰 ${escapeHtml(j.budget)}</span>`;
     }
     if (j.max_salary) {
-        badges += `<span style="background:#E8F0FE;color:#1A73E8;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">💵 Max: ₹${j.max_salary.toLocaleString()}</span>`;
+        badges += `<span style="background:#E8F0FE;color:#1A73E8;padding:2px 10px;border-radius:12px;font-size:11px;margin-right:4px;font-weight:600;">💵 Max: ${escapeHtml(j.max_salary)}</span>`;
     }
     if (j.headcount && j.headcount > 1) {
         badges += `<span style="background:#F1F3F4;color:#5F6368;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">👥 ${j.headcount}</span>`;
@@ -5959,7 +5959,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
                 <div class="form-group"><label>Years of Experience</label><input type="number" id="editJobExperience" class="form-input" value="${job.years_of_experience || 0}" min="0"></div>
                ${currentUser && currentUser.role === 'admin' ? `<div class="form-group"><label>Budget</label><input type="text" id="editJobBudget" class="form-input" value="${escapeHtml(job.budget || '')}"></div>` : ''}
-<div class="form-group"><label>Max Salary (₹)</label><input type="number" id="editJobMaxSalary" class="form-input" value="${job.max_salary || 0}"></div>
+<div class="form-group"><label>Max Salary</label><input type="text" id="editJobMaxSalary" class="form-input" value="${escapeHtml(job.max_salary || '')}"></div>
 <div class="form-group"><label>Headcount</label><input type="number" id="editJobHeadcount" class="form-input" value="${job.headcount || 1}" min="1"></div>
             <div class="form-group"><label>Roles & Responsibilities</label><textarea id="editJobRoles" class="form-input" rows="4">${escapeHtml(job.roles_responsibilities || '')}</textarea></div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -6005,7 +6005,7 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
                 payroll_company: document.getElementById('editJobPayroll').value,
                 end_client: document.getElementById('editJobEndClient').value,
                 years_of_experience: parseInt(document.getElementById('editJobExperience').value) || 0,
-                budget: document.getElementById('editJobBudget').value, max_salary: parseFloat(document.getElementById('editJobMaxSalary').value) || 0,
+                budget: document.getElementById('editJobBudget').value, max_salary: document.getElementById('editJobMaxSalary').value,
                 headcount: parseInt(document.getElementById('editJobHeadcount').value) || 1,
                 roles_responsibilities: document.getElementById('editJobRoles').value,
                 qualifications: document.getElementById('editJobQualifications').value,
@@ -6320,7 +6320,7 @@ if (createJobBtn) createJobBtn.onclick = async function() {
         end_client: document.getElementById('jobEndClient').value,
         years_of_experience: parseInt(document.getElementById('jobExperience').value) || 0,
         budget: document.getElementById('jobBudget').value,
-        max_salary: parseFloat(document.getElementById('jobMaxSalary').value) || 0,
+        max_salary: document.getElementById('jobMaxSalary').value,
         headcount: parseInt(document.getElementById('jobHeadcount').value) || 1,
         roles_responsibilities: document.getElementById('jobRoles').value,
         qualifications: document.getElementById('jobQualifications').value,
@@ -9414,6 +9414,40 @@ def fix_max_salary():
     conn.commit()
     conn.close()
     return 'Max salary column added!'
+
+@app.route('/fix-max-salary-text')
+def fix_max_salary_text():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('ALTER TABLE jobs RENAME TO jobs_old')
+    c.execute('''CREATE TABLE jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        company TEXT,
+        description TEXT,
+        roles_responsibilities TEXT,
+        qualifications TEXT,
+        required_skills TEXT,
+        certifications_required TEXT,
+        requirement_id TEXT,
+        working_mode TEXT DEFAULT 'Not Specified',
+        hybrid_days INTEGER DEFAULT 0,
+        business_model TEXT DEFAULT 'Not Specified',
+        payroll_company TEXT,
+        client_name TEXT,
+        end_client TEXT,
+        years_of_experience INTEGER DEFAULT 0,
+        budget TEXT,
+        max_salary TEXT,
+        headcount INTEGER DEFAULT 1,
+        is_active BOOLEAN DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    c.execute('''INSERT INTO jobs SELECT * FROM jobs_old''')
+    c.execute('DROP TABLE jobs_old')
+    conn.commit()
+    conn.close()
+    return 'Max salary changed to text!'
 
 # ============================================
 # ONBOARDED RESOURCES
