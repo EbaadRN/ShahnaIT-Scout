@@ -468,14 +468,16 @@ from functools import wraps
 from flask import session, redirect, url_for
 
 def login_required(role=None):
-    """Decorator to require login and optional role"""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             if 'user_id' not in session:
                 return jsonify({'error': 'Unauthorized', 'redirect': '/login'}), 401
-            if role and session.get('role') != role and session.get('role') != 'admin':
-                return jsonify({'error': 'Access denied. ' + role.capitalize() + ' role required.'}), 403
+            if role:
+                user_role = (session.get('role') or '').lower()
+                required_role = role.lower()
+                if user_role != required_role and user_role != 'admin':
+                    return jsonify({'error': 'Access denied. ' + role.capitalize() + ' role required.'}), 403
             return f(*args, **kwargs)
         return decorated_function
     return decorator
