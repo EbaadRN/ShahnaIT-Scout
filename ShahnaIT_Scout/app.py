@@ -8158,7 +8158,7 @@ def get_jobs():
     return jsonify(jobs)
 
 @app.route('/api/jobs', methods=['POST']) 
-@login_required('admin')
+@login_required('manager')
 def create_job():
     data = request.json
     conn = sqlite3.connect(DB_PATH)
@@ -8192,6 +8192,13 @@ def create_job():
     ))
     conn.commit()
     conn.close()
+
+     user_name = session.get('user_name', 'Manager')
+    user_role = session.get('role', '')
+    if user_role == 'manager':
+        notification = f"""🆕 <b>New Job Created</b>\n\n👤 <b>Created By:</b> {user_name}\n🔹 <b>Title:</b> {data.get('title', 'N/A')}\n🏢 <b>Company:</b> {data.get('company', 'N/A')}"""
+        send_telegram_message(notification)
+    
     return jsonify({'message': 'Job created'})
 @app.route('/api/candidates/<int:candidate_id>/propose', methods=['PUT'])
 @login_required()
