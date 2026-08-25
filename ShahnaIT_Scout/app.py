@@ -4128,6 +4128,7 @@ async function checkAuth() {
             }
             
             loadDashboard();
+            loadUploaderDropdown();
             if (currentUser.role === 'admin') {
                 document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
             }
@@ -4872,7 +4873,6 @@ async function loadUploaderDropdown() {
     if (select) select.innerHTML = options;
     if (bulkSelect) bulkSelect.innerHTML = options;
 }
-loadUploaderDropdown();
 
 // Open first sidebar group by default
 document.querySelector('.sidebar-group-header').classList.add('open');
