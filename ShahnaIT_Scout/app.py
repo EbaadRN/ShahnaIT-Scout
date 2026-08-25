@@ -8193,7 +8193,7 @@ def create_job():
     conn.commit()
     conn.close()
 
-     user_name = session.get('user_name', 'Manager')
+    user_name = session.get('user_name', 'Manager')
     user_role = session.get('role', '')
     if user_role == 'manager':
         notification = f"""🆕 <b>New Job Created</b>\n\n👤 <b>Created By:</b> {user_name}\n🔹 <b>Title:</b> {data.get('title', 'N/A')}\n🏢 <b>Company:</b> {data.get('company', 'N/A')}"""
