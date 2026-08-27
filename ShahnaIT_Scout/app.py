@@ -4536,10 +4536,16 @@ function addSkillToCandidate() {
     } catch(e) { skills = []; }
     if (!Array.isArray(skills)) skills = [];
     
-    // Split by comma and add each skill separately
+        // Split by comma and add each skill separately, avoiding duplicates
     const newSkills = rawSkill.split(',').map(s => s.trim()).filter(s => s);
     newSkills.forEach(skill => {
-        skills.push(skill);
+        const exists = skills.some(s => 
+            (typeof s === 'string' && s.toLowerCase() === skill.toLowerCase()) ||
+            (typeof s === 'object' && s.skill && s.skill.toLowerCase() === skill.toLowerCase())
+        );
+        if (!exists) {
+            skills.push(skill);
+        }
     });
     
     currentCandidateData.core_skills = skills;
