@@ -8348,7 +8348,18 @@ def toggle_job_active(job_id):
     
     status = 'Closed' if data.get('is_active', 0) == 0 else 'Reopened'
     user_name = session.get('user_name', 'Manager')
-    notification = f"""🔄 <b>Job {status}</b>\n\n👤 <b>By:</b> {user_name}\n📋 <b>Job ID:</b> {job_id}"""
+        # Get job details
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT title, company, requirement_id FROM jobs WHERE id = ?', (job_id,))
+    job = c.fetchone()
+    conn.close()
+    
+    job_title = job[0] if job else 'N/A'
+    job_company = job[1] if job else 'N/A'
+    job_req_id = job[2] if job and job[2] else f'SIT-R-{str(job_id).zfill(3)}'
+    
+    notification = f"""🔄 <b>Job {status}</b>\n\n👤 <b>By:</b> {user_name}\n🔹 <b>Title:</b> {job_title}\n🏢 <b>Company:</b> {job_company}\n📋 <b>Job ID:</b> {job_req_id}"""
     send_telegram_message(notification, to_admin=True)
     
     return jsonify({'message': 'Job status updated'})
