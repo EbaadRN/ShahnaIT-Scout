@@ -9486,6 +9486,18 @@ def fix_max_salary_text():
     conn.close()
     return 'Max salary changed to text!'
 
+@app.route('/fix-office-location')
+def fix_office_location():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE jobs ADD COLUMN office_location TEXT DEFAULT ''")
+    except:
+        pass
+    conn.commit()
+    conn.close()
+    return 'Office location column added!'
+
 # ============================================
 # ONBOARDED RESOURCES
 # ============================================
