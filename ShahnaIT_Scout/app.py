@@ -9504,6 +9504,54 @@ def fix_office_location():
     conn.close()
     return 'Office location column added!'
 
+@app.route('/fix-split-skills')
+def fix_split_skills():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    
+    c.execute('SELECT id, core_skills FROM candidates')
+    candidates = c.fetchall()
+    
+    updated_count = 0
+    for cand in candidates:
+        try:
+            skills = json.loads(cand['core_skills']) if cand['core_skills'] else []
+            if not isinstance(skills, list):
+                continue
+            
+            new_skills = []
+            changed = False
+            
+            for skill in skills:
+                if isinstance(skill, dict):
+                    skill_name = skill.get('skill', '')
+                    if ',' in skill_name:
+                        parts = [s.strip() for s in skill_name.split(',') if s.strip()]
+                        for p in parts:
+                            new_skills.append({'skill': p, 'years_of_experience': skill.get('years_of_experience', 0)})
+                        changed = True
+                    else:
+                        new_skills.append(skill)
+                elif isinstance(skill, str):
+                    if ',' in skill:
+                        parts = [s.strip() for s in skill.split(',') if s.strip()]
+                        new_skills.extend(parts)
+                        changed = True
+                    else:
+                        new_skills.append(skill)
+            
+            if changed:
+                c.execute('UPDATE candidates SET core_skills = ? WHERE id = ?', 
+                          (json.dumps(new_skills), cand['id']))
+                updated_count += 1
+        except:
+            pass
+    
+    conn.commit()
+    conn.close()
+    return f'Skills split for {updated_count} candidates!'
+
 # ============================================
 # ONBOARDED RESOURCES
 # ============================================
