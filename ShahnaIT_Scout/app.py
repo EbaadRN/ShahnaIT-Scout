@@ -3576,6 +3576,11 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             <label>Hybrid Days (per week)</label>
             <input type="number" id="jobHybridDays" class="form-input" value="0" min="0" max="7">
         </div>
+
+             <div class="form-group" id="officeLocationGroup" style="display:none;">
+    <label>Office Location(s)</label>
+    <input type="text" id="jobOfficeLocation" class="form-input" placeholder="e.g. Bangalore, Mumbai (comma separated)">
+</div>
         
         <!-- Row 3: Payroll & End Client -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
@@ -6321,7 +6326,11 @@ const jobWorkingMode = document.getElementById('jobWorkingMode');
 const hybridDaysGroup = document.getElementById('hybridDaysGroup');
 if (jobWorkingMode && hybridDaysGroup) {
     jobWorkingMode.addEventListener('change', function() {
-        hybridDaysGroup.style.display = this.value === 'Hybrid' ? 'block' : 'none';
+    const officeGroup = document.getElementById('officeLocationGroup');
+    hybridDaysGroup.style.display = this.value === 'Hybrid' ? 'block' : 'none';
+    if (officeGroup) {
+        officeGroup.style.display = (this.value === 'Onsite' || this.value === 'Hybrid') ? 'block' : 'none';
+        }
     });
 }
 
