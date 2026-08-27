@@ -6341,7 +6341,7 @@ if (createJobBtn) createJobBtn.onclick = async function() {
         title: document.getElementById('jobTitle').value,
         company: document.getElementById('jobCompany').value,
         working_mode: document.getElementById('jobWorkingMode').value,
-        hybrid_days: parseInt(document.getElementById('jobHybridDays').value) || 0,
+        hybrid_days: parseInt(document.getElementById('jobHybridDays').value) || 0, office_location: document.getElementById('jobOfficeLocation').value,
         business_model: document.getElementById('jobBusinessModel').value,
         payroll_company: document.getElementById('jobPayroll').value,
         end_client: document.getElementById('jobEndClient').value,
@@ -8191,7 +8191,7 @@ def create_job():
     c.execute('''INSERT INTO jobs (
         title, company, description, roles_responsibilities, qualifications,
         required_skills, certifications_required, requirement_id,
-        working_mode, hybrid_days, business_model,
+        working_mode, hybrid_days, office_location, business_model,
         payroll_company, client_name, end_client,
         years_of_experience, budget, max_salary, headcount
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
@@ -8206,6 +8206,7 @@ def create_job():
         data.get('requirement_id', ''),
         data.get('working_mode', 'Not Specified'),
         data.get('hybrid_days', 0),
+        data.get('office_location', ''),
         data.get('business_model', 'Not Specified'),
         data.get('payroll_company', ''),
         data.get('client_name', data.get('company', '')),
