@@ -4527,16 +4527,21 @@ function updateStageColor() {
 // Skill Management
 function addSkillToCandidate() {
     const input = document.getElementById('newSkillInput');
-    const skill = input.value.trim();
-    if (!skill) return;
+    const rawSkill = input.value.trim();
+    if (!rawSkill) return;
     
-let skills = [];
-try {
-    skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
-} catch(e) { skills = []; }
-if (!Array.isArray(skills)) skills = [];
-
-skills.push(skill);
+    let skills = [];
+    try {
+        skills = typeof currentCandidateData.core_skills === 'string' ? JSON.parse(currentCandidateData.core_skills) : (currentCandidateData.core_skills || []);
+    } catch(e) { skills = []; }
+    if (!Array.isArray(skills)) skills = [];
+    
+    // Split by comma and add each skill separately
+    const newSkills = rawSkill.split(',').map(s => s.trim()).filter(s => s);
+    newSkills.forEach(skill => {
+        skills.push(skill);
+    });
+    
     currentCandidateData.core_skills = skills;
     renderSkills(skills);
     input.value = '';
