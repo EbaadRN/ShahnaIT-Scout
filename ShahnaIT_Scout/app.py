@@ -8212,8 +8212,7 @@ def create_job():
     user_name = session.get('user_name', 'Manager')
     user_role = session.get('role', '')
     if user_role == 'manager':
-        notification = f"""🆕 <b>New Job Created</b>\n\n👤 <b>Created By:</b> {user_name}\n🔹 <b>Title:</b> {data.get('title', 'N/A')}\n🏢 <b>Company:</b> {data.get('company', 'N/A')}"""
-        send_telegram_message(notification, to_admin=True)
+        notification = f"""🆕 <b>New Job Created</b>\n\n👤 <b>Created By:</b> {user_name}\n🔹 <b>Title:</b> {data.get('title', 'N/A')}\n🏢 <b>Company:</b> {data.get('company', 'N/A')}\n📋 <b>Job ID:</b> {data.get('requirement_id', 'N/A')}"""        send_telegram_message(notification, to_admin=True)
     
     return jsonify({'message': 'Job created'})
 @app.route('/api/candidates/<int:candidate_id>/propose', methods=['PUT'])
