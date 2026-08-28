@@ -4017,7 +4017,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <div class="form-group">
                     <label>Requirement</label>
                     <div style="display:flex;gap:4px;align-items:center;">
-                        <input type="text" id="edit_proposed_requirement" class="form-input" style="flex:1;min-width:0;" list="requirementList" placeholder="Search SIT-R-XXX..." oninput="filterRequirementDropdown()" autocomplete="off">
+                        <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;flex:1;min-width:0;">     <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>     <input type="text" id="edit_proposed_requirement" class="form-input" style="border:none;flex:1;" list="requirementList" placeholder="001" oninput="filterRequirementDropdown()" autocomplete="off"> </div>
                         <datalist id="requirementList"></datalist>
                         <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
                     </div>
@@ -4049,6 +4049,16 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             <div id="workHistoryContainer"></div>
             <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add</button>
         </div>
+
+        <div class="modal-section">
+            <h3 class="modal-section-title"><i class="fas fa-chart-line"></i> Relevant Experience</h3>
+            <div id="relevantExperienceContainer"></div>
+            <div style="display:flex;gap:6px;margin-top:8px;">
+        <input type="text" id="relevantSkillInput" class="form-input" placeholder="Skill" style="flex:1;">
+        <input type="number" id="relevantYearsInput" class="form-input" placeholder="Years" style="width:100px;">
+        <button class="btn btn-sm" onclick="addRelevantExperience()">+</button>
+    </div>
+</div>
         
         <!-- Certifications -->
         <div class="modal-section">
@@ -4343,6 +4353,7 @@ window.viewCandidate = function(id) {
     
     // Work History
     renderWorkHistory(candidate.work_experience);
+    renderRelevantExperience(candidate.relevant_experience);
     
     // Certifications
     renderCertifications(candidate.certifications);
@@ -4564,6 +4575,58 @@ skills.splice(index, 1);
     renderSkills(skills);
 }
 
+function renderRelevantExperience(data) {
+    const container = document.getElementById('relevantExperienceContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    let exp = [];
+    try {
+        exp = typeof data === 'string' ? JSON.parse(data) : (data || []);
+    } catch(e) { exp = []; }
+    if (!Array.isArray(exp) || exp.length === 0) {
+        container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No relevant experience</span>';
+        return;
+    }
+    exp.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'company-item';
+        div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+        div.innerHTML = `<span>💼 <strong>${escapeHtml(item.skill || '')}</strong> - ${item.years || 0} years</span>
+            <i class="fas fa-times" style="cursor:pointer;color:#C42020;font-size:12px;" onclick="removeRelevantExperience(${index})"></i>`;
+        container.appendChild(div);
+    });
+}
+
+function addRelevantExperience() {
+    const skillInput = document.getElementById('relevantSkillInput');
+    const yearsInput = document.getElementById('relevantYearsInput');
+    const skill = skillInput.value.trim();
+    const years = parseInt(yearsInput.value) || 0;
+    if (!skill) return;
+    
+    let exp = [];
+    try {
+        exp = typeof currentCandidateData.relevant_experience === 'string' ? JSON.parse(currentCandidateData.relevant_experience) : (currentCandidateData.relevant_experience || []);
+    } catch(e) { exp = []; }
+    if (!Array.isArray(exp)) exp = [];
+    
+    exp.push({skill: skill, years: years});
+    currentCandidateData.relevant_experience = exp;
+    renderRelevantExperience(exp);
+    skillInput.value = '';
+    yearsInput.value = '';
+}
+
+function removeRelevantExperience(index) {
+    let exp = [];
+    try {
+        exp = typeof currentCandidateData.relevant_experience === 'string' ? JSON.parse(currentCandidateData.relevant_experience) : (currentCandidateData.relevant_experience || []);
+    } catch(e) { exp = []; }
+    exp.splice(index, 1);
+    currentCandidateData.relevant_experience = exp;
+    renderRelevantExperience(exp);
+}
+
 function addWorkEntry() {
     const company = prompt('Enter company name:');
     if (!company) return;
@@ -4690,6 +4753,7 @@ async function saveCandidateChanges() {
         notes: document.getElementById('edit_notes').value,
         core_skills: currentCandidateData.core_skills,
         work_experience: currentCandidateData.work_experience,
+        relevant_experience: currentCandidateData.relevant_experience,
         certifications: currentCandidateData.certifications,
         attachments: currentCandidateData.attachments
     };
@@ -9509,6 +9573,18 @@ def fix_office_location():
     conn.commit()
     conn.close()
     return 'Office location column added!'
+
+@app.route('/fix-relevant-exp')
+def fix_relevant_exp():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE candidates ADD COLUMN relevant_experience TEXT DEFAULT '[]'")
+    except:
+        pass
+    conn.commit()
+    conn.close()
+    return 'Relevant experience column added!'
 
 @app.route('/fix-split-skills')
 def fix_split_skills():
