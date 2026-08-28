@@ -5403,25 +5403,44 @@ async function loadJobs() {
     document.getElementById('batchJobSelect').innerHTML = '<option value="">-- Select Job --</option>' + allJobs.map(j => `<option value="${j.id}">${escapeHtml(j.title)}</option>`).join('');
 }
 async function viewCandidatesForRequirement(requirementId) {
-    // Filter candidates by this requirement
+    // Normalize requirement ID - remove SIT-R- prefix and trim
+    const normalizedReq = String(requirementId).replace('SIT-R-', '').trim();
+    
+    // Filter candidates by this requirement - check multiple fields and formats
     const matched = allCandidates.filter(c => {
-        return c.proposed_requirement === requirementId;
+        const proposed = String(c.proposed_requirement || '').replace('SIT-R-', '').trim();
+        const matchedJd = String(c.matched_jd || '').replace('SIT-R-', '').trim();
+        return proposed === normalizedReq || matchedJd === normalizedReq;
     });
     
     if (matched.length === 0) {
-        toastInfo('No candidates linked to ' + requirementId);
+        toastInfo('No candidates linked to SIT-R-' + normalizedReq);
         return;
     }
     
     // Switch to candidates panel
     showPanel('candidates');
     
-    // Set the requirement as a filter
     // Display only matched candidates
     renderCandidates(matched);
     
     // Show count
-    toastSuccess('Found ' + matched.length + ' candidate(s) for ' + requirementId);
+    toastSuccess('Found ' + matched.length + ' candidate(s) for SIT-R-' + normalizedReq);
+}
+    
+    if (matched.length === 0) {
+        toastInfo('No candidates linked to SIT-R-' + normalizedReq);
+        return;
+    }
+    
+    // Switch to candidates panel
+    showPanel('candidates');
+    
+    // Display only matched candidates
+    renderCandidates(matched);
+    
+    // Show count
+    toastSuccess('Found ' + matched.length + ' candidate(s) for SIT-R-' + normalizedReq);
 }
    
    async function loadCandidates() {
