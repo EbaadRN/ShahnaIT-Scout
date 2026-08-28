@@ -5428,11 +5428,6 @@ async function viewCandidatesForRequirement(requirementId) {
     toastSuccess('Found ' + matched.length + ' candidate(s) for SIT-R-' + normalizedReq);
 }
     
-    if (matched.length === 0) {
-        toastInfo('No candidates linked to SIT-R-' + normalizedReq);
-        return;
-    }
-    
     // Switch to candidates panel
     showPanel('candidates');
     
