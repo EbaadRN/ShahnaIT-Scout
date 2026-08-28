@@ -5427,17 +5427,7 @@ async function viewCandidatesForRequirement(requirementId) {
     // Show count
     toastSuccess('Found ' + matched.length + ' candidate(s) for SIT-R-' + normalizedReq);
 }
-    
-    // Switch to candidates panel
-    showPanel('candidates');
-    
-    // Display only matched candidates
-    renderCandidates(matched);
-    
-    // Show count
-    toastSuccess('Found ' + matched.length + ' candidate(s) for SIT-R-' + normalizedReq);
-}
-   
+       
    async function loadCandidates() {
     const res = await fetch('/api/candidates');
     allCandidates = await res.json();
