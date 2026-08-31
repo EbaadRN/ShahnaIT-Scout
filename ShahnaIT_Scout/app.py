@@ -1125,19 +1125,86 @@ def extract_name_from_text(text):
     return "", "", ""
     
 def fallback_parse_resume(text):
+    """Enhanced fallback parser - extracts maximum details from resume"""
     first_name, last_name, middle_name = extract_name_from_text(text)
     email = extract_email(text)
     phone = extract_phone(text)
     
-    common_skills = [
-        'Python', 'Java', 'JavaScript', 'React', 'Angular', 'Node.js', 'SQL', 'AWS', 
-        'Docker', 'Kubernetes', 'Git', 'Azure', 'Salesforce', 'Power Apps', 'Entra ID'
+    # Expanded skill list
+    tech_skills = [
+        'python', 'java', 'javascript', 'typescript', 'c', 'c++', 'c#', '.net', 'php', 'ruby', 'golang', 'go',
+        'rust', 'scala', 'kotlin', 'swift', 'r', 'matlab', 'shell scripting', 'bash', 'powershell',
+        'html', 'css', 'sass', 'bootstrap', 'tailwind css', 'material ui', 'react', 'react native',
+        'angular', 'vue.js', 'vue', 'svelte', 'next.js', 'jquery', 'redux', 'graphql', 'rest api',
+        'sql', 'mysql', 'postgresql', 'mongodb', 'oracle', 'sql server', 'sqlite', 'redis', 'elasticsearch',
+        'dynamodb', 'firebase', 'snowflake', 'redshift', 'bigquery',
+        'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'jenkins', 'gitlab ci',
+        'terraform', 'ansible', 'prometheus', 'grafana', 'datadog', 'splunk', 'nginx', 'apache',
+        'machine learning', 'deep learning', 'nlp', 'computer vision', 'data science', 'data engineering',
+        'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy', 'spark', 'hadoop',
+        'kafka', 'airflow', 'tableau', 'power bi', 'looker', 'excel', 'databricks',
+        'sap abap', 'sap fico', 'sap mm', 'sap sd', 'sap hana', 'sap bw', 'sap basis', 'sap crm',
+        'sap s/4hana', 'sap pi/po', 'sap bapi', 'sap idoc', 'sap smartforms', 'sap fiori',
+        'sap ui5', 'sap odata', 'sap workflow', 'sap gateway',
+        'salesforce', 'apex', 'visualforce', 'lightning', 'lwc', 'soql', 'sales cloud',
+        'selenium', 'junit', 'testng', 'cucumber', 'jest', 'mocha', 'cypress', 'postman',
+        'git', 'github', 'gitlab', 'bitbucket', 'jira', 'confluence', 'figma', 'linux', 'unix',
+        'android', 'ios', 'flutter', 'servicenow', 'workday', 'pega', 'appian',
+        'agile', 'scrum', 'kanban', 'devops', 'ci/cd'
     ]
+    
     found_skills = []
-    for skill in common_skills:
-        if skill.lower() in text.lower():
+    text_lower = text.lower()
+    for skill in tech_skills:
+        if skill in text_lower:
             years = extract_years_from_text(text, skill)
-            found_skills.append({"skill": skill, "years_of_experience": years})
+            found_skills.append({"skill": skill.title() if len(skill) <= 3 else skill, "years_of_experience": years})
+    
+    # Extract education
+    education = []
+    edu_patterns = [
+        r'(b\.?tech|m\.?tech|b\.?e|m\.?e|bca|mca|bsc|msc|bba|mba|phd|diploma|bachelor|master)[^\n]*',
+    ]
+    for pattern in edu_patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        for m in matches[:3]:
+            education.append(m.strip())
+    
+    # Extract work experience
+    work_exp = []
+    exp_pattern = r'([A-Z][A-Za-z\s&.,]+)\s*[-–]\s*(?:Present|Current)'
+    companies = re.findall(exp_pattern, text)
+    for company in companies[:5]:
+        work_exp.append({"company": company.strip(), "role": "", "duration": "", "description": ""})
+    
+    # Extract certifications
+    certs = []
+    cert_patterns = [
+        r'(aws|azure|gcp|google|salesforce|pmp|scrum|safe|itil|six sigma|cissp|ceh|comptia|oracle|sap|csm|cka|ckad)[^\n]*certif[^\n]*',
+        r'certif[^\n]*',
+    ]
+    for pattern in cert_patterns:
+        matches = re.findall(pattern, text, re.IGNORECASE)
+        for m in matches[:5]:
+            certs.append(m.strip())
+    
+    # Extract LinkedIn
+    linkedin = ''
+    li_match = re.search(r'(https?://[^\s]*linkedin[^\s]*)', text, re.IGNORECASE)
+    if li_match:
+        linkedin = li_match.group(1)
+    
+    # Extract CTC
+    current_ctc = ''
+    ctc_match = re.search(r'(?:current\s*ctc|ctc)\s*[:-]\s*([\d.,]+\s*(?:lpa|lakh|lacs|l))', text, re.IGNORECASE)
+    if ctc_match:
+        current_ctc = ctc_match.group(1)
+    
+    # Extract total experience
+    total_exp = 0
+    exp_match = re.search(r'(\d+)\s*(?:\+|plus)?\s*years?\s*(?:of\s*)?(?:total\s*)?experience', text, re.IGNORECASE)
+    if exp_match:
+        total_exp = int(exp_match.group(1))
     
     return {
         'first_name': first_name,
@@ -1146,20 +1213,24 @@ def fallback_parse_resume(text):
         'phone': phone,
         'email': email,
         'address': "",
-        'linkedin': "",
+        'linkedin': linkedin,
+        'other_social': "",
         'current_role': "",
-        'current_ctc': "",
+        'designation': "",
+        'current_ctc': current_ctc,
         'expected_ctc': "",
-        'employment_status': "working",
+        'years_of_experience': total_exp,
         'notice_period_days': 0,
-        'work_experience': [],
-        'certifications': [],
-        'core_skills': found_skills[:5],
-        'education': "",
-        'resume_text': text[:3000],
+        'employment_status': "Employed",
+        'core_skills': found_skills[:50],
+        'relevant_experience': [],
+        'education': education,
+        'certifications': certs,
+        'work_experience': work_exp,
+        'summary': "",
+        'resume_text': text[:6000],
         'ai_used': False
     }
-
 def save_candidate_to_db(candidate_data):
     skills = json.dumps(candidate_data.get('core_skills', []))
     work_exp = json.dumps(candidate_data.get('work_experience', []))
@@ -9600,6 +9671,62 @@ def fix_relevant_exp():
     conn.commit()
     conn.close()
     return 'Relevant experience column added!'
+
+@app.route('/fix-reparse-existing')
+def fix_reparse_existing():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT id, resume_text, resume_file_path FROM candidates WHERE resume_text IS NOT NULL AND resume_text != ""')
+    candidates = c.fetchall()
+    
+    updated = 0
+    for cand in candidates:
+        try:
+            text = cand['resume_text']
+            if len(text) < 100:
+                # Try to re-extract from file
+                if cand['resume_file_path'] and os.path.exists(cand['resume_file_path']):
+                    if cand['resume_file_path'].endswith('.pdf'):
+                        text = extract_text_from_pdf(cand['resume_file_path'])
+                    else:
+                        text = extract_text_from_docx(cand['resume_file_path'])
+            
+            if text and len(text) >= 100:
+                parsed = parse_resume_with_groq(text)
+                if not parsed or not parsed.get('first_name'):
+                    parsed = fallback_parse_resume(text)
+                
+                # Update core fields
+                if parsed.get('core_skills'):
+                    c.execute('UPDATE candidates SET core_skills = ? WHERE id = ?', 
+                              (json.dumps(parsed['core_skills']), cand['id']))
+                if parsed.get('education'):
+                    c.execute('UPDATE candidates SET education = ? WHERE id = ?', 
+                              (json.dumps(parsed['education']), cand['id']))
+                if parsed.get('certifications'):
+                    c.execute('UPDATE candidates SET certifications = ? WHERE id = ?', 
+                              (json.dumps(parsed['certifications']), cand['id']))
+                if parsed.get('work_experience'):
+                    c.execute('UPDATE candidates SET work_experience = ? WHERE id = ?', 
+                              (json.dumps(parsed['work_experience']), cand['id']))
+                if parsed.get('linkedin'):
+                    c.execute('UPDATE candidates SET linkedin = ? WHERE id = ?', 
+                              (parsed['linkedin'], cand['id']))
+                if parsed.get('current_ctc'):
+                    c.execute('UPDATE candidates SET current_ctc = ? WHERE id = ?', 
+                              (parsed['current_ctc'], cand['id']))
+                if parsed.get('years_of_experience'):
+                    c.execute('UPDATE candidates SET years_of_experience = ? WHERE id = ?', 
+                              (parsed['years_of_experience'], cand['id']))
+                
+                updated += 1
+        except Exception as e:
+            print(f"Error re-parsing candidate {cand['id']}: {e}")
+    
+    conn.commit()
+    conn.close()
+    return f'Re-parsed {updated} candidates!'
 
 @app.route('/fix-split-skills')
 def fix_split_skills():
