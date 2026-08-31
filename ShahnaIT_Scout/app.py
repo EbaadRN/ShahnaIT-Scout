@@ -1109,6 +1109,13 @@ def extract_name_from_text(text):
             last_name = name_parts[-1] if len(name_parts) > 1 else ""
             middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
             return first_name, last_name, middle_name
+
+        # Strategy 5: Check first 3 lines for FirstName LastName pattern
+    for line in lines[:3]:
+        cleaned = re.sub(r'[^A-Za-z\s\.]', '', line).strip()
+        parts = cleaned.split()
+        if len(parts) >= 2 and all(p and p[0].isupper() for p in parts[:2]):
+            return parts[0], parts[-1], ' '.join(parts[1:-1]) if len(parts) > 2 else ''
     
     # Fallback: return first line that's not a common header
     for line in lines[:5]:
@@ -1133,24 +1140,36 @@ def fallback_parse_resume(text):
     # Expanded skill list
     tech_skills = [
         'python', 'java', 'javascript', 'typescript', 'c', 'c++', 'c#', '.net', 'php', 'ruby', 'golang', 'go',
-        'rust', 'scala', 'kotlin', 'swift', 'r', 'matlab', 'shell scripting', 'bash', 'powershell',
-        'html', 'css', 'sass', 'bootstrap', 'tailwind css', 'material ui', 'react', 'react native',
-        'angular', 'vue.js', 'vue', 'svelte', 'next.js', 'jquery', 'redux', 'graphql', 'rest api',
+        'rust', 'scala', 'kotlin', 'swift', 'r', 'matlab', 'shell scripting', 'bash', 'powershell', 'vb.net',
+        'html', 'css', 'sass', 'less', 'bootstrap', 'tailwind css', 'material ui', 'react', 'react native',
+        'angular', 'vue.js', 'vue', 'svelte', 'next.js', 'nuxt', 'gatsby', 'jquery', 'redux', 'mobx',
+        'webpack', 'babel', 'vite', 'graphql', 'rest api', 'soap', 'microservices', 'web services',
         'sql', 'mysql', 'postgresql', 'mongodb', 'oracle', 'sql server', 'sqlite', 'redis', 'elasticsearch',
-        'dynamodb', 'firebase', 'snowflake', 'redshift', 'bigquery',
-        'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes', 'jenkins', 'gitlab ci',
-        'terraform', 'ansible', 'prometheus', 'grafana', 'datadog', 'splunk', 'nginx', 'apache',
+        'cassandra', 'dynamodb', 'mariadb', 'firebase', 'snowflake', 'redshift', 'bigquery', 'teradata',
+        'neo4j', 'prisma', 'sequelize', 'typeorm', 'hibernate',
+        'aws', 'azure', 'gcp', 'google cloud', 'heroku', 'digitalocean', 'docker', 'kubernetes', 'openshift',
+        'jenkins', 'gitlab ci', 'github actions', 'circleci', 'terraform', 'ansible', 'puppet', 'chef',
+        'prometheus', 'grafana', 'datadog', 'splunk', 'elk stack', 'nginx', 'apache', 'tomcat', 'iis',
+        'serverless', 'lambda', 'cloudformation', 'azure devops',
         'machine learning', 'deep learning', 'nlp', 'computer vision', 'data science', 'data engineering',
-        'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy', 'spark', 'hadoop',
-        'kafka', 'airflow', 'tableau', 'power bi', 'looker', 'excel', 'databricks',
+        'data analytics', 'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy', 'matplotlib',
+        'seaborn', 'spark', 'hadoop', 'kafka', 'airflow', 'dbt', 'tableau', 'power bi', 'looker', 'qlik',
+        'excel', 'vba', 'sap bo', 'ssis', 'ssrs', 'ssas', 'databricks', 'mlflow',
         'sap abap', 'sap fico', 'sap mm', 'sap sd', 'sap hana', 'sap bw', 'sap basis', 'sap crm',
-        'sap s/4hana', 'sap pi/po', 'sap bapi', 'sap idoc', 'sap smartforms', 'sap fiori',
-        'sap ui5', 'sap odata', 'sap workflow', 'sap gateway',
-        'salesforce', 'apex', 'visualforce', 'lightning', 'lwc', 'soql', 'sales cloud',
-        'selenium', 'junit', 'testng', 'cucumber', 'jest', 'mocha', 'cypress', 'postman',
-        'git', 'github', 'gitlab', 'bitbucket', 'jira', 'confluence', 'figma', 'linux', 'unix',
-        'android', 'ios', 'flutter', 'servicenow', 'workday', 'pega', 'appian',
-        'agile', 'scrum', 'kanban', 'devops', 'ci/cd'
+        'sap s/4hana', 'sap pi/po', 'sap bpc', 'sap successfactors', 'sap ariba', 'sap cds',
+        'sap bapi', 'sap idoc', 'sap smartforms', 'sap adobe forms', 'sap webdynpro', 'sap fiori',
+        'sap ui5', 'sap odata', 'sap workflow', 'sap bopf', 'sap gateway',
+        'salesforce', 'apex', 'visualforce', 'lightning', 'lwc', 'soql', 'sosl', 'sales cloud',
+        'service cloud', 'marketing cloud', 'commerce cloud', 'community cloud', 'salesforce crm',
+        'selenium', 'junit', 'testng', 'cucumber', 'jest', 'mocha', 'cypress', 'postman', 'jmeter',
+        'loadrunner', 'appium', 'protractor', 'pytest', 'qa automation', 'manual testing',
+        'git', 'github', 'gitlab', 'bitbucket', 'jira', 'confluence', 'slack', 'trello', 'asana',
+        'figma', 'sketch', 'adobe xd', 'photoshop', 'illustrator', 'invision', 'zeplin',
+        'linux', 'unix', 'windows', 'macos', 'android', 'ios', 'flutter', 'xamarin',
+        'servicenow', 'workday', 'pega', 'appian', 'powerapps', 'sharepoint', 'dynamics 365',
+        'mulesoft', 'dell boomi', 'informatica', 'talend', 'apache nifi',
+        'blockchain', 'solidity', 'ethereum', 'hyperledger', 'iot', 'embedded systems',
+        'agile', 'scrum', 'kanban', 'safe', 'waterfall', 'devops', 'ci/cd', 'sre'
     ]
     
     found_skills = []
