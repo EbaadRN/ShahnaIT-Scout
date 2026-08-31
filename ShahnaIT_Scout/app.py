@@ -801,37 +801,48 @@ def call_groq_api(prompt, max_tokens=2500):
 
 def parse_resume_with_groq(resume_text):
     """Parse resume text into structured candidate fields using AI"""
-    prompt = f"""You are an expert resume parser. Extract ALL fields from this resume precisely. Return ONLY valid JSON, no explanations.
+    prompt = f"""You are an expert resume parser. Extract EVERY detail from this resume with maximum accuracy. Return ONLY valid JSON, no explanations.
 
 {{
     "first_name": "First name",
     "last_name": "Last name", 
     "middle_name": "",
-    "phone": "phone number or empty",
-    "email": "email or empty",
-    "address": "full address or empty",
-    "linkedin": "LinkedIn URL or empty",
+    "phone": "phone number or empty string",
+    "email": "email or empty string",
+    "address": "full address or empty string",
+    "linkedin": "LinkedIn URL or empty string",
+    "other_social": "GitHub/Portfolio URL or empty string",
     "current_role": "Current job title",
     "designation": "Most recent designation",
-    "location": "City, State",
-    "current_ctc": "Current CTC if mentioned else empty",
-    "expected_ctc": "Expected CTC if mentioned else empty",
-    "years_of_experience": number,
-    "notice_period_days": number (30/60/90, 0 if not mentioned),
+    "location": "City, State, Country",
+    "current_ctc": "Current CTC if mentioned (e.g., '15 LPA') else empty string",
+    "expected_ctc": "Expected CTC if mentioned else empty string",
+    "years_of_experience": "total years of experience as number",
+    "notice_period_days": "30/60/90 or 0 if not mentioned",
     "employment_status": "Employed / Unemployed / Not Specified",
-    "core_skills": ["skill1", "skill2"],
-    "education": "Highest education",
-    "certifications": ["cert1", "cert2"],
+    "core_skills": ["every technical skill mentioned - include ALL"],
+    "relevant_experience": [{{"skill": "Python", "years": 5}}],
+    "education": [{{"degree": "B.Tech", "institution": "College name", "year": "2020", "percentage": "8.5 CGPA"}}],
+    "certifications": ["all certifications mentioned"],
     "work_experience": [
-        {{"company": "name", "role": "title", "duration": "Jan 2020 - Present", "description": "key work"}}
+        {{"company": "Company name", "role": "Role", "duration": "Jan 2020 - Present", "description": "Key responsibilities", "location": "City"}}
     ],
-    "summary": "2-line professional summary"
+    "summary": "2-3 line professional summary from resume"
 }}
 
+CRITICAL INSTRUCTIONS:
+- Extract EVERYTHING. Do not skip any field.
+- Include ALL skills mentioned, even if there are 20+.
+- Include ALL work experiences with dates, descriptions, locations.
+- Include ALL education entries with institution, year, percentage/CGPA.
+- For name, look at the top of resume or after "Name:" label.
+- For phone, look for +91, +1, or 10-digit numbers.
+- Be precise. Do not invent data. Use empty string if not found.
+
 RESUME:
-{resume_text[:5000]}
+{resume_text[:6000]}
 """
-    response = call_groq_api(prompt, max_tokens=2500)
+    response = call_groq_api(prompt, max_tokens=3000)
     if response:
         try:
             return json.loads(response)
