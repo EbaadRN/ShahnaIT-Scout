@@ -5842,7 +5842,7 @@ function filterCandidates() {
     const uploaderFilter = document.getElementById('uploadedByFilter').value.toLowerCase();
     const sortBy = document.getElementById('sortBy').value;
     
-    let filtered = allCandidates;
+    let filtered = Array.isArray(allCandidates) ? allCandidates : [];
     
     // 1. Search filter - name, email, phone, skills
     if (searchTerm) {
