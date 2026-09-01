@@ -700,6 +700,34 @@ def init_db():
     if c.fetchone()[0] == 0:
         for name in ['Siraj', 'Ibaad', 'Saniya', 'Sumaiya', 'Muhiuddin']:
             c.execute('INSERT INTO uploaders (name) VALUES (?)', (name,))
+
+        c.execute('''CREATE TABLE IF NOT EXISTS candidate_projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER,
+        project_name TEXT NOT NULL,
+        role TEXT,
+        organization TEXT,
+        start_date TEXT,
+        end_date TEXT,
+        description TEXT,
+        tech_stack TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS candidate_education (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER,
+        degree TEXT NOT NULL,
+        institute TEXT NOT NULL,
+        field_of_study TEXT,
+        start_year TEXT,
+        end_year TEXT,
+        grade TEXT,
+        location TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+    )''')
     
     conn.commit()
     conn.close()
@@ -4151,6 +4179,20 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add</button>
         </div>
 
+<!-- Projects -->
+<div class="modal-section">
+    <h3 class="modal-section-title"><i class="fas fa-project-diagram"></i> Projects</h3>
+    <div id="projectsContainer"></div>
+    <button class="btn btn-sm btn-secondary" onclick="addProjectEntry()" style="margin-top:6px;">+ Add Project</button>
+</div>
+
+<!-- Education -->
+<div class="modal-section">
+    <h3 class="modal-section-title"><i class="fas fa-graduation-cap"></i> Education</h3>
+    <div id="educationContainer"></div>
+    <button class="btn btn-sm btn-secondary" onclick="addEducationEntry()" style="margin-top:6px;">+ Add Education</button>
+</div>
+
         <div class="modal-section">
             <h3 class="modal-section-title"><i class="fas fa-chart-line"></i> Relevant Experience</h3>
             <div id="relevantExperienceContainer"></div>
@@ -4454,6 +4496,8 @@ window.viewCandidate = function(id) {
     
     // Work History
     renderWorkHistory(candidate.work_experience);
+    renderProjects(candidate.id);
+    renderEducation(candidate.id);
     renderRelevantExperience(candidate.relevant_experience);
     
     // Certifications
@@ -4726,6 +4770,144 @@ function removeRelevantExperience(index) {
     exp.splice(index, 1);
     currentCandidateData.relevant_experience = exp;
     renderRelevantExperience(exp);
+}
+
+// ============ PROJECTS ============
+async function renderProjects(candidateId) {
+    const container = document.getElementById('projectsContainer');
+    if (!container) return;
+    const res = await fetch('/api/candidates/' + candidateId + '/projects');
+    const projects = await res.json();
+    
+    if (!projects.length) {
+        container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No projects added</span>';
+        return;
+    }
+    
+    container.innerHTML = projects.map(p => `
+        <div class="company-item" style="margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <strong>${escapeHtml(p.project_name)}</strong> ${p.role ? '| ' + escapeHtml(p.role) : ''} ${p.start_date ? '| ' + escapeHtml(p.start_date) + ' - ' + escapeHtml(p.end_date || 'Present') : ''}
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <i class="fas fa-edit" style="cursor:pointer;color:#1B2A4A;" onclick="editProjectEntry(${p.id}, ${candidateId})"></i>
+                    <i class="fas fa-trash" style="cursor:pointer;color:#C42020;" onclick="deleteProjectEntry(${p.id}, ${candidateId})"></i>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addProjectEntry() {
+    const candidateId = currentCandidateId;
+    const projectName = prompt('Project Name:');
+    if (!projectName) return;
+    const role = prompt('Role:', '');
+    const org = prompt('Organization:', '');
+    const start = prompt('Start Date (e.g., Jan 2024):', '');
+    const end = prompt('End Date (or Present):', '');
+    const desc = prompt('Description:', '');
+    const tech = prompt('Tech Stack (comma separated):', '');
+    
+    fetch('/api/candidates/' + candidateId + '/projects', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({project_name: projectName, role, organization: org, start_date: start, end_date: end, description: desc, tech_stack: tech})
+    }).then(() => { renderProjects(candidateId); toastSuccess('Project added!'); });
+}
+
+function editProjectEntry(projectId, candidateId) {
+    const projectName = prompt('Project Name:', '');
+    if (!projectName) return;
+    const role = prompt('Role:', '');
+    const org = prompt('Organization:', '');
+    const start = prompt('Start Date:', '');
+    const end = prompt('End Date:', '');
+    const desc = prompt('Description:', '');
+    const tech = prompt('Tech Stack:', '');
+    
+    fetch('/api/candidates/projects/' + projectId, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({project_name: projectName, role, organization: org, start_date: start, end_date: end, description: desc, tech_stack: tech})
+    }).then(() => { renderProjects(candidateId); toastSuccess('Project updated!'); });
+}
+
+function deleteProjectEntry(projectId, candidateId) {
+    if (!confirm('Delete this project?')) return;
+    fetch('/api/candidates/projects/' + projectId, { method: 'DELETE' })
+        .then(() => { renderProjects(candidateId); toastSuccess('Project deleted'); });
+}
+
+// ============ EDUCATION ============
+async function renderEducation(candidateId) {
+    const container = document.getElementById('educationContainer');
+    if (!container) return;
+    const res = await fetch('/api/candidates/' + candidateId + '/education-entries');
+    const education = await res.json();
+    
+    if (!education.length) {
+        container.innerHTML = '<span style="color:#94A3B8;font-size:13px;">No education added</span>';
+        return;
+    }
+    
+    container.innerHTML = education.map(e => `
+        <div class="company-item" style="margin-bottom:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <strong>${escapeHtml(e.degree)}</strong> | ${escapeHtml(e.institute)} ${e.start_year ? '| ' + escapeHtml(e.start_year) + ' - ' + escapeHtml(e.end_year || 'Present') : ''}
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <i class="fas fa-edit" style="cursor:pointer;color:#1B2A4A;" onclick="editEducationEntry(${e.id}, ${candidateId})"></i>
+                    <i class="fas fa-trash" style="cursor:pointer;color:#C42020;" onclick="deleteEducationEntry(${e.id}, ${candidateId})"></i>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function addEducationEntry() {
+    const candidateId = currentCandidateId;
+    const degree = prompt('Degree (e.g., B.Tech):');
+    if (!degree) return;
+    const institute = prompt('Institute:');
+    if (!institute) return;
+    const field = prompt('Field of Study:', '');
+    const start = prompt('Start Year:', '');
+    const end = prompt('End Year:', '');
+    const grade = prompt('Grade/CGPA:', '');
+    const location = prompt('Location:', '');
+    
+    fetch('/api/candidates/' + candidateId + '/education-entries', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({degree, institute, field_of_study: field, start_year: start, end_year: end, grade, location})
+    }).then(() => { renderEducation(candidateId); toastSuccess('Education added!'); });
+}
+
+function editEducationEntry(eduId, candidateId) {
+    const degree = prompt('Degree:', '');
+    if (!degree) return;
+    const institute = prompt('Institute:', '');
+    if (!institute) return;
+    const field = prompt('Field of Study:', '');
+    const start = prompt('Start Year:', '');
+    const end = prompt('End Year:', '');
+    const grade = prompt('Grade:', '');
+    const location = prompt('Location:', '');
+    
+    fetch('/api/candidates/education/' + eduId, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({degree, institute, field_of_study: field, start_year: start, end_year: end, grade, location})
+    }).then(() => { renderEducation(candidateId); toastSuccess('Education updated!'); });
+}
+
+function deleteEducationEntry(eduId, candidateId) {
+    if (!confirm('Delete this education entry?')) return;
+    fetch('/api/candidates/education/' + eduId, { method: 'DELETE' })
+        .then(() => { renderEducation(candidateId); toastSuccess('Education deleted'); });
 }
 
 function addWorkEntry() {
@@ -8416,6 +8598,104 @@ def mark_proposed(candidate_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Marked as proposed'})
+
+# ============ PROJECTS API ============
+@app.route('/api/candidates/<int:candidate_id>/projects', methods=['GET'])
+@login_required()
+def get_candidate_projects(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidate_projects WHERE candidate_id = ? ORDER BY created_at DESC', (candidate_id,))
+    projects = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(projects)
+
+@app.route('/api/candidates/<int:candidate_id>/projects', methods=['POST'])
+@login_required()
+def add_candidate_project(candidate_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''INSERT INTO candidate_projects (candidate_id, project_name, role, organization, start_date, end_date, description, tech_stack)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        (candidate_id, data.get('project_name'), data.get('role'), data.get('organization'),
+         data.get('start_date'), data.get('end_date'), data.get('description'), data.get('tech_stack')))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Project added'})
+
+@app.route('/api/candidates/projects/<int:project_id>', methods=['PUT'])
+@login_required()
+def update_candidate_project(project_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''UPDATE candidate_projects SET project_name=?, role=?, organization=?, start_date=?, end_date=?, description=?, tech_stack=? WHERE id=?''',
+        (data.get('project_name'), data.get('role'), data.get('organization'),
+         data.get('start_date'), data.get('end_date'), data.get('description'), data.get('tech_stack'), project_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Project updated'})
+
+@app.route('/api/candidates/projects/<int:project_id>', methods=['DELETE'])
+@login_required()
+def delete_candidate_project(project_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM candidate_projects WHERE id = ?', (project_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Project deleted'})
+
+# ============ EDUCATION API ============
+@app.route('/api/candidates/<int:candidate_id>/education-entries', methods=['GET'])
+@login_required()
+def get_candidate_education(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    c.execute('SELECT * FROM candidate_education WHERE candidate_id = ? ORDER BY start_year DESC', (candidate_id,))
+    education = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return jsonify(education)
+
+@app.route('/api/candidates/<int:candidate_id>/education-entries', methods=['POST'])
+@login_required()
+def add_candidate_education(candidate_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''INSERT INTO candidate_education (candidate_id, degree, institute, field_of_study, start_year, end_year, grade, location)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        (candidate_id, data.get('degree'), data.get('institute'), data.get('field_of_study'),
+         data.get('start_year'), data.get('end_year'), data.get('grade'), data.get('location')))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Education added'})
+
+@app.route('/api/candidates/education/<int:edu_id>', methods=['PUT'])
+@login_required()
+def update_candidate_education(edu_id):
+    data = request.json
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''UPDATE candidate_education SET degree=?, institute=?, field_of_study=?, start_year=?, end_year=?, grade=?, location=? WHERE id=?''',
+        (data.get('degree'), data.get('institute'), data.get('field_of_study'),
+         data.get('start_year'), data.get('end_year'), data.get('grade'), data.get('location'), edu_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Education updated'})
+
+@app.route('/api/candidates/education/<int:edu_id>', methods=['DELETE'])
+@login_required()
+def delete_candidate_education(edu_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('DELETE FROM candidate_education WHERE id = ?', (edu_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Education deleted'})
 
 @app.route('/api/candidates/<int:candidate_id>', methods=['PUT']) 
 @login_required()
