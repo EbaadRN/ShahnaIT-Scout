@@ -4126,8 +4126,6 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                 <button class="btn btn-sm" onclick="addSkillToCandidate()">+</button>
             </div>
         </div>
-    </div>
-
 <!-- Projects -->
 <div class="modal-section">
     <h3 class="modal-section-title"><i class="fas fa-project-diagram"></i> Projects</h3>
@@ -4141,6 +4139,8 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     <div id="educationContainer"></div>
     <button class="btn btn-sm btn-secondary" onclick="addEducationEntry()" style="margin-top:6px;">+ Add Education</button>
 </div>
+   
+    </div>
     
     <!-- RIGHT COLUMN -->
     <div style="min-width:0;">
