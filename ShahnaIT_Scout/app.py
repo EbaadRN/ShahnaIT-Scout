@@ -4127,6 +4127,20 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             </div>
         </div>
     </div>
+
+<!-- Projects -->
+<div class="modal-section">
+    <h3 class="modal-section-title"><i class="fas fa-project-diagram"></i> Projects</h3>
+    <div id="projectsContainer"></div>
+    <button class="btn btn-sm btn-secondary" onclick="addProjectEntry()" style="margin-top:6px;">+ Add Project</button>
+</div>
+
+<!-- Education -->
+<div class="modal-section">
+    <h3 class="modal-section-title"><i class="fas fa-graduation-cap"></i> Education</h3>
+    <div id="educationContainer"></div>
+    <button class="btn btn-sm btn-secondary" onclick="addEducationEntry()" style="margin-top:6px;">+ Add Education</button>
+</div>
     
     <!-- RIGHT COLUMN -->
     <div style="min-width:0;">
@@ -4178,20 +4192,6 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             <div id="workHistoryContainer"></div>
             <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add</button>
         </div>
-
-<!-- Projects -->
-<div class="modal-section">
-    <h3 class="modal-section-title"><i class="fas fa-project-diagram"></i> Projects</h3>
-    <div id="projectsContainer"></div>
-    <button class="btn btn-sm btn-secondary" onclick="addProjectEntry()" style="margin-top:6px;">+ Add Project</button>
-</div>
-
-<!-- Education -->
-<div class="modal-section">
-    <h3 class="modal-section-title"><i class="fas fa-graduation-cap"></i> Education</h3>
-    <div id="educationContainer"></div>
-    <button class="btn btn-sm btn-secondary" onclick="addEducationEntry()" style="margin-top:6px;">+ Add Education</button>
-</div>
 
         <div class="modal-section">
             <h3 class="modal-section-title"><i class="fas fa-chart-line"></i> Relevant Experience</h3>
