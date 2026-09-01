@@ -10061,6 +10061,15 @@ def fix_projects_table():
     conn.close()
     return 'Projects and Education tables created!'
 
+@app.route('/fix-sumaiya-name')
+def fix_sumaiya_name():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE users SET full_name = 'Sumaiya' WHERE full_name = 'Sumaiyya'")
+    conn.commit()
+    conn.close()
+    return 'Sumaiya name fixed!'
+
 @app.route('/fix-uploader-backfill')
 def fix_uploader_backfill():
     conn = sqlite3.connect(DB_PATH)
