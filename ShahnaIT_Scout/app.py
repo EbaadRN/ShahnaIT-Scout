@@ -10079,6 +10079,18 @@ def fix_uploader_backfill():
     conn.commit()
     conn.close()
     return 'Uploader names backfilled!'
+
+@app.route('/fix-office-col')
+def fix_office_col():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    try:
+        c.execute("ALTER TABLE jobs ADD COLUMN office_location TEXT DEFAULT ''")
+    except:
+        pass
+    conn.commit()
+    conn.close()
+    return 'Office column fixed!'
     
 @app.route('/fix-split-skills')
 def fix_split_skills():
