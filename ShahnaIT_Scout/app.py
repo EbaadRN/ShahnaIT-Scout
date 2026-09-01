@@ -8773,6 +8773,7 @@ def update_job(job_id):
         data.get('certifications_required', ''),
         data.get('working_mode', 'Not Specified'),
         data.get('hybrid_days', 0),
+        data.get('office_location', ''),
         data.get('business_model', 'Not Specified'),
         data.get('payroll_company', ''),
         data.get('client_name', data.get('company', '')),
