@@ -10060,7 +10060,16 @@ def fix_projects_table():
     conn.commit()
     conn.close()
     return 'Projects and Education tables created!'
-        
+
+@app.route('/fix-uploader-backfill')
+def fix_uploader_backfill():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("UPDATE candidates SET uploaded_by_name = uploaded_by WHERE (uploaded_by_name IS NULL OR uploaded_by_name = '' OR uploaded_by_name = 'ShahnaIT HR') AND uploaded_by IS NOT NULL AND uploaded_by != ''")
+    conn.commit()
+    conn.close()
+    return 'Uploader names backfilled!'
+    
 @app.route('/fix-split-skills')
 def fix_split_skills():
     conn = sqlite3.connect(DB_PATH)
