@@ -10027,6 +10027,40 @@ def fix_reparse_existing():
     conn.close()
     return f'Re-parsed {updated} candidates!'
 
+@app.route('/fix-projects-table')
+def fix_projects_table():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS candidate_projects (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER,
+        project_name TEXT NOT NULL,
+        role TEXT,
+        organization TEXT,
+        start_date TEXT,
+        end_date TEXT,
+        description TEXT,
+        tech_stack TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS candidate_education (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        candidate_id INTEGER,
+        degree TEXT NOT NULL,
+        institute TEXT NOT NULL,
+        field_of_study TEXT,
+        start_year TEXT,
+        end_year TEXT,
+        grade TEXT,
+        location TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (candidate_id) REFERENCES candidates(id) ON DELETE CASCADE
+    )''')
+    conn.commit()
+    conn.close()
+    return 'Projects and Education tables created!'
+        
 @app.route('/fix-split-skills')
 def fix_split_skills():
     conn = sqlite3.connect(DB_PATH)
