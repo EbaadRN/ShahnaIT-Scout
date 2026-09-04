@@ -4801,19 +4801,26 @@ async function renderProjects(candidateId) {
 
 function addProjectEntry() {
     const candidateId = currentCandidateId;
-    const projectName = prompt('Project Name:');
-    if (!projectName) return;
-    const role = prompt('Role:', '');
-    const org = prompt('Organization:', '');
-    const start = prompt('Start Date (e.g., Jan 2024):', '');
-    const end = prompt('End Date (or Present):', '');
-    const desc = prompt('Description:', '');
-    const tech = prompt('Tech Stack (comma separated):', '');
+    const projectText = prompt('Enter project (e.g., E-commerce Platform, Lead Developer, Jun 2022 - Present):');
+    if (!projectText) return;
+    
+    const parts = projectText.split(',').map(p => p.trim());
+    const projectName = parts[0] || '';
+    const role = parts[1] || '';
+    const dates = parts[2] || '';
     
     fetch('/api/candidates/' + candidateId + '/projects', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({project_name: projectName, role, organization: org, start_date: start, end_date: end, description: desc, tech_stack: tech})
+        body: JSON.stringify({
+            project_name: projectName,
+            role: role,
+            organization: '',
+            start_date: dates.split('-')[0]?.trim() || '',
+            end_date: dates.split('-')[1]?.trim() || '',
+            description: '',
+            tech_stack: ''
+        })
     }).then(() => { renderProjects(candidateId); toastSuccess('Project added!'); });
 }
 
@@ -4869,20 +4876,26 @@ async function renderEducation(candidateId) {
 
 function addEducationEntry() {
     const candidateId = currentCandidateId;
-    const degree = prompt('Degree (e.g., B.Tech):');
-    if (!degree) return;
-    const institute = prompt('Institute:');
-    if (!institute) return;
-    const field = prompt('Field of Study:', '');
-    const start = prompt('Start Year:', '');
-    const end = prompt('End Year:', '');
-    const grade = prompt('Grade/CGPA:', '');
-    const location = prompt('Location:', '');
+    const educationText = prompt('Enter education (e.g., B.Tech CSE, IIT Bombay, 2016-2020):');
+    if (!educationText) return;
+    
+    const parts = educationText.split(',').map(p => p.trim());
+    const degree = parts[0] || '';
+    const institute = parts[1] || '';
+    const years = parts[2] || '';
     
     fetch('/api/candidates/' + candidateId + '/education-entries', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({degree, institute, field_of_study: field, start_year: start, end_year: end, grade, location})
+        body: JSON.stringify({
+            degree: degree,
+            institute: institute,
+            start_year: years.split('-')[0]?.trim() || '',
+            end_year: years.split('-')[1]?.trim() || '',
+            field_of_study: '',
+            grade: '',
+            location: ''
+        })
     }).then(() => { renderEducation(candidateId); toastSuccess('Education added!'); });
 }
 
