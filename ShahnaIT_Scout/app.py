@@ -8773,7 +8773,7 @@ def update_job(job_id):
         title = ?, company = ?, description = ?,
         roles_responsibilities = ?, qualifications = ?,
         required_skills = ?, certifications_required = ?,
-        working_mode = ?, hybrid_days = ?, business_model = ?,
+        working_mode = ?, hybrid_days = ?, office_location = ?, business_model = ?,
         payroll_company = ?, client_name = ?, end_client = ?,
         years_of_experience = ?, budget = ?, max_salary = ?, headcount = ?
     WHERE id = ?''', (
