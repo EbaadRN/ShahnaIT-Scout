@@ -8556,7 +8556,7 @@ def create_job():
         working_mode, hybrid_days, office_location, business_model,
         payroll_company, client_name, end_client,
         years_of_experience, budget, max_salary, headcount
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
     (
         data.get('title'),
         data.get('company'),
