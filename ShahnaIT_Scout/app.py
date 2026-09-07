@@ -6388,28 +6388,30 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
         };
         
         document.getElementById('editJobForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const data = {
-                title: document.getElementById('editJobTitle').value,
-                company: document.getElementById('editJobCompany').value,
-                working_mode: document.getElementById('editJobWorkingMode').value,
-                hybrid_days: parseInt(document.getElementById('editJobHybridDays').value) || 0,
-                business_model: document.getElementById('editJobBusinessModel').value,
-                payroll_company: document.getElementById('editJobPayroll').value,
-                end_client: document.getElementById('editJobEndClient').value,
-                years_of_experience: parseInt(document.getElementById('editJobExperience').value) || 0,
-                budget: document.getElementById('editJobBudget').value, max_salary: document.getElementById('editJobMaxSalary').value,
-                headcount: parseInt(document.getElementById('editJobHeadcount').value) || 1,
-                roles_responsibilities: document.getElementById('editJobRoles').value,
-                qualifications: document.getElementById('editJobQualifications').value,
-                certifications_required: document.getElementById('editJobCertifications').value,
-                required_skills: document.getElementById('editJobSkills').value,
-                description: document.getElementById('editJobDesc').value
-            };
-            const res = await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-            if (res.ok) { toastSuccess('Job updated!'); closeEditJobModal(); loadJobs(); }
-        };
+    e.preventDefault();
+    const data = {
+        title: document.getElementById('editJobTitle').value,
+        company: document.getElementById('editJobCompany').value,
+        working_mode: document.getElementById('editJobWorkingMode').value,
+        hybrid_days: parseInt(document.getElementById('editJobHybridDays').value) || 0,
+        office_location: document.getElementById('editJobOfficeLocation') ? document.getElementById('editJobOfficeLocation').value : '',
+        business_model: document.getElementById('editJobBusinessModel').value,
+        payroll_company: document.getElementById('editJobPayroll').value,
+        end_client: document.getElementById('editJobEndClient').value,
+        years_of_experience: parseInt(document.getElementById('editJobExperience').value) || 0,
+        budget: document.getElementById('editJobBudget') ? document.getElementById('editJobBudget').value : '',
+        max_salary: document.getElementById('editJobMaxSalary') ? document.getElementById('editJobMaxSalary').value : '',
+        headcount: parseInt(document.getElementById('editJobHeadcount').value) || 1,
+        roles_responsibilities: document.getElementById('editJobRoles').value,
+        qualifications: document.getElementById('editJobQualifications').value,
+        certifications_required: document.getElementById('editJobCertifications').value,
+        required_skills: document.getElementById('editJobSkills').value,
+        description: document.getElementById('editJobDesc').value
     };
+    const res = await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    if (res.ok) { toastSuccess('Job updated!'); closeEditJobModal(); loadJobs(); }
+};
+    
 
     
     window.deleteJobDocument = async function(docId, jobId) {
