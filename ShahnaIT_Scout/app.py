@@ -6410,8 +6410,8 @@ document.getElementById('clearFiltersBtn').addEventListener('click', function() 
     };
     const res = await fetch(`/api/jobs/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
     if (res.ok) { toastSuccess('Job updated!'); closeEditJobModal(); loadJobs(); }
-};
-    
+     };
+  };  
 
     
     window.deleteJobDocument = async function(docId, jobId) {
