@@ -1909,6 +1909,7 @@ HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ShahnaIT Scout</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Font Awesome Icons -->
