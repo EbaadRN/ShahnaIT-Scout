@@ -1978,6 +1978,7 @@ HTML_TEMPLATE = '''
         padding: 20px;
         line-height: 1.6;
         font-size: 15px;
+        overflow-x: hidden;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
