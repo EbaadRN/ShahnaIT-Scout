@@ -3304,6 +3304,49 @@ body.dark-mode .form-input { background: #0F1829; color: #E8ECF2; border-color: 
     display: none;
 }
 
+/* Mobile Bottom Navigation */
+#mobileBottomNav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #FFFFFF;
+    border-top: 2px solid #E2E8F0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0;
+    z-index: 999;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+}
+
+.mobile-nav-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #64748B;
+    font-size: 11px;
+    text-align: center;
+    padding: 8px 4px;
+    cursor: pointer;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.mobile-nav-btn:hover, .mobile-nav-btn:active {
+    color: #1B2A4A;
+}
+
+/* Show only on mobile */
+@media screen and (max-width: 768px) {
+    #mobileBottomNav {
+        display: flex !important;
+    }
+    body {
+        padding-bottom: 80px !important;
+    }
+}
+
 /* Sidebar Dropdown Groups */
 .sidebar-group { border-bottom: 1px solid rgba(255,255,255,0.08); }
 .sidebar-group-header {
@@ -3380,6 +3423,14 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
+<!-- Mobile Bottom Navigation -->
+<div id="mobileBottomNav" style="display:none;">
+    <button onclick="showPanel('dashboard'); loadDashboard();" class="mobile-nav-btn">📊<br><span>Dashboard</span></button>
+    <button onclick="showPanel('jobs'); loadJobs();" class="mobile-nav-btn">📋<br><span>Jobs</span></button>
+    <button onclick="showPanel('candidates'); loadCandidates();" class="mobile-nav-btn">👥<br><span>Candidates</span></button>
+    <button onclick="showPanel('interviews'); loadInterviews();" class="mobile-nav-btn">📅<br><span>Interviews</span></button>
+    <button onclick="openMobileMenu()" class="mobile-nav-btn">☰<br><span>More</span></button>
+</div>
 <div style="max-width: 1200px; margin: 0 auto;">
     <div class="header">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -4376,6 +4427,13 @@ window.addEventListener('scroll', function() {
         }
     }
 });
+
+function openMobileMenu() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.add('open');
+    if (overlay) overlay.classList.add('active');
+}
 
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
