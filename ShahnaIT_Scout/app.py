@@ -9256,15 +9256,21 @@ def parse_resume():
         os.remove(temp_filepath)
         return jsonify({'error': 'Could not extract text'}), 400
     
-    # Try Groq first, then fallback
-    parsed = parse_resume_with_groq(text)
-    if parsed and parsed.get('first_name'):
-        parsed['resume_text'] = text[:5000]  # Store for search (increased from 3000)
+        # Try AI parsing first
+    ai_parsed = parse_resume_with_groq(text)
+    
+    if ai_parsed:
+        # Cross-validate AI output with regex patterns
+        parsed = cross_validate_resume(ai_parsed, text)
+        parsed['resume_text'] = text[:8000]
         parsed['ai_used'] = True
+        print(f"✅ AI parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')} - {len(parsed.get('core_skills', []))} skills")
     else:
+        # Fallback to regex
         parsed = fallback_parse_resume(text)
-        parsed['resume_text'] = text[:5000]  # Store for search (increased from 3000)
+        parsed['resume_text'] = text[:8000]
         parsed['ai_used'] = False
+        print(f"⚠️ Fallback parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')}")
     
     # Store the original file path for later download
     parsed['file_path'] = temp_filepath
