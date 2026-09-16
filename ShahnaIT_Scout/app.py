@@ -3074,6 +3074,20 @@ body.dark-mode .match-low { color: #FFFFFF !important; }
     .dashboard-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat-card { padding: 12px; }
     .stat-info h3 { font-size: 20px !important; }
+
+    /* Dashboard charts stack vertically */
+    #dashboardPanel [style*="grid-template-columns: 1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    #dashboardPanel canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    #dashboardPanel [style*="grid-template-columns: repeat(auto-fit"] {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
     
     /* Filters */
     .filter-bar { 
