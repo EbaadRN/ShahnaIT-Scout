@@ -827,56 +827,181 @@ def call_groq_api(prompt, max_tokens=2500):
         print(f"Groq error: {e}")
         return None
 
+def normalize_resume_text(text):
+    """Clean up raw PDF/DOCX text - normalize whitespace, fix line breaks, remove garbage"""
+    if not text:
+        return ""
+    
+    # Remove excessive whitespace
+    text = re.sub(r'\r\n', '\n', text)
+    text = re.sub(r'\r', '\n', text)
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n\s*\n+', '\n', text)
+    
+    # Remove null bytes and control chars
+    text = ''.join(ch for ch in text if ch == '\n' or ch == '\t' or ord(ch) >= 32)
+    
+    # Remove common PDF garbage
+    text = re.sub(r'^\s*\d+\s*$', '', text, flags=re.MULTILINE)  # Standalone page numbers
+    
+    return text.strip()
+
+
 def parse_resume_with_groq(resume_text):
-    """Parse resume text into structured candidate fields using AI"""
-    prompt = f"""You are an expert resume parser. Extract EVERY detail from this resume with maximum accuracy. Return ONLY valid JSON, no explanations.
+    """Expert-level AI resume parser - extracts EVERY field with high accuracy"""
+    if not resume_text or len(resume_text) < 50:
+        return None
+    
+    cleaned_text = normalize_resume_text(resume_text)
+    
+    prompt = f"""You are the world's most accurate resume parser. Extract ALL details from this resume with 100% accuracy. Read carefully - especially dates, skills, and proper names.
+
+Return ONLY valid JSON. No markdown, no explanations, no code fences.
 
 {{
-    "first_name": "First name",
-    "last_name": "Last name", 
-    "middle_name": "",
-    "phone": "phone number or empty string",
-    "email": "email or empty string",
-    "address": "full address or empty string",
-    "linkedin": "LinkedIn URL or empty string",
-    "other_social": "GitHub/Portfolio URL or empty string",
-    "current_role": "Current job title",
-    "designation": "Most recent designation",
-    "location": "City, State, Country",
-    "current_ctc": "Current CTC if mentioned (e.g., '15 LPA') else empty string",
-    "expected_ctc": "Expected CTC if mentioned else empty string",
-    "years_of_experience": "total years of experience as number",
-    "notice_period_days": "30/60/90 or 0 if not mentioned",
-    "employment_status": "Employed / Unemployed / Not Specified",
-    "core_skills": ["every technical skill mentioned - include ALL"],
+    "first_name": "Candidate's first name (proper case)",
+    "last_name": "Candidate's last name (proper case)",
+    "middle_name": "Middle name if present, else empty",
+    "email": "Primary email address, else empty",
+    "phone": "Primary phone (with country code if present), else empty",
+    "address": "Full address if present, else empty",
+    "location": "City, State (or City, Country)",
+    "linkedin": "Full LinkedIn URL, else empty",
+    "other_social": "GitHub/Portfolio/other URL, else empty",
+    "current_role": "Most recent job title",
+    "designation": "Current designation/position",
+    "current_ctc": "Current CTC with currency (e.g., '15 LPA', '1200000 INR'), else empty",
+    "expected_ctc": "Expected CTC, else empty",
+    "years_of_experience": total years as number (0 if fresher),
+    "notice_period_days": number of days (0 if not mentioned),
+    "employment_status": "Employed / Unemployed / Student / Freelancer",
+    
+    "core_skills": ["every single technical skill mentioned - include programming languages, frameworks, databases, tools, cloud platforms, methodologies"],
     "relevant_experience": [{{"skill": "Python", "years": 5}}],
-    "education": [{{"degree": "B.Tech", "institution": "College name", "year": "2020", "percentage": "8.5 CGPA"}}],
-    "certifications": ["all certifications mentioned"],
-    "work_experience": [
-        {{"company": "Company name", "role": "Role", "duration": "Jan 2020 - Present", "description": "Key responsibilities", "location": "City"}}
+    
+    "education": [
+        {{"degree": "B.Tech Computer Science", "institute": "College name", "start_year": "2016", "end_year": "2020", "grade": "8.5 CGPA", "location": "City"}}
     ],
-    "summary": "2-3 line professional summary from resume"
+    
+    "certifications": ["all certifications with full names"],
+    
+    "work_experience": [
+        {{
+            "company": "Full company name",
+            "role": "Exact job title",
+            "start_date": "Mon YYYY (e.g., Jan 2020)",
+            "end_date": "Mon YYYY or Present",
+            "duration": "Jan 2020 - Present",
+            "location": "City, Country",
+            "description": "Key responsibilities and achievements"
+        }}
+    ],
+    
+    "projects": [
+        {{
+            "project_name": "Project title",
+            "role": "Your role in the project",
+            "organization": "Company/Institution",
+            "start_date": "Mon YYYY",
+            "end_date": "Mon YYYY or Present",
+            "description": "What the project did",
+            "tech_stack": "Technologies used"
+        }}
+    ],
+    
+    "summary": "Professional summary/objective if present"
 }}
 
-CRITICAL INSTRUCTIONS:
-- Extract EVERYTHING. Do not skip any field.
-- Include ALL skills mentioned, even if there are 20+.
-- Include ALL work experiences with dates, descriptions, locations.
-- Include ALL education entries with institution, year, percentage/CGPA.
-- For name, look at the top of resume or after "Name:" label.
-- For phone, look for +91, +1, or 10-digit numbers.
-- Be precise. Do not invent data. Use empty string if not found.
+CRITICAL RULES:
+1. DATES: Extract actual months/years. Do not guess. If only year given, use "YYYY".
+2. NAMES: Proper case (John Doe, not JOHN DOE). Take from top of resume.
+3. PHONE: Include country code (+91, +1). Keep full number with spaces/dashes.
+4. SKILLS: Extract EVERY skill mentioned anywhere in the resume. Include:
+   - Programming languages: Python, Java, JavaScript, C++, C#, Go, Rust, etc.
+   - Frameworks: React, Angular, Django, Flask, Spring Boot, etc.
+   - Databases: MySQL, PostgreSQL, MongoDB, Redis, etc.
+   - Cloud: AWS, Azure, GCP, etc.
+   - DevOps: Docker, Kubernetes, Jenkins, Terraform, etc.
+   - Data: Spark, Hadoop, Kafka, Airflow, etc.
+   - ML/AI: TensorFlow, PyTorch, scikit-learn, NLP, etc.
+   - SAP: All SAP modules (ABAP, FICO, MM, SD, HANA, etc.)
+   - Salesforce: Apex, LWC, SOQL, etc.
+   - Tools: Git, Jira, Figma, etc.
+   - Methodologies: Agile, Scrum, Kanban, etc.
+5. EXPERIENCE: List ALL companies with exact dates and full descriptions.
+6. EDUCATION: List ALL degrees with institution, years, and grades.
+7. WORK EXPERIENCE ORDER: Most recent first.
+8. DO NOT INVENT any information. Use empty string "" or empty array [] for missing.
+9. If a section has multiple entries, include ALL of them.
+10. Verify email format. Verify phone is a phone number, not ID.
 
-RESUME:
-{resume_text[:6000]}
+RESUME TEXT:
+{cleaned_text[:8000]}
 """
-    response = call_groq_api(prompt, max_tokens=3000)
+    
+    response = call_groq_api(prompt, max_tokens=4000)
     if response:
         try:
-            return json.loads(response)
-        except:
+            # Clean any markdown wrapping
+            response = response.strip()
+            if response.startswith('```'):
+                response = response.split('```')[1]
+                if response.startswith('json'):
+                    response = response[4:]
+            response = response.strip()
+            
+            parsed = json.loads(response)
+            return parsed
+        except Exception as e:
+            print(f"JSON parse error: {e}")
+            print(f"Response: {response[:500]}")
             return None
     return None
+
+def cross_validate_resume(ai_parsed, raw_text):
+    """Cross-check AI output against regex patterns. Fix AI mistakes."""
+    if not ai_parsed:
+        return ai_parsed
+    
+    # Verify email
+    regex_email = extract_email(raw_text)
+    if regex_email and (not ai_parsed.get('email') or '@' not in ai_parsed.get('email', '')):
+        ai_parsed['email'] = regex_email
+    
+    # Verify phone
+    regex_phone = extract_phone(raw_text)
+    if regex_phone and (not ai_parsed.get('phone') or len(ai_parsed.get('phone', '')) < 8):
+        ai_parsed['phone'] = regex_phone
+    
+    # Verify name
+    if not ai_parsed.get('first_name'):
+        first, last, middle = extract_name_from_text(raw_text)
+        if first:
+            ai_parsed['first_name'] = first
+            ai_parsed['last_name'] = last
+            ai_parsed['middle_name'] = middle
+    
+    # Verify LinkedIn
+    if not ai_parsed.get('linkedin'):
+        li_match = re.search(r'(https?://[^\s]*linkedin[^\s]*)', raw_text, re.IGNORECASE)
+        if li_match:
+            ai_parsed['linkedin'] = li_match.group(1)
+    
+    # Verify skills array is not empty
+    if not ai_parsed.get('core_skills') or len(ai_parsed.get('core_skills', [])) == 0:
+        fallback = fallback_parse_resume(raw_text)
+        if fallback.get('core_skills'):
+            ai_parsed['core_skills'] = fallback['core_skills']
+    
+    # Verify lists
+    if not isinstance(ai_parsed.get('work_experience'), list):
+        ai_parsed['work_experience'] = []
+    if not isinstance(ai_parsed.get('certifications'), list):
+        ai_parsed['certifications'] = []
+    if not isinstance(ai_parsed.get('education'), list):
+        ai_parsed['education'] = []
+    
+    return ai_parsed
 
 def analyze_match_with_groq(resume_text, jd_text):
     """Analyze resume vs JD match with detailed scoring"""
