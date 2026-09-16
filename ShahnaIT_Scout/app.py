@@ -10341,6 +10341,21 @@ def fix_uploader_backfill():
     conn.close()
     return 'Uploader names backfilled!'
 
+@app.route('/debug-parse/<int:candidate_id>')
+@login_required('admin')
+def debug_parse(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT resume_text FROM candidates WHERE id = ?', (candidate_id,))
+    row = c.fetchone()
+    conn.close()
+    
+    if not row or not row[0]:
+        return jsonify({'error': 'No resume text'})
+    
+    parsed = parse_resume_with_groq(row[0])
+    return jsonify(parsed)
+    
 @app.route('/fix-office-col')
 def fix_office_col():
     conn = sqlite3.connect(DB_PATH)
