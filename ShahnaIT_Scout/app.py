@@ -10353,8 +10353,19 @@ def debug_parse(candidate_id):
     if not row or not row[0]:
         return jsonify({'error': 'No resume text'})
     
-    parsed = parse_resume_with_groq(row[0])
-    return jsonify(parsed)
+    # Test normalize
+    cleaned = normalize_resume_text(row[0])
+    
+    # Build the same prompt
+    prompt_test = f"""Test prompt check. Resume first 500 chars:\n{cleaned[:500]}"""
+    raw_response = call_groq_api(prompt_test, max_tokens=100)
+    
+    return jsonify({
+        'resume_length': len(row[0]),
+        'cleaned_length': len(cleaned),
+        'first_500': cleaned[:500],
+        'groq_test': raw_response[:200] if raw_response else 'NULL - Groq call failed'
+    })
     
 @app.route('/fix-office-col')
 def fix_office_col():
