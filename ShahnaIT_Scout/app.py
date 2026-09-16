@@ -1461,6 +1461,47 @@ def save_candidate_to_db(candidate_data):
          str(candidate_data.get('uploaded_by_name', 'ShahnaIT HR'))))
     
     candidate_id = c.lastrowid
+    
+    # Save relevant_experience
+    rel_exp = candidate_data.get('relevant_experience', [])
+    if isinstance(rel_exp, list) and rel_exp:
+        c.execute('UPDATE candidates SET relevant_experience = ? WHERE id = ?',
+                  (json.dumps(rel_exp), candidate_id))
+    
+    # Save projects
+    projects = candidate_data.get('projects', [])
+    if isinstance(projects, list) and projects:
+        for proj in projects:
+            if isinstance(proj, dict):
+                c.execute('''INSERT INTO candidate_projects 
+                    (candidate_id, project_name, role, organization, start_date, end_date, description, tech_stack)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (candidate_id,
+                     str(proj.get('project_name') or ''),
+                     str(proj.get('role') or ''),
+                     str(proj.get('organization') or ''),
+                     str(proj.get('start_date') or ''),
+                     str(proj.get('end_date') or ''),
+                     str(proj.get('description') or ''),
+                     str(proj.get('tech_stack') or '')))
+    
+    # Save education entries
+    edu_list = candidate_data.get('education', [])
+    if isinstance(edu_list, list):
+        for edu in edu_list:
+            if isinstance(edu, dict):
+                c.execute('''INSERT INTO candidate_education 
+                    (candidate_id, degree, institute, field_of_study, start_year, end_year, grade, location)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (candidate_id,
+                     str(edu.get('degree') or ''),
+                     str(edu.get('institute') or edu.get('institution') or ''),
+                     str(edu.get('field_of_study') or ''),
+                     str(edu.get('start_year') or edu.get('year') or ''),
+                     str(edu.get('end_year') or ''),
+                     str(edu.get('grade') or edu.get('percentage') or ''),
+                     str(edu.get('location') or '')))
+    
     conn.commit()
     conn.close()
     return candidate_id
