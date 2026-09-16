@@ -6283,9 +6283,18 @@ function renderCandidates(candidates) {
 try {
     if (c.core_skills) {
         skills = typeof c.core_skills === 'string' ? JSON.parse(c.core_skills) : c.core_skills;
+        // Handle double-encoded JSON
+        if (typeof skills === 'string') {
+            try { skills = JSON.parse(skills); } catch(e2) { skills = []; }
+        }
     }
 } catch(e) { skills = []; }
 if (!Array.isArray(skills)) skills = [];
+// Flatten if skills contain objects
+skills = skills.map(s => {
+    if (typeof s === 'object' && s !== null) return s.skill || s.name || '';
+    return String(s);
+}).filter(Boolean);
         const matchScore = c.match_score || 0;
         const matchClass = matchScore >= 70 ? 'match-high' : (matchScore >= 40 ? 'match-medium' : 'match-low');
         const status = c.stage || c.employment_status || 'new';
