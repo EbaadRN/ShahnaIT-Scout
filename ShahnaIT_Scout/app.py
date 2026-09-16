@@ -2960,12 +2960,12 @@ body.dark-mode .match-low { color: #FFFFFF !important; }
     }
     
     .header {
-        padding: 14px 16px;
-        border-radius: 0;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-    }
+    padding: 14px 16px 14px 60px;
+    border-radius: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+   }
     .header h1 { font-size: 20px; }
     .header p { font-size: 12px; display: none; }
     
