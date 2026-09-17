@@ -928,35 +928,44 @@ CRITICAL RULES:
    - Salesforce: Apex, LWC, SOQL, etc.
    - Tools: Git, Jira, Figma, etc.
    - Methodologies: Agile, Scrum, Kanban, etc.
-5. EXPERIENCE: List ALL companies with exact dates and full descriptions.
-6. EDUCATION: List ALL degrees with institution, years, and grades.
-7. WORK EXPERIENCE ORDER: Most recent first.
-8. DO NOT INVENT any information. Use empty string "" or empty array [] for missing.
-9. If a section has multiple entries, include ALL of them.
-10. Verify email format. Verify phone is a phone number, not ID.
-
-RESUME TEXT:
-{cleaned_text[:8000]}
-"""
-    
-    response = call_groq_api(prompt, max_tokens=4000)
-    if response:
-        try:
-            # Clean any markdown wrapping
-            response = response.strip()
-            if response.startswith('```'):
-                response = response.split('```')[1]
-                if response.startswith('json'):
-                    response = response[4:]
-            response = response.strip()
-            
-            parsed = json.loads(response)
-            return parsed
-        except Exception as e:
-            print(f"JSON parse error: {e}")
-            print(f"Response: {response[:500]}")
-            return None
-    return None
+    5. EXPERIENCE: List ALL companies with exact dates and full descriptions.
+    6. EDUCATION: List ALL degrees with institution, years, and grades.
+    7. WORK EXPERIENCE ORDER: Most recent first.
+    8. DO NOT INVENT any information. Use empty string "" or empty array [] for missing.
+    9. If a section has multiple entries, include ALL of them.
+    10. Verify email format. Verify phone is a phone number, not ID.
+    11. INDIAN NAMES: Handle these formats correctly:
+        - With honorifics: "Dr. Rajesh Kumar" → first_name="Rajesh", last_name="Kumar"
+        - With initials: "K. R. Narayanan" → first_name="K.R.", last_name="Narayanan"
+        - Compound surnames: "Venkata Subramanian" → treat as single last name
+        - All caps: "RAJESH KUMAR" → convert to proper case "Rajesh Kumar"
+        - Regional names: Iyer, Reddy, Nair, Yadav, Sharma, Patel, Singh, etc.
+    12. INDIAN PHONE: Extract mobile starting with 6-9 (10 digits) with optional +91 prefix.
+    13. INDIAN EDUCATION: Extract CGPA (e.g., "8.4/10") or percentage (e.g., "65%") for education entries.
+    14. INDIAN ADDRESS: Include city, state, and PIN code (6-digit) if present.
+    15. INDIAN RESUME CONVENTIONS: Handle "Fresher" resumes (no work exp, focus on projects/internships), "Career Objective" sections, and CGPA-based education.
+    RESUME TEXT:
+    {cleaned_text[:8000]}
+    """
+        
+        response = call_groq_api(prompt, max_tokens=4000)
+        if response:
+            try:
+                # Clean any markdown wrapping
+                response = response.strip()
+                if response.startswith('```'):
+                    response = response.split('```')[1]
+                    if response.startswith('json'):
+                        response = response[4:]
+                response = response.strip()
+                
+                parsed = json.loads(response)
+                return parsed
+            except Exception as e:
+                print(f"JSON parse error: {e}")
+                print(f"Response: {response[:500]}")
+                return None
+        return None
 
 def cross_validate_resume(ai_parsed, raw_text):
     """Cross-check AI output against regex patterns. Fix AI mistakes."""
@@ -993,7 +1002,7 @@ def cross_validate_resume(ai_parsed, raw_text):
         if fallback.get('core_skills'):
             ai_parsed['core_skills'] = fallback['core_skills']
     
-    # Verify lists
+        # Verify lists
     if not isinstance(ai_parsed.get('work_experience'), list):
         ai_parsed['work_experience'] = []
     if not isinstance(ai_parsed.get('certifications'), list):
@@ -1001,8 +1010,31 @@ def cross_validate_resume(ai_parsed, raw_text):
     if not isinstance(ai_parsed.get('education'), list):
         ai_parsed['education'] = []
     
+    # India-specific cross-validation
+    indian_mobile = extract_indian_mobile(raw_text)
+    if indian_mobile and (not ai_parsed.get('phone') or len(ai_parsed.get('phone', '')) < 10):
+        ai_parsed['phone'] = indian_mobile
+    
+    # Strip honorifics from name if AI included them
+    if ai_parsed.get('first_name'):
+        ai_parsed['first_name'] = strip_indian_honorifics(ai_parsed['first_name'])
+    if ai_parsed.get('last_name'):
+        ai_parsed['last_name'] = strip_indian_honorifics(ai_parsed['last_name'])
+    
+    # Store Indian-specific data
+    pan = extract_pan(raw_text)
+    if pan:
+        ai_parsed['pan_number'] = pan
+    
+    cgpa = extract_cgpa_or_percentage(raw_text)
+    if cgpa:
+        ai_parsed['cgpa_or_percentage'] = cgpa
+    
+    pincode = extract_pincode(raw_text)
+    if pincode and not ai_parsed.get('pincode'):
+        ai_parsed['pincode'] = pincode
+    
     return ai_parsed
-
 def analyze_match_with_groq(resume_text, jd_text):
     """Analyze resume vs JD match with detailed scoring"""
     if not GROQ_ENABLED:
@@ -1155,6 +1187,53 @@ def extract_phone(text):
     
     return ""
 
+def extract_indian_mobile(text):
+    """Extract Indian mobile (starts with 6-9, 10 digits)"""
+    patterns = [
+        r'(?:\+91[\-\s]?)?([6-9]\d{9})\b',
+        r'(?:\+91[\-\s]?)?([6-9]\d{4}[\-\s]?\d{5})\b',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(0).strip()
+    return ""
+
+def extract_pan(text):
+    """Extract Indian PAN number"""
+    match = re.search(r'\b[A-Z]{5}[0-9]{4}[A-Z]{1}\b', text)
+    return match.group(0) if match else ""
+
+def extract_aadhaar(text):
+    """Extract Aadhaar (masked in output)"""
+    match = re.search(r'\b\d{4}\s?\d{4}\s?\d{4}\b', text)
+    return match.group(0) if match else ""
+
+def extract_pincode(text):
+    """Extract Indian PIN code"""
+    match = re.search(r'\b[1-9][0-9]{5}\b', text)
+    return match.group(0) if match else ""
+
+def extract_cgpa_or_percentage(text):
+    """Extract CGPA or percentage"""
+    patterns = [
+        (r'(\d+\.?\d*)\s*(?:CGPA|GPA)\s*(?:/\s*10)?', 'CGPA'),
+        (r'(\d+\.?\d*)\s*%', 'Percentage'),
+        (r'(\d+\.?\d*)\s*(?:/\s*4)\s*(?:CGPA|GPA)?', 'CGPA/4'),
+    ]
+    for pattern, kind in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            return f"{match.group(1)} {kind}"
+    return ""
+
+def strip_indian_honorifics(name):
+    """Remove Dr., Mr., Mrs., Ms., Shri, Smt., Prof., etc."""
+    if not name:
+        return ""
+    honorifics = r'^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Shri|Smt\.?|Prof\.?|Sri|Kum\.?|Er\.?|CA|Adv\.?)\s+'
+    return re.sub(honorifics, '', name.strip(), flags=re.IGNORECASE).strip()
+
 def extract_years_from_text(text, skill):
     patterns = [
         r'(\d+)\+?\s*years? of experience in ' + re.escape(skill),
@@ -1222,6 +1301,29 @@ def extract_name_from_text(text):
             last_name = name_parts[-1] if len(name_parts) > 1 else ""
             middle_name = " ".join(name_parts[1:-1]) if len(name_parts) > 2 else ""
             return first_name, last_name, middle_name
+
+        # Strategy 1.5: Indian name patterns
+    # Handle "Dr. S. Rajesh Kumar" style names
+    indian_name_pattern = r'^(?:(?:Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Shri|Smt\.?|Prof\.?|Sri|Er\.?|CA|Adv\.?)\s+)?((?:[A-Z]\.\s*){1,3}[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})$'
+    for line in lines[:10]:
+        stripped = line.strip()
+        match = re.match(indian_name_pattern, stripped)
+        if match:
+            name_clean = strip_indian_honorifics(stripped)
+            parts = name_clean.split()
+            if len(parts) >= 1:
+                first = parts[0]
+                last = parts[-1] if len(parts) > 1 else ''
+                middle = ' '.join(parts[1:-1]) if len(parts) > 2 else ''
+                return first, last, middle
+    
+    # Strategy 1.6: All caps Indian name (RAJESH KUMAR)
+    for line in lines[:5]:
+        stripped = line.strip()
+        if re.match(r'^([A-Z]{2,}\s+){1,3}[A-Z]{2,}$', stripped):
+            parts = stripped.split()
+            if 2 <= len(parts) <= 4:
+                return parts[0].title(), parts[-1].title(), ' '.join(p.title() for p in parts[1:-1])
     
     # Strategy 2: Use regex pattern for proper names
     name_pattern = r'^[A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3}$'
@@ -1461,7 +1563,21 @@ def save_candidate_to_db(candidate_data):
          str(candidate_data.get('uploaded_by_name', 'ShahnaIT HR'))))
     
     candidate_id = c.lastrowid
-    
+
+    # Save Indian-specific fields
+    if candidate_data.get('pan_number'):
+        try:
+            c.execute('UPDATE candidates SET pan_number = ? WHERE id = ?', (candidate_data['pan_number'], candidate_id))
+        except: pass
+    if candidate_data.get('cgpa_or_percentage'):
+        try:
+            c.execute('UPDATE candidates SET cgpa = ? WHERE id = ?', (candidate_data['cgpa_or_percentage'], candidate_id))
+        except: pass
+    if candidate_data.get('pincode'):
+        try:
+            c.execute('UPDATE candidates SET pincode = ? WHERE id = ?', (candidate_data['pincode'], candidate_id))
+        except: pass
+
     # Save relevant_experience
     rel_exp = candidate_data.get('relevant_experience', [])
     if isinstance(rel_exp, list) and rel_exp:
@@ -10387,7 +10503,20 @@ def fix_office_col():
     conn.commit()
     conn.close()
     return 'Office column fixed!'
-    
+
+@app.route('/fix-indian-fields')
+def fix_indian_fields():
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    for col in ['pan_number TEXT', 'cgpa TEXT', 'pincode TEXT']:
+        try:
+            c.execute(f"ALTER TABLE candidates ADD COLUMN {col}")
+        except:
+            pass
+    conn.commit()
+    conn.close()
+    return 'Indian fields added!'
+
 @app.route('/fix-split-skills')
 def fix_split_skills():
     conn = sqlite3.connect(DB_PATH)
