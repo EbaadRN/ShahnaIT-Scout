@@ -928,44 +928,44 @@ CRITICAL RULES:
    - Salesforce: Apex, LWC, SOQL, etc.
    - Tools: Git, Jira, Figma, etc.
    - Methodologies: Agile, Scrum, Kanban, etc.
-    5. EXPERIENCE: List ALL companies with exact dates and full descriptions.
-    6. EDUCATION: List ALL degrees with institution, years, and grades.
-    7. WORK EXPERIENCE ORDER: Most recent first.
-    8. DO NOT INVENT any information. Use empty string "" or empty array [] for missing.
-    9. If a section has multiple entries, include ALL of them.
-    10. Verify email format. Verify phone is a phone number, not ID.
-    11. INDIAN NAMES: Handle these formats correctly:
-        - With honorifics: "Dr. Rajesh Kumar" → first_name="Rajesh", last_name="Kumar"
-        - With initials: "K. R. Narayanan" → first_name="K.R.", last_name="Narayanan"
-        - Compound surnames: "Venkata Subramanian" → treat as single last name
-        - All caps: "RAJESH KUMAR" → convert to proper case "Rajesh Kumar"
-        - Regional names: Iyer, Reddy, Nair, Yadav, Sharma, Patel, Singh, etc.
-    12. INDIAN PHONE: Extract mobile starting with 6-9 (10 digits) with optional +91 prefix.
-    13. INDIAN EDUCATION: Extract CGPA (e.g., "8.4/10") or percentage (e.g., "65%") for education entries.
-    14. INDIAN ADDRESS: Include city, state, and PIN code (6-digit) if present.
-    15. INDIAN RESUME CONVENTIONS: Handle "Fresher" resumes (no work exp, focus on projects/internships), "Career Objective" sections, and CGPA-based education.
-    RESUME TEXT:
-    {cleaned_text[:8000]}
-    """
-        
-        response = call_groq_api(prompt, max_tokens=4000)
-        if response:
-            try:
-                # Clean any markdown wrapping
-                response = response.strip()
-                if response.startswith('```'):
-                    response = response.split('```')[1]
-                    if response.startswith('json'):
-                        response = response[4:]
-                response = response.strip()
-                
-                parsed = json.loads(response)
-                return parsed
-            except Exception as e:
-                print(f"JSON parse error: {e}")
-                print(f"Response: {response[:500]}")
-                return None
-        return None
+5. EXPERIENCE: List ALL companies with exact dates and full descriptions.
+6. EDUCATION: List ALL degrees with institution, years, and grades.
+7. WORK EXPERIENCE ORDER: Most recent first.
+8. DO NOT INVENT any information. Use empty string "" or empty array [] for missing.
+9. If a section has multiple entries, include ALL of them.
+10. Verify email format. Verify phone is a phone number, not ID.
+11. INDIAN NAMES: Handle these formats correctly:
+    - With honorifics: "Dr. Rajesh Kumar" → first_name="Rajesh", last_name="Kumar"
+    - With initials: "K. R. Narayanan" → first_name="K.R.", last_name="Narayanan"
+    - Compound surnames: "Venkata Subramanian" → treat as single last name
+    - All caps: "RAJESH KUMAR" → convert to proper case "Rajesh Kumar"
+    - Regional names: Iyer, Reddy, Nair, Yadav, Sharma, Patel, Singh, etc.
+12. INDIAN PHONE: Extract mobile starting with 6-9 (10 digits) with optional +91 prefix.
+13. INDIAN EDUCATION: Extract CGPA (e.g., "8.4/10") or percentage (e.g., "65%") for education entries.
+14. INDIAN ADDRESS: Include city, state, and PIN code (6-digit) if present.
+15. INDIAN RESUME CONVENTIONS: Handle "Fresher" resumes (no work exp, focus on projects/internships), "Career Objective" sections, and CGPA-based education.
+
+RESUME TEXT:
+{cleaned_text[:8000]}
+"""
+    
+    response = call_groq_api(prompt, max_tokens=4000)
+    if response:
+        try:
+            response = response.strip()
+            if response.startswith('```'):
+                response = response.split('```')[1]
+                if response.startswith('json'):
+                    response = response[4:]
+            response = response.strip()
+            
+            parsed = json.loads(response)
+            return parsed
+        except Exception as e:
+            print(f"JSON parse error: {e}")
+            print(f"Response: {response[:500]}")
+            return None
+    return None
 
 def cross_validate_resume(ai_parsed, raw_text):
     """Cross-check AI output against regex patterns. Fix AI mistakes."""
