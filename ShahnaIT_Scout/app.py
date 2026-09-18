@@ -6081,8 +6081,14 @@ async function viewCandidatesForRequirement(requirementId) {
 }
        
    async function loadCandidates() {
-    const res = await fetch('/api/candidates');
-    allCandidates = await res.json();
+    try {
+        const res = await fetch('/api/candidates');
+        const data = await res.json();
+        allCandidates = Array.isArray(data) ? data : [];
+    } catch(e) {
+        console.error('loadCandidates error:', e);
+        allCandidates = [];
+    }
     filterCandidates();
     // updatePipelineStats();  // ← REMOVED - function doesn't exist
     renderUploaderStats();
@@ -8795,6 +8801,7 @@ async function dropCandidate(event, stage) {
     }
 
     function renderUploaderStats() {
+        if (!Array.isArray(allCandidates)) return;
         const uploaderMap = {};
         allCandidates.forEach(c => {
             const uploader = c.uploaded_by || 'ShahnaIT';
