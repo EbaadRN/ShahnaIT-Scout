@@ -5413,10 +5413,38 @@ async function saveCandidateChanges() {
     }
     return Array.isArray(s) ? s : [];
 })(),
-        work_experience: currentCandidateData.work_experience,
-        relevant_experience: currentCandidateData.relevant_experience,
-        certifications: currentCandidateData.certifications,
-        attachments: currentCandidateData.attachments
+                work_experience: (() => {
+            let s = currentCandidateData.work_experience;
+            if (typeof s === 'string') {
+                try { s = JSON.parse(s); } catch(e) { s = []; }
+                if (typeof s === 'string') { try { s = JSON.parse(s); } catch(e) { s = []; } }
+            }
+            return Array.isArray(s) ? s : [];
+        })(),
+        relevant_experience: (() => {
+            let s = currentCandidateData.relevant_experience;
+            if (typeof s === 'string') {
+                try { s = JSON.parse(s); } catch(e) { s = []; }
+                if (typeof s === 'string') { try { s = JSON.parse(s); } catch(e) { s = []; } }
+            }
+            return Array.isArray(s) ? s : [];
+        })(),
+        certifications: (() => {
+            let s = currentCandidateData.certifications;
+            if (typeof s === 'string') {
+                try { s = JSON.parse(s); } catch(e) { s = []; }
+                if (typeof s === 'string') { try { s = JSON.parse(s); } catch(e) { s = []; } }
+            }
+            return Array.isArray(s) ? s : [];
+        })(),
+        attachments: (() => {
+            let s = currentCandidateData.attachments;
+            if (typeof s === 'string') {
+                try { s = JSON.parse(s); } catch(e) { s = []; }
+                if (typeof s === 'string') { try { s = JSON.parse(s); } catch(e) { s = []; } }
+            }
+            return Array.isArray(s) ? s : [];
+        })(),
     };
     
     try {
