@@ -5403,7 +5403,16 @@ async function saveCandidateChanges() {
         proposed_requirement: (document.getElementById('edit_proposed_requirement').value || '').split(' - ')[0].trim(),
         stage: document.getElementById('edit_stage').value,
         notes: document.getElementById('edit_notes').value,
-        core_skills: currentCandidateData.core_skills,
+    core_skills: (() => {
+        let s = currentCandidateData.core_skills;
+        if (typeof s === 'string') {
+           try { s = JSON.parse(s); } catch(e) { s = []; }
+           if (typeof s === 'string') {
+               try { s = JSON.parse(s); } catch(e) { s = []; }
+          }
+    }
+    return Array.isArray(s) ? s : [];
+})(),
         work_experience: currentCandidateData.work_experience,
         relevant_experience: currentCandidateData.relevant_experience,
         certifications: currentCandidateData.certifications,
