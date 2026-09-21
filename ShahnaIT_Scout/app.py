@@ -10696,6 +10696,23 @@ RESUME:
         'ai_response': raw if raw else 'NULL'
     })
 
+@app.route('/debug-groq-test')
+@login_required('admin')
+def debug_groq_test():
+    test_prompt = "Return ONLY this JSON: {\"test\": \"success\"}"
+    
+    # Check env
+    api_key = os.environ.get('GROQ_API_KEY', '')
+    
+    result = {
+        'key_present': bool(api_key),
+        'key_prefix': api_key[:10] if api_key else 'NONE',
+        'groq_enabled': GROQ_ENABLED,
+        'response': call_groq_api(test_prompt, max_tokens=50)
+    }
+    
+    return jsonify(result)
+    
 @app.route('/debug-parse/<int:candidate_id>')
 @login_required('admin')
 def debug_parse(candidate_id):
