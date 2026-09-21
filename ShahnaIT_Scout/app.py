@@ -801,6 +801,7 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
 
 def call_groq_api(prompt, max_tokens=2500):
     if not GROQ_API_KEY:
+        print("❌ Groq: No API key")
         return None
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
@@ -812,6 +813,7 @@ def call_groq_api(prompt, max_tokens=2500):
     }
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=45)
+        print(f"🔍 Groq status: {response.status_code}")
         if response.status_code == 200:
             result = response.json()['choices'][0]['message']['content']
             result = result.strip()
@@ -822,9 +824,11 @@ def call_groq_api(prompt, max_tokens=2500):
             if result.endswith('```'):
                 result = result[:-3]
             return result
-        return None
+        else:
+            print(f"❌ Groq error response: {response.text[:500]}")
+            return None
     except Exception as e:
-        print(f"Groq error: {e}")
+        print(f"❌ Groq exception: {type(e).__name__}: {e}")
         return None
 
 def normalize_resume_text(text):
@@ -10700,18 +10704,30 @@ RESUME:
 @login_required('admin')
 def debug_groq_test():
     test_prompt = "Return ONLY this JSON: {\"test\": \"success\"}"
-    
-    # Check env
     api_key = os.environ.get('GROQ_API_KEY', '')
     
-    result = {
-        'key_present': bool(api_key),
-        'key_prefix': api_key[:10] if api_key else 'NONE',
-        'groq_enabled': GROQ_ENABLED,
-        'response': call_groq_api(test_prompt, max_tokens=50)
-    }
-    
-    return jsonify(result)
+    # Try direct request to see actual error
+    try:
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "user", "content": test_prompt}],
+            "temperature": 0.1,
+            "max_tokens": 50
+        }
+        response = requests.post(url, json=payload, headers=headers, timeout=45)
+        return jsonify({
+            'key_prefix': api_key[:10] if api_key else 'NONE',
+            'status_code': response.status_code,
+            'response_preview': response.text[:500]
+        })
+    except Exception as e:
+        return jsonify({
+            'key_prefix': api_key[:10] if api_key else 'NONE',
+            'exception_type': type(e).__name__,
+            'exception_message': str(e)
+        })
     
 @app.route('/debug-parse/<int:candidate_id>')
 @login_required('admin')
