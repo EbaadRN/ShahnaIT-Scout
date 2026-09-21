@@ -846,6 +846,82 @@ def normalize_resume_text(text):
     
     return text.strip()
 
+SECTION_KEYWORDS = {
+    'contact': ['contact', 'personal info', 'personal information'],
+    'summary': ['professional summary', 'summary', 'objective', 'profile', 'about', 'executive summary'],
+    'skills': ['skills', 'technical skills', 'core skills', 'competencies', 'expertise', 'key skills'],
+    'experience': ['experience', 'work experience', 'professional experience', 'employment', 'career history'],
+    'education': ['education', 'academic', 'qualifications', 'degree'],
+    'certifications': ['certifications', 'certificates', 'credentials', 'licenses'],
+    'projects': ['projects', 'portfolio', 'work samples'],
+}
+
+def detect_resume_sections(text):
+    """Detect section boundaries in resume text"""
+    if not text:
+        return {}
+    text_lines = text.split('\n')
+    sections = {}
+    
+    for i, line in enumerate(text_lines):
+        line_lower = line.lower().strip()
+        if not line_lower or len(line_lower) > 60:
+            continue
+        for section_name, keywords in SECTION_KEYWORDS.items():
+            if any(kw in line_lower for kw in keywords):
+                start_pos = sum(len(l) + 1 for l in text_lines[:i])
+                sections[section_name] = start_pos
+                break
+    
+    sorted_sections = sorted(sections.items(), key=lambda x: x[1])
+    ranges = {}
+    for i, (name, start) in enumerate(sorted_sections):
+        end = sorted_sections[i + 1][1] if i + 1 < len(sorted_sections) else len(text)
+        ranges[name] = (start, end)
+    
+    return ranges
+
+def extract_section_text(text, section_name):
+    """Extract text belonging to a specific section"""
+    sections = detect_resume_sections(text)
+    if section_name not in sections:
+        return ""
+    start, end = sections[section_name]
+    return text[start:end].strip()
+
+def validate_field(field_name, value):
+    """Validate extracted field. Returns (is_valid, confidence, warning)"""
+    if value is None or value == "":
+        return False, 0.0, "empty"
+    
+    value_str = str(value).strip()
+    
+    rules = {
+        'first_name': {'min': 1, 'max': 50, 'pattern': r'^[A-Za-z\s\-\.\']+$', 'bad': ['@', '•', '|', 'Engineer', 'Manager', 'Developer']},
+        'last_name': {'min': 1, 'max': 50, 'pattern': r'^[A-Za-z\s\-\.\']+$', 'bad': ['@', '•', '|']},
+        'email': {'pattern': r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'},
+        'phone': {'min': 10, 'max': 20, 'pattern': r'^[\d\s\+\-\(\)\.]{10,}$'},
+        'summary': {'min': 20, 'max': 1000},
+    }
+    
+    if field_name not in rules:
+        return True, 0.9, ""
+    
+    rule = rules[field_name]
+    confidence = 1.0
+    
+    if 'min' in rule and len(value_str) < rule['min']:
+        return False, 0.3, "too short"
+    if 'max' in rule and len(value_str) > rule['max']:
+        return False, 0.3, "too long"
+    if 'pattern' in rule and not re.match(rule['pattern'], value_str):
+        return False, 0.4, "invalid format"
+    if 'bad' in rule:
+        for token in rule['bad']:
+            if token.lower() in value_str.lower():
+                return False, 0.5, f"contains '{token}'"
+    
+    return True, confidence, ""
 
 def parse_resume_with_groq(resume_text):
     """Expert-level AI resume parser - extracts EVERY field with high accuracy"""
