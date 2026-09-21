@@ -10666,6 +10666,36 @@ def fix_uploader_backfill():
     conn.close()
     return 'Uploader names backfilled!'
 
+@app.route('/debug-parse-full/<int:candidate_id>')
+@login_required('admin')
+def debug_parse_full(candidate_id):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute('SELECT resume_text FROM candidates WHERE id = ?', (candidate_id,))
+    row = c.fetchone()
+    conn.close()
+    
+    if not row or not row[0]:
+        return jsonify({'error': 'No resume text'})
+    
+    # Call AI directly
+    cleaned_text = normalize_resume_text(row[0])
+    
+    # Raw response check
+    prompt_test = f"""Extract education and designation from this resume. Return ONLY JSON with these fields:
+{{"designation": "", "current_role": "", "education": [{{"degree": "", "institute": "", "start_year": "", "end_year": "", "grade": ""}}]}}
+
+RESUME:
+{cleaned_text[:3000]}"""
+    
+    raw = call_groq_api(prompt_test, max_tokens=1000)
+    
+    return jsonify({
+        'resume_length': len(row[0]),
+        'cleaned_preview': cleaned_text[:800],
+        'ai_response': raw if raw else 'NULL'
+    })
+
 @app.route('/debug-parse/<int:candidate_id>')
 @login_required('admin')
 def debug_parse(candidate_id):
