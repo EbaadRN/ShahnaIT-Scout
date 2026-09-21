@@ -923,6 +923,63 @@ def validate_field(field_name, value):
     
     return True, confidence, ""
 
+def fix_misclassifications(data):
+    """Detect and fix common misclassification errors"""
+    fixes = []
+    
+    # Fix 1: Name stuck in summary field
+    summary = str(data.get('summary', '') or '').strip()
+    first_name = str(data.get('first_name', '') or '').strip()
+    
+    if summary and not first_name:
+        if re.match(r'^[A-Z][a-z]+(\s+[A-Z][a-z]+){1,3}$', summary):
+            parts = summary.split()
+            data['first_name'] = parts[0]
+            data['last_name'] = parts[-1]
+            data['middle_name'] = ' '.join(parts[1:-1]) if len(parts) > 2 else ''
+            data['summary'] = None
+            fixes.append(f"Extracted name from summary: {summary}")
+    
+    # Fix 2: Contact info in summary field
+    summary = str(data.get('summary', '') or '').strip()
+    if summary and any(marker in summary for marker in ['@', '+91', 'Email:', 'Phone:', 'Mobile:']):
+        data['summary'] = None
+        fixes.append("Removed contact info from summary")
+    
+    # Fix 3: Years of experience unrealistic
+    years = data.get('years_of_experience')
+    if years:
+        try:
+            y = float(years)
+            if y < 0 or y > 70:
+                data['years_of_experience'] = 0
+                fixes.append(f"Reset unrealistic years: {y}")
+        except:
+            data['years_of_experience'] = 0
+            fixes.append("Reset non-numeric years")
+    
+    # Fix 4: Invalid email
+    email = data.get('email')
+    if email and ('@' not in str(email) or '.' not in str(email)):
+        data['email'] = ''
+        fixes.append(f"Removed invalid email: {email}")
+    
+    # Fix 5: Phone too short
+    phone = data.get('phone')
+    if phone:
+        digits = ''.join(filter(str.isdigit, str(phone)))
+        if len(digits) < 10:
+            data['phone'] = ''
+            fixes.append(f"Removed short phone: {phone}")
+    
+    # Fix 6: Name contains job title
+    first_name = str(data.get('first_name', '') or '').strip()
+    if first_name and any(title in first_name.lower() for title in ['engineer', 'manager', 'developer', 'analyst']):
+        data['first_name'] = ''
+        fixes.append(f"Removed job title from first_name: {first_name}")
+    
+    return data, fixes
+
 def parse_resume_with_groq(resume_text):
     """Expert-level AI resume parser - extracts EVERY field with high accuracy"""
     if not resume_text or len(resume_text) < 50:
