@@ -1077,6 +1077,29 @@ CRITICAL RULES:
 13. INDIAN EDUCATION: Extract CGPA (e.g., "8.4/10") or percentage (e.g., "65%") for education entries.
 14. INDIAN ADDRESS: Include city, state, and PIN code (6-digit) if present.
 15. INDIAN RESUME CONVENTIONS: Handle "Fresher" resumes (no work exp, focus on projects/internships), "Career Objective" sections, and CGPA-based education.
+16. SECTION AWARENESS: Identify the section each piece of data belongs to FIRST.
+    - Extract first_name from CONTACT section only (usually top of resume, before any headers)
+    - Extract summary from PROFESSIONAL SUMMARY section only
+    - Extract skills from SKILLS / TECHNICAL SKILLS section only
+    - Extract work_experience from EXPERIENCE / WORK EXPERIENCE section only
+    - Extract education from EDUCATION / ACADEMIC section only
+    - Extract certifications from CERTIFICATIONS section only
+    - Extract projects from PROJECTS section only
+17. COMMON MISTAKES TO AVOID:
+    - Do NOT put the candidate's name in the "summary" field
+    - Do NOT put email/phone/LinkedIn in the "summary" field
+    - Do NOT put company names in the "first_name" field
+    - Do NOT put skill lists in the "summary" field
+    - Do NOT skip the education section - it is ALWAYS present in most resumes
+    - Do NOT skip designation/current_role - look for job titles near the top
+18. VALIDATION:
+    - first_name: actual person name (1-50 chars, letters only, no job titles)
+    - email: must contain @ and .
+    - phone: must have 10+ digits
+    - years_of_experience: 0-70 range
+    - summary: 20-1000 chars, no contact info, no honorifics
+    - designation/current_role: MUST be extracted if any job title appears in resume
+    - education: MUST include degree, institute, and years for EACH entry
 
 RESUME TEXT:
 {cleaned_text[:8000]}
