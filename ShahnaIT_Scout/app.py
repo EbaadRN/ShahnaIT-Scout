@@ -801,11 +801,11 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
 
 # Model fallback chain - tries each in order until one works
 GROQ_MODELS = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
     "meta-llama/llama-4-scout-17b-16e-instruct",
     "meta-llama/llama-4-maverick-17b-128e-instruct",
     "qwen/qwen3-32b",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
 ]
 
 def call_groq_api(prompt, max_tokens=2500):
@@ -831,7 +831,11 @@ def call_groq_api(prompt, max_tokens=2500):
             response = requests.post(url, json=payload, headers=headers, timeout=45)
             
             if response.status_code == 200:
-                result = response.json()['choices'][0]['message']['content']
+                msg = response.json()['choices'][0]['message']
+                result = msg.get('content', '').strip()
+                # Handle reasoning models that put output in 'reasoning'
+                if not result and msg.get('reasoning'):
+                    result = msg.get('reasoning', '').strip()
                 result = result.strip()
                 if result.startswith('```json'):
                     result = result[7:]
@@ -10752,7 +10756,7 @@ def debug_groq_test():
             "model": "openai/gpt-oss-120b",
             "messages": [{"role": "user", "content": test_prompt}],
             "temperature": 0.1,
-            "max_tokens": 50
+            "max_tokens": 4000
         }
         response = requests.post(url, json=payload, headers=headers, timeout=45)
         return jsonify({
