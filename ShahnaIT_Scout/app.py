@@ -1170,21 +1170,45 @@ RESUME TEXT:
     return None
 
 def cross_validate_resume(ai_parsed, raw_text):
-    """Cross-check AI output against regex patterns. Fix AI mistakes."""
+    """Cross-check AI output, fix misclassifications, validate fields"""
     if not ai_parsed:
         return ai_parsed
     
-    # Verify email
+    # Fix misclassifications FIRST (name in summary, contact info, invalid data)
+    ai_parsed, fixes = fix_misclassifications(ai_parsed)
+    if fixes:
+        print(f"🔧 Corrections made: {fixes}")
+    
+    # Validate each field against rules
+    for field in ['first_name', 'last_name', 'email', 'phone', 'summary']:
+        value = ai_parsed.get(field)
+        if value:
+            is_valid, confidence, warning = validate_field(field, value)
+            if not is_valid:
+                print(f"⚠️ Invalid {field}: {value} ({warning})")
+                if field in ['email', 'phone']:
+                    ai_parsed[field] = ''
+                elif field == 'summary':
+                    ai_parsed[field] = None
+    
+    # Verify email with regex
     regex_email = extract_email(raw_text)
     if regex_email and (not ai_parsed.get('email') or '@' not in ai_parsed.get('email', '')):
         ai_parsed['email'] = regex_email
     
-    # Verify phone
+    # Verify phone (Indian mobile first, then international)
+    indian_mobile = extract_indian_mobile(raw_text)
     regex_phone = extract_phone(raw_text)
-    if regex_phone and (not ai_parsed.get('phone') or len(ai_parsed.get('phone', '')) < 8):
-        ai_parsed['phone'] = regex_phone
+    current_phone = ai_parsed.get('phone', '')
+    current_digits = ''.join(filter(str.isdigit, current_phone)) if current_phone else ''
     
-    # Verify name
+    if len(current_digits) < 10:
+        if indian_mobile:
+            ai_parsed['phone'] = indian_mobile
+        elif regex_phone:
+            ai_parsed['phone'] = regex_phone
+    
+    # Verify name if missing
     if not ai_parsed.get('first_name'):
         first, last, middle = extract_name_from_text(raw_text)
         if first:
@@ -1192,38 +1216,30 @@ def cross_validate_resume(ai_parsed, raw_text):
             ai_parsed['last_name'] = last
             ai_parsed['middle_name'] = middle
     
+    # Strip Indian honorifics
+    if ai_parsed.get('first_name'):
+        ai_parsed['first_name'] = strip_indian_honorifics(ai_parsed['first_name'])
+    if ai_parsed.get('last_name'):
+        ai_parsed['last_name'] = strip_indian_honorifics(ai_parsed['last_name'])
+    
     # Verify LinkedIn
     if not ai_parsed.get('linkedin'):
         li_match = re.search(r'(https?://[^\s]*linkedin[^\s]*)', raw_text, re.IGNORECASE)
         if li_match:
             ai_parsed['linkedin'] = li_match.group(1)
     
-    # Verify skills array is not empty
+    # Verify skills if empty
     if not ai_parsed.get('core_skills') or len(ai_parsed.get('core_skills', [])) == 0:
         fallback = fallback_parse_resume(raw_text)
         if fallback.get('core_skills'):
             ai_parsed['core_skills'] = fallback['core_skills']
     
-        # Verify lists
-    if not isinstance(ai_parsed.get('work_experience'), list):
-        ai_parsed['work_experience'] = []
-    if not isinstance(ai_parsed.get('certifications'), list):
-        ai_parsed['certifications'] = []
-    if not isinstance(ai_parsed.get('education'), list):
-        ai_parsed['education'] = []
+    # Verify all list fields
+    for field in ['work_experience', 'certifications', 'education', 'projects']:
+        if not isinstance(ai_parsed.get(field), list):
+            ai_parsed[field] = []
     
-    # India-specific cross-validation
-    indian_mobile = extract_indian_mobile(raw_text)
-    if indian_mobile and (not ai_parsed.get('phone') or len(ai_parsed.get('phone', '')) < 10):
-        ai_parsed['phone'] = indian_mobile
-    
-    # Strip honorifics from name if AI included them
-    if ai_parsed.get('first_name'):
-        ai_parsed['first_name'] = strip_indian_honorifics(ai_parsed['first_name'])
-    if ai_parsed.get('last_name'):
-        ai_parsed['last_name'] = strip_indian_honorifics(ai_parsed['last_name'])
-    
-    # Store Indian-specific data
+    # India-specific fields
     pan = extract_pan(raw_text)
     if pan:
         ai_parsed['pan_number'] = pan
