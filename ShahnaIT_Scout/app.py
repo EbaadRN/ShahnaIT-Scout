@@ -799,37 +799,75 @@ if GROQ_API_KEY and GROQ_API_KEY.startswith('gsk_'):
     GROQ_ENABLED = True
     print("✅✅✅ Groq API configured")
 
+# Model fallback chain - tries each in order until one works
+GROQ_MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+    "qwen/qwen3-32b",
+]
+
 def call_groq_api(prompt, max_tokens=2500):
+    """Call Groq API with automatic model fallback"""
     if not GROQ_API_KEY:
         print("❌ Groq: No API key")
         return None
+    
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "model": "llama-3.3-70b-versatile",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.1,
-        "max_tokens": max_tokens
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers, timeout=45)
-        print(f"🔍 Groq status: {response.status_code}")
-        if response.status_code == 200:
-            result = response.json()['choices'][0]['message']['content']
-            result = result.strip()
-            if result.startswith('```json'):
-                result = result[7:]
-            if result.startswith('```'):
-                result = result[3:]
-            if result.endswith('```'):
-                result = result[:-3]
-            return result
-        else:
-            print(f"❌ Groq error response: {response.text[:500]}")
-            return None
-    except Exception as e:
-        print(f"❌ Groq exception: {type(e).__name__}: {e}")
-        return None
+    
+    last_error = None
+    
+    for model in GROQ_MODELS:
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+            "max_tokens": max_tokens
+        }
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=45)
+            
+            if response.status_code == 200:
+                result = response.json()['choices'][0]['message']['content']
+                result = result.strip()
+                if result.startswith('```json'):
+                    result = result[7:]
+                if result.startswith('```'):
+                    result = result[3:]
+                if result.endswith('```'):
+                    result = result[:-3]
+                print(f"✅ Groq success with model: {model}")
+                return result
+            
+            elif response.status_code == 404:
+                print(f"⚠️ Model {model} not available, trying next...")
+                last_error = f"{model}: model not found"
+                continue
+            
+            elif response.status_code == 429:
+                print(f"⚠️ Rate limited on {model}, trying next...")
+                last_error = f"{model}: rate limit"
+                continue
+            
+            else:
+                print(f"⚠️ Model {model} failed with {response.status_code}: {response.text[:200]}")
+                last_error = f"{model}: status {response.status_code}"
+                continue
+        
+        except requests.exceptions.Timeout:
+            print(f"⚠️ Timeout on {model}, trying next...")
+            last_error = f"{model}: timeout"
+            continue
+        except Exception as e:
+            print(f"⚠️ Exception on {model}: {type(e).__name__}: {e}")
+            last_error = f"{model}: {str(e)}"
+            continue
+    
+    print(f"❌ All Groq models failed. Last error: {last_error}")
+    return None
 
 def normalize_resume_text(text):
     """Clean up raw PDF/DOCX text - normalize whitespace, fix line breaks, remove garbage"""
@@ -10711,7 +10749,7 @@ def debug_groq_test():
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         payload = {
-            "model": "llama-3.3-70b-versatile",
+            "model": "openai/gpt-oss-120b",
             "messages": [{"role": "user", "content": test_prompt}],
             "temperature": 0.1,
             "max_tokens": 50
