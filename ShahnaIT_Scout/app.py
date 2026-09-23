@@ -3862,6 +3862,26 @@ body.dark-mode .match-low { color: #FFFFFF !important; }
     /* ===== MODAL FORM LAYOUT ===== */
 .modal-section { margin-bottom: 14px; background: #FAFBFC; border: 2px solid #E2E8F0; border-radius: 10px; padding: 14px; min-height: 100px; max-height: 250px; overflow-y: auto; }
 .modal-section-title { font-size: 14px; font-weight: 700; color: #1B2A4A; margin: 0 0 10px 0; padding-bottom: 8px; border-bottom: 2px solid #E2E8F0; }
+
+    /* ===== AI ANALYSIS TABS ===== */
+    .analysis-tab {
+        background: transparent;
+        border: none;
+        padding: 10px 16px;
+        border-radius: 8px 8px 0 0;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        color: #666;
+        white-space: nowrap;
+        transition: all 0.15s;
+    }
+    .analysis-tab:hover { background: #fff; color: #1B2A4A; }
+    .analysis-tab.active {
+        background: #fff;
+        color: #1B2A4A;
+        box-shadow: 0 -2px 0 0 #1B2A4A inset;
+    }
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
