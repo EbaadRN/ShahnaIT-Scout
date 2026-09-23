@@ -5377,6 +5377,350 @@ function renderCertifications(certsData) {
         container.appendChild(div);
     });
 }
+// ============================================
+// ANALYSIS PANEL — v2 (deep engine aware)
+// ============================================
+
+function parseAnalysisJson(raw) {
+    if (!raw) return null;
+    try {
+        let parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        // Handle double-encoded JSON
+        if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+        return parsed;
+    } catch(e) {
+        console.warn('parseAnalysisJson failed:', e);
+        return null;
+    }
+}
+
+function scoreColor(score) {
+    if (score >= 85) return '#1B6B2E';   // dark green
+    if (score >= 70) return '#1A237E';   // navy
+    if (score >= 55) return '#C9A96E';   // gold
+    if (score >= 40) return '#E65100';   // orange
+    return '#B71C1C';                    // red
+}
+
+function scoreLabel(score) {
+    if (score >= 85) return 'Shortlisted';
+    if (score >= 70) return 'Strong Match';
+    if (score >= 55) return 'Moderate Match';
+    if (score >= 40) return 'Low Match';
+    return 'Not Recommended';
+}
+
+function renderAnalysisPanel(candidate) {
+    const panel = document.getElementById('analysisPanel');
+    if (!panel) return;
+
+    const analysis = parseAnalysisJson(candidate.detailed_analysis);
+    const score = candidate.match_score || 0;
+
+    // ── State 1: No analysis yet ──
+    if (!analysis) {
+        panel.innerHTML = `
+            <div style="background:#F9F6F0;border:1px dashed #C9A96E;border-radius:10px;padding:24px;text-align:center;">
+                <div style="font-size:36px;margin-bottom:8px;">🤖</div>
+                <div style="color:#1B2A4A;font-weight:600;font-size:15px;margin-bottom:6px;">No AI Analysis Yet</div>
+                <div style="color:#666;font-size:13px;margin-bottom:16px;">Run the deep AI match analysis to see fit scoring, red flags, requirement coverage, and more.</div>
+                <button onclick="openRunAnalysisPicker()" style="background:#1B2A4A;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;">
+                    <i class="fas fa-play"></i> Run AI Analysis
+                </button>
+                <div id="runAnalysisPickerWrap" style="display:none;margin-top:16px;"></div>
+            </div>
+        `;
+        return;
+    }
+
+    // ── State 2: Analysis exists ──
+    const isDeep = analysis.analysis_engine === 'deep-v2';
+    const color = scoreColor(score);
+    const label = analysis.recommendation || scoreLabel(score);
+
+    let tabsHtml = '';
+    let tabContent = '';
+
+    if (isDeep) {
+        const fs = analysis.final_scoring || {};
+        const auth = analysis.authenticity_analysis || {};
+        const req = analysis.requirements_fulfillment || {};
+        const risk = analysis.risk_assessment || {};
+        const kw = (analysis.detailed_comparison || {}).word_level_analysis || {};
+        const summary = analysis.summary_for_recruiter || {};
+
+        tabsHtml = `
+            <button class="analysis-tab active" data-tab="overview" onclick="switchAnalysisTab('overview')">📊 Overview</button>
+            <button class="analysis-tab" data-tab="skills" onclick="switchAnalysisTab('skills')">💻 Skills</button>
+            <button class="analysis-tab" data-tab="requirements" onclick="switchAnalysisTab('requirements')">✓ Requirements</button>
+            <button class="analysis-tab" data-tab="authenticity" onclick="switchAnalysisTab('authenticity')">🔍 Authenticity</button>
+            <button class="analysis-tab" data-tab="keywords" onclick="switchAnalysisTab('keywords')">🎯 Keywords</button>
+            <button class="analysis-tab" data-tab="risk" onclick="switchAnalysisTab('risk')">⚠️ Risk</button>
+        `;
+
+        // ── Overview tab ──
+        const overviewTab = `
+            <div class="analysis-tab-panel" data-panel="overview" style="display:block;">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
+                    ${['technical_fit','experience_fit','skill_fit','authenticity_fit','hiring_confidence'].map(k => `
+                        <div style="background:#fff;border:1px solid #E0E0E0;border-left:4px solid ${scoreColor(fs[k]||0)};border-radius:8px;padding:10px 14px;">
+                            <div style="font-size:11px;color:#666;text-transform:capitalize;">${k.replace('_',' ')}</div>
+                            <div style="font-size:22px;font-weight:700;color:${scoreColor(fs[k]||0)};">${fs[k]||0}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                ${summary.candidate_profile ? `<div style="background:#F5F5F5;padding:12px;border-radius:8px;border-left:4px solid #1A237E;margin-bottom:10px;"><strong>Profile:</strong> ${escapeHtml(summary.candidate_profile)}</div>` : ''}
+                ${(summary.key_strengths||[]).length ? `<div style="margin-bottom:10px;"><strong style="color:#1B6B2E;">✅ Strengths:</strong><ul style="margin:6px 0 0 20px;">${summary.key_strengths.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ul></div>` : ''}
+                ${(summary.critical_gaps||[]).length ? `<div style="margin-bottom:10px;"><strong style="color:#B71C1C;">❌ Critical Gaps:</strong><ul style="margin:6px 0 0 20px;">${summary.critical_gaps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ul></div>` : ''}
+                ${summary.next_steps ? `<div style="background:#E3F2FD;padding:12px;border-radius:8px;border-left:4px solid #1A237E;"><strong>Next Steps:</strong> ${escapeHtml(summary.next_steps)}</div>` : ''}
+            </div>
+        `;
+
+        // ── Skills tab ──
+        const skillsTab = `
+            <div class="analysis-tab-panel" data-panel="skills" style="display:none;">
+                ${(analysis.skill_analysis && analysis.skill_analysis.required_skills || []).map(sk => {
+                    const m = (sk.match||'').toLowerCase();
+                    const mc = m==='perfect'?'#1B6B2E':m==='strong'?'#1A237E':m==='partial'?'#E65100':m==='weak'?'#B71C1C':'#666';
+                    return `<div style="background:#fff;border-left:4px solid ${mc};padding:10px 14px;margin-bottom:8px;border-radius:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;"><strong>${escapeHtml(sk.skill||'')}</strong><span style="background:${mc};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">${escapeHtml(sk.match||'')}</span></div>
+                        <div style="font-size:12px;color:#666;margin-top:6px;">Required: ${escapeHtml(sk.required_level||'')} · Candidate: ${escapeHtml(sk.candidate_level||'')}</div>
+                        ${sk.evidence?`<div style="font-size:12px;color:#333;margin-top:6px;"><strong>Evidence:</strong> ${escapeHtml(sk.evidence)}</div>`:''}
+                    </div>`;
+                }).join('') || '<div style="color:#999;">No skills data.</div>'}
+            </div>
+        `;
+
+        // ── Requirements tab ──
+        const reqTab = `
+            <div class="analysis-tab-panel" data-panel="requirements" style="display:none;">
+                <div style="font-size:12px;color:#666;margin-bottom:10px;">${escapeHtml(req.fulfillment_summary||'')}</div>
+                <div style="margin-bottom:14px;"><strong>Must-Haves:</strong></div>
+                ${(req.must_haves||[]).map(r=>{
+                    const st=(r.status||'').toUpperCase();
+                    const c=st==='MET'?'#1B6B2E':st==='PARTIAL'?'#E65100':'#B71C1C';
+                    return `<div style="background:#fff;border-left:4px solid ${c};padding:10px 14px;margin-bottom:6px;border-radius:8px;">
+                        <div style="display:flex;justify-content:space-between;"><span>${escapeHtml(r.requirement||'')}</span><span style="background:${c};color:#fff;padding:2px 10px;border-radius:12px;font-size:11px;">${st}</span></div>
+                        ${r.evidence?`<div style="font-size:12px;color:#666;margin-top:6px;">${escapeHtml(r.evidence)}</div>`:''}
+                    </div>`;
+                }).join('') || '<div style="color:#999;">No requirements.</div>'}
+                ${(req.nice_to_haves||[]).length ? `<div style="margin:14px 0 6px;"><strong>Nice-to-Haves:</strong></div>${req.nice_to_haves.map(r=>`<div style="background:#F5F5F5;padding:8px 12px;margin-bottom:4px;border-radius:6px;font-size:13px;">${escapeHtml(r.requirement||'')} <span style="color:#666;">(${escapeHtml(r.status||'')})</span></div>`).join('')}` : ''}
+            </div>
+        `;
+
+        // ── Authenticity tab ──
+        const authTab = `
+            <div class="analysis-tab-panel" data-panel="authenticity" style="display:none;">
+                <div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E0E0;margin-bottom:12px;">
+                    <div style="font-size:11px;color:#666;">Authenticity Score</div>
+                    <div style="font-size:32px;font-weight:700;color:${scoreColor(auth.score||0)};">${auth.score||0}</div>
+                </div>
+                ${(auth.red_flags||[]).length ? auth.red_flags.map(f => {
+                    const sev=(f.severity||'low').toLowerCase();
+                    const c=sev==='critical'?'#B71C1C':sev==='high'?'#E65100':sev==='medium'?'#F57C00':'#1B6B2E';
+                    return `<div style="background:#fff5f5;border-left:4px solid ${c};padding:10px 14px;margin-bottom:6px;border-radius:8px;">
+                        <div style="font-weight:600;color:${c};font-size:12px;">${(f.severity||'').toUpperCase()} — ${escapeHtml(f.flag||'')}</div>
+                        ${f.evidence?`<div style="font-size:12px;color:#666;margin-top:4px;"><strong>Evidence:</strong> ${escapeHtml(f.evidence)}</div>`:''}
+                        ${f.explanation?`<div style="font-size:12px;color:#666;margin-top:4px;">${escapeHtml(f.explanation)}</div>`:''}
+                    </div>`;
+                }).join('') : '<div style="color:#1B6B2E;font-weight:600;">✅ No red flags detected</div>'}
+                ${auth.authenticity_summary?`<div style="margin-top:12px;background:#F5F5F5;padding:12px;border-radius:8px;font-size:13px;">${escapeHtml(auth.authenticity_summary)}</div>`:''}
+            </div>
+        `;
+
+        // ── Keywords tab ──
+        const kwTab = `
+            <div class="analysis-tab-panel" data-panel="keywords" style="display:none;">
+                <div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E0E0;margin-bottom:12px;text-align:center;">
+                    <div style="font-size:11px;color:#666;">Keyword Match</div>
+                    <div style="font-size:32px;font-weight:700;color:${scoreColor(kw.keyword_match_percentage||0)};">${kw.keyword_match_percentage||0}%</div>
+                </div>
+                ${(kw.matching_keywords||[]).length?`<div style="margin-bottom:12px;"><strong style="color:#1B6B2E;">✅ Matching:</strong><div style="margin-top:6px;">${kw.matching_keywords.slice(0,15).map(k=>`<span style="background:#1B6B2E;color:#fff;padding:3px 10px;border-radius:12px;font-size:12px;display:inline-block;margin:2px;">${escapeHtml(k.keyword||k)}</span>`).join('')}</div></div>`:''}
+                ${(kw.missing_critical_keywords||[]).length?`<div><strong style="color:#B71C1C;">❌ Missing Critical:</strong><div style="margin-top:6px;">${kw.missing_critical_keywords.map(k=>`<span style="background:#B71C1C;color:#fff;padding:3px 10px;border-radius:12px;font-size:12px;display:inline-block;margin:2px;">${escapeHtml(k)}</span>`).join('')}</div></div>`:''}
+            </div>
+        `;
+
+        // ── Risk tab ──
+        const riskTab = `
+            <div class="analysis-tab-panel" data-panel="risk" style="display:none;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E0E0;"><div style="font-size:11px;color:#666;">Flight Risk</div><div style="font-weight:700;">${escapeHtml(risk.flight_risk||'—')}</div></div>
+                    <div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E0E0;"><div style="font-size:11px;color:#666;">Ramp-Up</div><div style="font-weight:700;">${escapeHtml(risk.ramp_up_time||'—')}</div></div>
+                    <div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E0E0;"><div style="font-size:11px;color:#666;">Cultural Fit Risk</div><div style="font-weight:700;">${escapeHtml(risk.cultural_fit_risk||'—')}</div></div>
+                    <div style="background:#fff;padding:12px;border-radius:8px;border:1px solid #E0E0E0;"><div style="font-size:11px;color:#666;">Salary Risk</div><div style="font-weight:700;">${escapeHtml(risk.salary_expectation_risk||'—')}</div></div>
+                </div>
+            </div>
+        `;
+
+        tabContent = overviewTab + skillsTab + reqTab + authTab + kwTab + riskTab;
+
+    } else {
+        // ── Legacy analysis — show old fields only ──
+        tabsHtml = `<button class="analysis-tab active" data-tab="overview" onclick="switchAnalysisTab('overview')">📊 Overview</button>`;
+        tabContent = `
+            <div class="analysis-tab-panel" data-panel="overview" style="display:block;">
+                <div style="background:#fff;padding:12px;border-radius:8px;border-left:4px solid #C9A96E;margin-bottom:10px;">
+                    <em style="color:#666;font-size:12px;">This candidate was analyzed before the deep engine was enabled. Re-run for full insights.</em>
+                </div>
+                <div style="background:#F5F5F5;padding:12px;border-radius:8px;white-space:pre-wrap;font-size:13px;">${escapeHtml(analysis.detailed_analysis || analysis.executive_summary || 'No summary')}</div>
+            </div>
+        `;
+    }
+
+    panel.innerHTML = `
+        <div style="background:#fff;border:1px solid #E0E0E0;border-radius:12px;overflow:hidden;margin-top:8px;">
+            <div style="background:linear-gradient(135deg,#1B2A4A 0%,#2C3E5C 100%);color:#fff;padding:16px;display:flex;align-items:center;gap:16px;">
+                <div style="text-align:center;min-width:90px;">
+                    <div style="font-size:38px;font-weight:700;color:${color};">${score}</div>
+                    <div style="font-size:11px;opacity:0.8;">Match Score</div>
+                </div>
+                <div style="flex:1;">
+                    <div style="font-size:20px;font-weight:700;">${escapeHtml(label)}</div>
+                    <div style="font-size:12px;opacity:0.85;margin-top:4px;">Engine: ${escapeHtml(analysis.analysis_engine || 'legacy')}</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="openRunAnalysisPicker()" title="Re-run with a different JD" style="background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px;">
+                        <i class="fas fa-redo"></i> Re-run
+                    </button>
+                    <button onclick="clearCandidateAnalysis(${candidate.id})" title="Remove this analysis" style="background:rgba(183,28,28,0.85);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-weight:600;cursor:pointer;font-size:12px;">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+            </div>
+            <div style="display:flex;gap:2px;background:#F5F5F5;padding:8px 8px 0 8px;overflow-x:auto;">
+                ${tabsHtml}
+            </div>
+            <div id="analysisTabContent" style="padding:16px;">
+                ${tabContent}
+            </div>
+            <div id="runAnalysisPickerWrap" style="display:none;padding:16px;background:#F9F6F0;border-top:1px solid #E0E0E0;"></div>
+        </div>
+    `;
+}
+
+function switchAnalysisTab(tabId) {
+    document.querySelectorAll('.analysis-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tabId);
+    });
+    document.querySelectorAll('.analysis-tab-panel').forEach(p => {
+        p.style.display = (p.dataset.panel === tabId) ? 'block' : 'none';
+    });
+}
+
+function openRunAnalysisPicker() {
+    const wrap = document.getElementById('runAnalysisPickerWrap');
+    if (!wrap) return;
+
+    if (wrap.style.display === 'block') {
+        wrap.style.display = 'none';
+        return;
+    }
+
+    // Build job options from allJobs
+    const jobs = (typeof allJobs !== 'undefined' && Array.isArray(allJobs)) ? allJobs.filter(j => j.is_active !== 0) : [];
+    if (!jobs.length) {
+        wrap.innerHTML = '<div style="color:#B71C1C;">No active requirements found. Create a requirement first.</div>';
+        wrap.style.display = 'block';
+        return;
+    }
+
+    wrap.innerHTML = `
+        <div style="font-weight:600;color:#1B2A4A;margin-bottom:8px;">Run analysis against:</div>
+        <select id="rerunJobSelect" style="width:100%;padding:10px;border:1px solid #D0D8E4;border-radius:8px;font-size:14px;margin-bottom:10px;">
+            <option value="">-- Select Requirement --</option>
+            ${jobs.map(j => `<option value="${j.id}">${escapeHtml((j.title||'Untitled') + ' — ' + (j.company||''))} </option>`).join('')}
+        </select>
+        <div style="display:flex;gap:8px;">
+            <button onclick="runCandidateAnalysis()" style="background:#1B2A4A;color:#fff;border:none;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer;flex:1;">
+                <i class="fas fa-play"></i> Run Analysis
+            </button>
+            <button onclick="document.getElementById('runAnalysisPickerWrap').style.display='none'" style="background:#E0E0E0;color:#333;border:none;padding:10px 20px;border-radius:8px;font-weight:600;cursor:pointer;">
+                Cancel
+            </button>
+        </div>
+        <div id="runAnalysisStatus" style="margin-top:10px;"></div>
+    `;
+    wrap.style.display = 'block';
+}
+
+async function runCandidateAnalysis() {
+    const sel = document.getElementById('rerunJobSelect');
+    const status = document.getElementById('runAnalysisStatus');
+    const jobId = sel ? sel.value : '';
+    if (!jobId) { toastWarning('Pick a requirement first'); return; }
+
+    const candidate = allCandidates.find(c => c.id == currentCandidateId);
+    if (!candidate) { toastError('Candidate not found'); return; }
+
+    const job = (typeof allJobs !== 'undefined') ? allJobs.find(j => j.id == jobId) : null;
+    const jdText = job ? (job.description || job.roles_responsibilities || '') : '';
+    const resumeText = candidate.resume_text || '';
+
+    if (!jdText || !resumeText) {
+        toastError('Missing JD or resume text');
+        return;
+    }
+
+    status.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner" style="width:20px;height:20px;border-width:3px;"></div> Analyzing with deep AI engine... this can take 15–30 seconds.</div>';
+
+    try {
+        const res = await fetch('/api/analyze-match', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                job_id: jobId,
+                candidate_id: candidate.id,
+                candidate_name: (candidate.first_name||'') + ' ' + (candidate.last_name||''),
+                current_role: candidate.current_role || '',
+                years_experience: candidate.years_of_experience || '',
+                location: candidate.location || '',
+                jd_text: jdText,
+                resume_text: resumeText
+            })
+        });
+        const result = await res.json();
+        if (result.error) {
+            status.innerHTML = '<div style="color:#B71C1C;">❌ ' + escapeHtml(result.error) + '</div>';
+            return;
+        }
+
+        // Update local candidate object so the panel re-renders
+        candidate.match_score = result.match_score || 0;
+        candidate.recommendation = result.recommendation || '';
+        candidate.detailed_analysis = JSON.stringify(result);
+
+        toastSuccess('Analysis complete: ' + (result.match_score||0) + '% — ' + (result.recommendation||''));
+        renderAnalysisPanel(candidate);
+
+        // Reload candidates list in the background so the card score updates too
+        loadCandidates();
+    } catch(e) {
+        status.innerHTML = '<div style="color:#B71C1C;">❌ Request failed: ' + escapeHtml(e.message) + '</div>';
+    }
+}
+
+async function clearCandidateAnalysis(candidateId) {
+    if (!confirm('Remove the current analysis for this candidate?\n\nThis can be recovered from the archive if needed.')) return;
+
+    try {
+        const res = await fetch('/api/candidates/' + candidateId + '/analysis', { method: 'DELETE' });
+        if (!res.ok) {
+            toastError('Failed to remove analysis');
+            return;
+        }
+        const candidate = allCandidates.find(c => c.id == candidateId);
+        if (candidate) {
+            candidate.match_score = 0;
+            candidate.recommendation = '';
+            candidate.detailed_analysis = '';
+            renderAnalysisPanel(candidate);
+        }
+        toastSuccess('Analysis removed. You can now re-run with a different JD.');
+        loadCandidates();
+    } catch(e) {
+        toastError('Error: ' + e.message);
+    }
+}
 function renderAttachments(attachmentsData) {
     const container = document.getElementById('attachmentsList');
     if (!container) return;
