@@ -873,6 +873,210 @@ def call_groq_api(prompt, max_tokens=2500):
     print(f"❌ All Groq models failed. Last error: {last_error}")
     return None
 
+# ═══════════════════════════════════════════════════════════════
+# DEEP MATCH ANALYSIS v2 — rich schema, chain-of-thought prompt
+# ═══════════════════════════════════════════════════════════════
+
+def _extract_json_safe(raw):
+    """Robustly pull a JSON object from a model response."""
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except Exception:
+        pass
+    # Strip markdown fences
+    cleaned = raw.strip()
+    if cleaned.startswith('```json'):
+        cleaned = cleaned[7:]
+    if cleaned.startswith('```'):
+        cleaned = cleaned[3:]
+    if cleaned.endswith('```'):
+        cleaned = cleaned[:-3]
+    try:
+        return json.loads(cleaned.strip())
+    except Exception:
+        pass
+    # Grab outermost {...}
+    start = raw.find('{')
+    end = raw.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        candidate = raw[start:end+1]
+        try:
+            return json.loads(candidate)
+        except Exception:
+            # Last resort: strip trailing commas
+            import re
+            fixed = re.sub(r',(\s*[}\]])', r'\1', candidate)
+            try:
+                return json.loads(fixed)
+            except Exception:
+                return None
+    return None
+
+
+def compute_overall_score(analysis):
+    """Server-side weighted scoring. Never trust the LLM with arithmetic."""
+    fs = analysis.get('final_scoring', {}) or {}
+    try:
+        technical    = float(fs.get('technical_fit',    0) or 0)
+        experience   = float(fs.get('experience_fit',   0) or 0)
+        skill        = float(fs.get('skill_fit',        0) or 0)
+        authenticity = float(fs.get('authenticity_fit', 0) or 0)
+        composite = (0.35 * technical) + (0.30 * experience) + (0.20 * skill) + (0.15 * authenticity)
+        return int(round(composite))
+    except Exception:
+        return int(analysis.get('overall_fit_score', 0) or 0)
+
+
+def compute_recommendation(score):
+    if score >= 85: return 'Shortlisted'
+    if score >= 70: return 'Strong Match'
+    if score >= 55: return 'Moderate Match'
+    if score >= 40: return 'Low Match'
+    return 'Not Recommended'
+
+
+def analyze_match_deep(resume_text, jd_text, candidate_name='', current_role='', years_experience='', location=''):
+    """Deep AI match analysis — recruiter-grade JSON. Falls back gracefully."""
+    if not GROQ_ENABLED:
+        return None
+
+    prompt = f"""You are a senior technical recruiter with 20+ years of hiring experience. You are STRINGENT, EVIDENCE-DRIVEN, and SKEPTICAL of inflated resumes. You never give a high score without clear, verifiable evidence.
+
+Analyze the resume against the job description. THINK STEP BY STEP internally, then output ONLY the final JSON.
+
+STEP 1: Extract every MUST-HAVE and NICE-TO-HAVE requirement from the JD.
+STEP 2: For each requirement, search the resume for DIRECT EVIDENCE (a specific project, role, or achievement). Merely listing a skill in a "Skills" section is WEAK evidence.
+STEP 3: Detect authenticity issues: unexplained gaps (>6 months), timeline overlaps, skill claims inconsistent with years, inflated titles, implausible achievements, keyword stuffing.
+STEP 4: Score each dimension 0-100 using STRICT anchors:
+  90-100 Exceptional (meets ALL must-haves with strong evidence)
+  75-89  Strong (meets most must-haves with good evidence)
+  60-74  Decent (meets must-haves with weak evidence or minor gaps)
+  45-59  Risky (missing 1-2 must-haves or significant gaps)
+  0-44   Poor fit (missing critical requirements or authenticity concerns)
+STEP 5: Emit JSON in the EXACT schema below.
+
+═══════ JOB DESCRIPTION ═══════
+{jd_text[:3500]}
+
+═══════ RESUME ═══════
+{resume_text[:4500]}
+
+═══════ METADATA ═══════
+Name: {candidate_name or 'Unknown'}
+Current role: {current_role or 'Unknown'}
+Years claimed: {years_experience or 'Unknown'}
+Location: {location or 'Unknown'}
+
+═══════ RETURN EXACTLY THIS JSON ═══════
+{{
+  "overall_fit_score": <0-100>,
+  "recommendation": "<Shortlisted|Strong Match|Moderate Match|Low Match|Not Recommended>",
+  "final_scoring": {{
+    "technical_fit": <0-100>,
+    "experience_fit": <0-100>,
+    "skill_fit": <0-100>,
+    "authenticity_fit": <0-100>,
+    "hiring_confidence": <0-100>
+  }},
+  "skill_analysis": {{
+    "score": <0-100>,
+    "required_skills": [
+      {{"skill": "", "required_level": "", "candidate_level": "", "match": "<PERFECT|STRONG|PARTIAL|WEAK|MISSING>", "evidence": "", "gap_analysis": ""}}
+    ],
+    "additional_skills": [{{"skill": "", "relevance": "", "value": ""}}],
+    "skills_summary": ""
+  }},
+  "experience_analysis": {{
+    "score": <0-100>,
+    "total_years": <number>,
+    "relevant_years": <number>,
+    "experience_breakdown": [
+      {{"role": "", "company": "", "duration": "", "relevance": "<HIGHLY_RELEVANT|RELEVANT|SOMEWHAT_RELEVANT|NOT_RELEVANT>", "key_accomplishments": "", "gap_fit": ""}}
+    ],
+    "experience_summary": ""
+  }},
+  "requirements_fulfillment": {{
+    "score": <0-100>,
+    "must_haves": [{{"requirement": "", "status": "<MET|PARTIAL|NOT_MET>", "evidence": "", "impact": ""}}],
+    "nice_to_haves": [{{"requirement": "", "status": "<MET|NOT_MET>", "evidence": "", "bonus_points": <0-10>}}],
+    "fulfillment_summary": ""
+  }},
+  "authenticity_analysis": {{
+    "score": <0-100>,
+    "red_flags": [{{"flag": "", "severity": "<CRITICAL|HIGH|MEDIUM|LOW>", "evidence": "", "explanation": ""}}],
+    "consistency_checks": {{
+      "timeline_consistency": "<CONSISTENT|GAPS|RED_FLAGS>",
+      "timeline_notes": "",
+      "skill_progression": "<LOGICAL|UNUSUAL|RED_FLAGS>",
+      "progression_notes": "",
+      "achievement_credibility": "<HIGHLY_CREDIBLE|CREDIBLE|QUESTIONABLE|SUSPICIOUS>",
+      "achievement_notes": ""
+    }},
+    "authenticity_summary": ""
+  }},
+  "detailed_comparison": {{
+    "score": <0-100>,
+    "word_level_analysis": {{
+      "keyword_match_percentage": <0-100>,
+      "matching_keywords": [{{"keyword": "", "frequency_in_jd": <int>, "presence_in_resume": "<EXACT_MATCH|SIMILAR|MISSING>"}}],
+      "missing_critical_keywords": [],
+      "keyword_analysis": ""
+    }},
+    "industry_knowledge": {{"score": <0-100>, "domain_expertise": "", "industry_alignment": "<PERFECT|STRONG|MODERATE|WEAK>", "knowledge_assessment": ""}}
+  }},
+  "cultural_and_soft_skills": {{
+    "score": <0-100>,
+    "leadership":      {{"evidence": "", "assessment": ""}},
+    "problem_solving": {{"evidence": "", "assessment": ""}},
+    "communication":   {{"evidence": "", "assessment": ""}},
+    "adaptability":    {{"evidence": "", "assessment": ""}},
+    "soft_skills_summary": ""
+  }},
+  "risk_assessment": {{
+    "flight_risk": "<LOW|MEDIUM|HIGH>",
+    "flight_risk_analysis": "",
+    "ramp_up_time": "<IMMEDIATE|1-2_WEEKS|1-2_MONTHS|2-3_MONTHS|3_PLUS_MONTHS>",
+    "ramp_up_justification": "",
+    "cultural_fit_risk": "<LOW|MEDIUM|HIGH>",
+    "cultural_fit_analysis": "",
+    "salary_expectation_risk": "<LOW|MEDIUM|HIGH>",
+    "salary_analysis": ""
+  }},
+  "summary_for_recruiter": {{
+    "candidate_profile": "",
+    "key_strengths": [],
+    "critical_gaps": [],
+    "concerns": [],
+    "next_steps": "",
+    "interview_focus_areas": [],
+    "questions_to_ask": [{{"question": "", "purpose": ""}}],
+    "final_thoughts": ""
+  }}
+}}
+
+RULES:
+- Every array must contain at least one item.
+- NEVER invent experience the resume doesn't support.
+- Percentages and years must be integers.
+- Return ONLY the JSON. No preamble, no markdown, no code fences."""
+
+    raw = call_groq_api(prompt, max_tokens=6000)
+    if not raw:
+        return None
+
+    analysis = _extract_json_safe(raw)
+    if not analysis:
+        print('❌ analyze_match_deep: JSON parse failed')
+        return None
+
+    # Server-side score override (deterministic)
+    analysis['overall_fit_score'] = compute_overall_score(analysis)
+    analysis['recommendation']    = compute_recommendation(analysis['overall_fit_score'])
+    analysis['_engine']           = 'deep-v2'
+    return analysis
+
 def normalize_resume_text(text):
     """Clean up raw PDF/DOCX text - normalize whitespace, fix line breaks, remove garbage"""
     if not text:
