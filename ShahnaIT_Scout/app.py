@@ -5001,6 +5001,14 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
                     </div>
                     <div id="resumeFullText" style="background:#F5F7FA;border:2px solid #D0D8E4;border-radius:8px;padding:16px;max-height:400px;overflow-y:auto;font-size:13px;line-height:1.6;white-space:pre-wrap;color:#0F1D33;font-family:'Times New Roman',serif;"></div>
                 </div>
+
+<!-- AI Analysis Panel -->
+<div class="modal-section" style="margin-top:16px;">
+        <h3 class="modal-section-title"><i class="fas fa-robot"></i> AI Analysis</h3>
+    <div id="analysisPanel">
+        <div style="text-align:center;padding:20px;color:#999;">Loading analysis...</div>
+    </div>
+</div>
                 
                 <!-- Notes -->
                 <div class="modal-section">
@@ -5287,6 +5295,8 @@ window.viewCandidate = function(id) {
     // Resume - FULL TEXT, NO TRUNCATION
     const resumeText = candidate.resume_text || '';
     document.getElementById('resumeFullText').textContent = resumeText;
+    // AI Analysis Panel (v2)
+    renderAnalysisPanel(candidate);
     
     // Notes
     document.getElementById('edit_notes').value = candidate.notes || '';
