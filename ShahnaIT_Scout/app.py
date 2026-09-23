@@ -9934,19 +9934,39 @@ def analyze_match():
     
     # Try AI analysis first
     if GROQ_ENABLED:
-        # Run match analysis
+    # Try DEEP analysis first (v2)
+    match_result = analyze_match_deep(
+        resume_text=resume_text,
+        jd_text=jd_text,
+        candidate_name=candidate_name,
+        current_role=data.get('current_role', ''),
+        years_experience=data.get('years_experience', ''),
+        location=data.get('location', ''),
+    )
+    if match_result:
+        print(f"✅ Deep analysis: score={match_result['overall_fit_score']}, rec={match_result['recommendation']}")
+    else:
+        # Fallback to legacy analysis
+        print("⚠️ Deep analysis failed, falling back to legacy")
         match_result = analyze_match_with_groq(resume_text, jd_text)
-        # Run genuineness check
-        genuineness_result = analyze_genuineness(resume_text, candidate_name)
+    
+    # Run genuineness check (unchanged)
+    genuineness_result = analyze_genuineness(resume_text, candidate_name)
         
         if match_result:
             result = {
-                'match_score': match_result.get('match_score', 0),
+                'match_score': match_result.get('overall_fit_score', match_result.get('match_score', 0)),
                 'recommendation': match_result.get('recommendation', 'review'),
                 'category_scores': match_result.get('category_scores', {}),
                 'matching_skills': match_result.get('matching_skills', []),
                 'missing_skills': match_result.get('missing_skills', []),
                 'strengths': match_result.get('strengths', []),
+                # v2 deep analysis fields (present only if deep engine succeeded)
+                'final_scoring': match_result.get('final_scoring', {}),
+                'requirements_fulfillment': match_result.get('requirements_fulfillment', {}),
+                'authenticity_analysis': match_result.get('authenticity_analysis', {}),
+                'risk_assessment': match_result.get('risk_assessment', {}),
+                'analysis_engine': match_result.get('_engine', 'legacy'),
                 'weaknesses': match_result.get('weaknesses', []),
                 'detailed_analysis': match_result.get('detailed_analysis', ''),
                 'executive_summary': match_result.get('detailed_analysis', match_result.get('executive_summary', '')),
