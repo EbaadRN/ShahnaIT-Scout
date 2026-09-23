@@ -9932,26 +9932,26 @@ def analyze_match():
     
     result = None
     
-    # Try AI analysis first
+        # Try AI analysis first
     if GROQ_ENABLED:
-    # Try DEEP analysis first (v2)
-    match_result = analyze_match_deep(
-        resume_text=resume_text,
-        jd_text=jd_text,
-        candidate_name=candidate_name,
-        current_role=data.get('current_role', ''),
-        years_experience=data.get('years_experience', ''),
-        location=data.get('location', ''),
-    )
-    if match_result:
-        print(f"✅ Deep analysis: score={match_result['overall_fit_score']}, rec={match_result['recommendation']}")
-    else:
-        # Fallback to legacy analysis
-        print("⚠️ Deep analysis failed, falling back to legacy")
-        match_result = analyze_match_with_groq(resume_text, jd_text)
-    
-    # Run genuineness check (unchanged)
-    genuineness_result = analyze_genuineness(resume_text, candidate_name)
+        # Try DEEP analysis first (v2)
+        match_result = analyze_match_deep(
+            resume_text=resume_text,
+            jd_text=jd_text,
+            candidate_name=candidate_name,
+            current_role=data.get('current_role', ''),
+            years_experience=data.get('years_experience', ''),
+            location=data.get('location', ''),
+        )
+        if match_result:
+            print(f"✅ Deep analysis: score={match_result['overall_fit_score']}, rec={match_result['recommendation']}")
+        else:
+            # Fallback to legacy analysis if deep engine fails
+            print("⚠️ Deep analysis failed, falling back to legacy")
+            match_result = analyze_match_with_groq(resume_text, jd_text)
+
+        # Run genuineness check (unchanged)
+        genuineness_result = analyze_genuineness(resume_text, candidate_name)
         
         if match_result:
             result = {
