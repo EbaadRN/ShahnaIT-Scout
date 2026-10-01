@@ -1138,7 +1138,15 @@ CRITICAL RULES:
     - Do NOT put skill lists in the "summary" field
     - Do NOT skip the education section - it is ALWAYS present in most resumes
     - Do NOT skip designation/current_role - look for job titles near the top
-18. VALIDATION:
+18. NAME EXTRACTION RULE (CRITICAL):
+    A person's name contains ONLY letters, spaces, dots, and hyphens.
+    If the raw text has "John Doe +91 98765 43210", then:
+      - first_name = "John"
+      - last_name = "Doe"
+      - phone = "+91 98765 43210"
+    NEVER include digits, @, |, or / in first_name or last_name.
+    If uncertain, extract only the first two purely alphabetic words as name.
+19. VALIDATION:
     - first_name: actual person name (1-50 chars, letters only, no job titles)
     - email: must contain @ and .
     - phone: must have 10+ digits
