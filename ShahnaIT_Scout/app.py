@@ -1154,6 +1154,18 @@ CRITICAL RULES:
     - summary: 20-1000 chars, no contact info, no honorifics
     - designation/current_role: MUST be extracted if any job title appears in resume
     - education: MUST include degree, institute, and years for EACH entry
+20. FIELD LABEL STRIPPING (CRITICAL):
+    Resumes often use labels like "Name:", "Email:", "Phone:", "Designation:".
+    ALWAYS strip the label and its colon. Extract ONLY the value.
+    Example: "Name: Pradesh B" → first_name="Pradesh", last_name="B" (NOT "Name:")
+    Example: "Designation: SAP Consultant" → designation="SAP Consultant"
+    Example: "Email: abc@xyz.com" → email="abc@xyz.com"
+21. PROPER CASE FOR NAMES (CRITICAL):
+    Always convert names to proper case:
+    - "pradesh b" → "Pradesh B"
+    - "PRADESH B" → "Pradesh B"
+    - "john doe" → "John Doe"
+    First letter of each word capitalized, rest lowercase..0
 
 RESUME TEXT:
 {cleaned_text[:8000]}
