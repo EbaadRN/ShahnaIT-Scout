@@ -3934,7 +3934,11 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     margin: 0 auto;
 }
 </style>
-    
+
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/aeterna-theme.css?v=1">
+
 </head>
 <body>
 
@@ -9185,7 +9189,7 @@ async function dropCandidate(event, stage) {
         </div>
     </div>
 </div>
-
+<script src="/static/aeterna-enhance.js?v=1" defer></script>
 </body>
 </html>
 '''
