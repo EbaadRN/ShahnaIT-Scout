@@ -9727,8 +9727,8 @@ def delete_candidate(candidate_id):
         c.execute('SELECT file_path FROM candidate_documents WHERE candidate_id = ?', (candidate_id,))
         files = c.fetchall()
         for file in files:
-        safe = safe_stored_path(file[0])
-        if safe:
+            safe = safe_stored_path(file[0])
+            if safe:
                 os.remove(safe)
         
         # Delete candidate
