@@ -548,6 +548,73 @@ app.config['JOB_DOCUMENTS_FOLDER'] = '/data/job_docs'
 
 os.makedirs('/data/attachments', exist_ok=True)
 os.makedirs('/data/tmp', exist_ok=True)
+# ============ SECURE FILE HANDLING (server generates every stored path) ============
+import uuid
+import zipfile
+
+ALLOWED_RESUME_EXT = ('pdf', 'docx')
+_UPLOAD_ID_RE = re.compile(r'^[0-9a-f]{32}$')
+
+
+def _storage_roots():
+    roots = [app.config['DOCUMENTS_FOLDER'], '/data/attachments', '/data/tmp']
+    roots += [p.strip() for p in os.environ.get('EXTRA_STORAGE_ROOTS', '').split(',') if p.strip()]
+    return [os.path.realpath(p) for p in roots]
+
+
+def safe_stored_path(path):
+    if not path:
+        return None
+    try:
+        real = os.path.realpath(str(path))
+    except (OSError, ValueError):
+        return None
+    for root in _storage_roots():
+        if real.startswith(root + os.sep):
+            return real if os.path.isfile(real) else None
+    return None
+
+
+def clean_display_name(name, default='resume'):
+    name = os.path.basename(str(name or '').replace('\\', '/'))
+    name = re.sub(r'[\x00-\x1f\x7f"<>|:*?]', '', name).strip()[:150]
+    return name or default
+
+
+def save_resume_upload(file_storage):
+    ext = os.path.splitext(file_storage.filename or '')[1].lower().lstrip('.')
+    if ext not in ALLOWED_RESUME_EXT:
+        raise ValueError('Only PDF and DOCX resumes are supported')
+    upload_id = uuid.uuid4().hex
+    folder = app.config['DOCUMENTS_FOLDER']
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, f'{upload_id}.{ext}')
+    file_storage.save(path)
+    try:
+        if ext == 'pdf':
+            with open(path, 'rb') as fh:
+                ok = b'%PDF-' in fh.read(1024)
+        else:
+            ok = zipfile.is_zipfile(path)
+    except OSError:
+        ok = False
+    if not ok:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+        raise ValueError('File content does not match its extension')
+    return upload_id, ext, path
+
+
+def resolve_resume_upload(upload_id):
+    if not isinstance(upload_id, str) or not _UPLOAD_ID_RE.match(upload_id):
+        return None
+    for ext in ALLOWED_RESUME_EXT:
+        p = os.path.join(app.config['DOCUMENTS_FOLDER'], f'{upload_id}.{ext}')
+        if os.path.isfile(p):
+            return p, ext
+    return None
 
 # ============ DATABASE SETUP ============
 DB_PATH = '/data/shahnai.db'
@@ -1789,7 +1856,7 @@ def fallback_parse_resume(text):
         'resume_text': text[:6000],
         'ai_used': False
     }
-def save_candidate_to_db(candidate_data):
+def save_candidate_to_db(candidate_data, resume_path='', resume_original_name=''):
     skills = json.dumps(candidate_data.get('core_skills', []))
     work_exp = json.dumps(candidate_data.get('work_experience', []))
     certs = json.dumps(candidate_data.get('certifications', []))
@@ -1836,8 +1903,8 @@ def save_candidate_to_db(candidate_data):
          resume_text,
          str(candidate_data.get('resume_filename') or ''),
          str(candidate_data.get('uploaded_by', 'ShahnaIT')),
-         str(candidate_data.get('permanent_file_path') or ''),
-         str(candidate_data.get('original_filename') or ''),
+         str(resume_path or ''),
+         str(resume_original_name or ''),
          str(candidate_data.get('proposed_client') or ''),
          str(candidate_data.get('proposed_requirement') or ''),
          str(candidate_data.get('stage', 'new')),
@@ -9606,38 +9673,36 @@ def get_candidates():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/candidates', methods=['POST']) 
+@app.route('/api/candidates', methods=['POST'])
 @login_required()
 def create_candidate():
-    data = request.json
-    candidate_id = save_candidate_to_db(data)
-    
-    # Handle resume file - using permanent_file_path from parse-resume
-    file_path = data.get('permanent_file_path')
-    original_filename = data.get('original_filename')
-    permanent_filename = data.get('permanent_filename')
-    
-    if file_path and os.path.exists(file_path):
-        # File is already saved in permanent location by parse-resume
-        # Just record it in the database
+    data = request.get_json(silent=True) or {}
+
+    for key in ('permanent_file_path', 'file_path', 'resume_file_path', 'permanent_filename'):
+        data.pop(key, None)
+
+    resume_path, resume_ext, display_name = '', '', ''
+    resolved = resolve_resume_upload(data.get('upload_id'))
+    if resolved:
+        resume_path, resume_ext = resolved
+        display_name = clean_display_name(data.get('original_filename'), default=f'resume.{resume_ext}')
+        if not display_name.lower().endswith('.' + resume_ext):
+            display_name += '.' + resume_ext
+
+    candidate_id = save_candidate_to_db(data, resume_path, display_name)
+
+    if resume_path:
         conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute('''UPDATE candidates SET 
-            resume_file_path = ?,
-            resume_original_filename = ?
-            WHERE id = ?''',
-            (file_path, original_filename, candidate_id))
-        conn.commit()
-        conn.close()
-        
-        # Also add to candidate_documents for document management
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute('INSERT INTO candidate_documents (candidate_id, filename, original_filename, file_path, file_type, is_resume) VALUES (?, ?, ?, ?, ?, ?)',
-                  (candidate_id, permanent_filename, original_filename, file_path, original_filename.split('.')[-1], 1))
-        conn.commit()
-        conn.close()
-    
+        try:
+            c = conn.cursor()
+            c.execute('''INSERT INTO candidate_documents
+                         (candidate_id, filename, original_filename, file_path, file_type, is_resume)
+                         VALUES (?, ?, ?, ?, ?, ?)''',
+                      (candidate_id, os.path.basename(resume_path), display_name, resume_path, resume_ext, 1))
+            conn.commit()
+        finally:
+            conn.close()
+
     return jsonify({'message': 'Candidate saved', 'id': candidate_id})
 
 # ============================================
