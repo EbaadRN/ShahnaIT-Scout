@@ -457,8 +457,32 @@ def generate_interview_questions(jd_text, resume_text, missing_skills):
     return questions
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'shahnait-scout-secret-key-change-in-production')
-CORS(app, supports_credentials=True)
+
+
+def _load_secret_key():
+    """Refuse to start without a strong, non-placeholder SECRET_KEY (a known key = forgeable admin sessions)."""
+    key = (os.environ.get('SECRET_KEY') or '').strip()
+    lowered = key.lower()
+    placeholders = ('change', 'your', 'secret', 'example', 'placeholder')
+    if len(key) < 32 or any(p in lowered for p in placeholders):
+        raise RuntimeError(
+            "SECRET_KEY is missing, too short (<32 chars) or still a placeholder. "
+            "Generate one with:  python -c \"import secrets; print(secrets.token_hex(32))\"  "
+            "and set it in the environment / .env file."
+        )
+    return key
+
+
+app.secret_key = _load_secret_key()
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=os.environ.get('SESSION_COOKIE_SECURE', '0') == '1',
+)
+
+_cors_origins = [o.strip() for o in os.environ.get('CORS_ORIGINS', '').split(',') if o.strip()]
+if _cors_origins:
+    CORS(app, supports_credentials=True, origins=_cors_origins)
 
 # ============================================
 # AUTHENTICATION
@@ -493,6 +517,28 @@ def get_current_user():
     user = c.fetchone()
     conn.close()
     return dict(user) if user else None
+    # ---- DEFAULT-DENY: every route requires a session unless listed here -------------------------
+PUBLIC_ENDPOINTS = {
+    'index',
+    'login',
+    'login_page',
+    'logout',
+    'get_me',
+    'static',
+}
+
+
+@app.before_request
+def require_authentication():
+    if request.method == 'OPTIONS':
+        return None
+    if request.endpoint is None:
+        return None
+    if request.endpoint in PUBLIC_ENDPOINTS:
+        return None
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized', 'redirect': '/login'}), 401
+    return None
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
@@ -11802,7 +11848,7 @@ def debug_db():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host=os.environ.get('HOST', '127.0.0.1'), port=int(os.environ.get('PORT', 5000)), debug=False)
 
 
 import threading
