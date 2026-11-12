@@ -11814,9 +11814,10 @@ def download_resume(candidate_id):
     row = c.fetchone()
     conn.close()
     
-        file_path = safe_stored_path(row[0]) if row else None
+    file_path = safe_stored_path(row[0]) if row else None
     if not file_path:
         return jsonify({'error': 'Resume not found'}), 404
+        
     original_filename = row[1] or 'resume.pdf'
     
     # Determine mimetype based on file extension
