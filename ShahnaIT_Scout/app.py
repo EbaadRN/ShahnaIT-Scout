@@ -9727,8 +9727,9 @@ def delete_candidate(candidate_id):
         c.execute('SELECT file_path FROM candidate_documents WHERE candidate_id = ?', (candidate_id,))
         files = c.fetchall()
         for file in files:
-            if os.path.exists(file[0]):
-                os.remove(file[0])
+        safe = safe_stored_path(file[0])
+        if safe:
+                os.remove(safe)
         
         # Delete candidate
         c.execute('DELETE FROM candidates WHERE id = ?', (candidate_id,))
@@ -9797,56 +9798,41 @@ def preview_document(doc_id):
     return jsonify({'error': 'File not found'}), 404
 
 @app.route('/api/parse-resume', methods=['POST'])
+@login_required()
 def parse_resume():
-    if 'resume' not in request.files:
+    file = request.files.get('resume')
+    if not file or not file.filename:
         return jsonify({'error': 'No file'}), 400
-    file = request.files['resume']
-    if file.filename == '':
-        return jsonify({'error': 'No file'}), 400
-    
-    filename = secure_filename(file.filename)
-    original_filename = file.filename
-    temp_filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(temp_filepath)
-    
-    # Extract text for parsing
-    if filename.endswith('.pdf'):
-        text = extract_text_from_pdf(temp_filepath)
+
+    try:
+        upload_id, ext, stored_path = save_resume_upload(file)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+
+    if ext == 'pdf':
+        text = extract_text_from_pdf(stored_path)
     else:
-        text = extract_text_from_docx(temp_filepath)
-    
+        text = extract_text_from_docx(stored_path)
+
     if not text:
-        os.remove(temp_filepath)
+        os.remove(stored_path)
         return jsonify({'error': 'Could not extract text'}), 400
-    
-        # Try AI parsing first
+
     ai_parsed = parse_resume_with_groq(text)
-    
+
     if ai_parsed:
-        # Cross-validate AI output with regex patterns
         parsed = cross_validate_resume(ai_parsed, text)
         parsed['resume_text'] = text[:8000]
         parsed['ai_used'] = True
-        print(f"✅ AI parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')} - {len(parsed.get('core_skills', []))} skills")
+        print(f"AI parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')} - {len(parsed.get('core_skills', []))} skills")
     else:
-        # Fallback to regex
         parsed = fallback_parse_resume(text)
         parsed['resume_text'] = text[:8000]
         parsed['ai_used'] = False
-        print(f"⚠️ Fallback parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')}")
-    
-    # Store the original file path for later download
-    parsed['file_path'] = temp_filepath
-    parsed['original_filename'] = original_filename
-    
-       # Save to permanent location
-    permanent_filename = secure_filename(f"{datetime.now().timestamp()}_{original_filename}")
-    permanent_path = os.path.join(app.config['DOCUMENTS_FOLDER'], permanent_filename)
-    os.makedirs(os.path.dirname(permanent_path), exist_ok=True)
-    shutil.move(temp_filepath, permanent_path)
-    parsed['permanent_file_path'] = permanent_path
-    parsed['permanent_filename'] = permanent_filename
-    
+        print(f"Fallback parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')}")
+
+    parsed['upload_id'] = upload_id
+    parsed['original_filename'] = clean_display_name(file.filename, default=f'resume.{ext}')
     return jsonify(parsed)
 
 @app.route('/api/analyze-match', methods=['POST'])
@@ -11828,10 +11814,9 @@ def download_resume(candidate_id):
     row = c.fetchone()
     conn.close()
     
-    if not row or not row[0] or not os.path.exists(row[0]):
+        file_path = safe_stored_path(row[0]) if row else None
+    if not file_path:
         return jsonify({'error': 'Resume not found'}), 404
-    
-    file_path = row[0]
     original_filename = row[1] or 'resume.pdf'
     
     # Determine mimetype based on file extension
@@ -11861,10 +11846,9 @@ def view_resume(candidate_id):
     row = c.fetchone()
     conn.close()
     
-    if not row or not row[0] or not os.path.exists(row[0]):
+       file_path = safe_stored_path(row[0]) if row else None
+    if not file_path:
         return jsonify({'error': 'Resume not found'}), 404
-    
-    file_path = row[0]
     original_filename = row[1] or 'resume.pdf'
     
     # Determine mimetype based on file extension
