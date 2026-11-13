@@ -925,6 +925,36 @@ def migrate_database():
 
 # Call migration at startup
 migrate_database()
+def ensure_schema():
+    """Idempotent replacement for the old /fix-* schema routes. Safe to run on every start."""
+    wanted = [
+        ('jobs', 'max_salary', "TEXT DEFAULT ''"),
+        ('jobs', 'office_location', "TEXT DEFAULT ''"),
+        ('candidates', 'proposed_date', 'DATE'),
+        ('candidates', 'relevant_experience', "TEXT DEFAULT '[]'"),
+        ('candidates', 'pan_number', 'TEXT'),
+        ('candidates', 'cgpa', 'TEXT'),
+        ('candidates', 'pincode', 'TEXT'),
+        ('onboarded_resources', 'client_gstin', "TEXT DEFAULT ''"),
+        ('onboarded_resources', 'client_address', "TEXT DEFAULT ''"),
+    ]
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        c = conn.cursor()
+        for table, col, ddl in wanted:
+            c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?", (table,))
+            if not c.fetchone():
+                continue
+            c.execute(f"PRAGMA table_info({table})")
+            if col not in {row[1] for row in c.fetchall()}:
+                c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}")
+                print(f"Schema: added {table}.{col}")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+ensure_schema()
 
 def create_requirement_tables():
     conn = sqlite3.connect(DB_PATH)
