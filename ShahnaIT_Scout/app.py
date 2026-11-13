@@ -2139,38 +2139,44 @@ def get_requirements():
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    data = request.json
-    email = data.get('email', '').strip().lower()
+    data = request.get_json(silent=True) or {}
+    email = str(data.get('email', '')).strip().lower()
     password = data.get('password', '')
-    
-    if not email or not password:
+
+    if not email or not password or not isinstance(password, str):
         return jsonify({'error': 'Email and password required'}), 400
-    
+
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE email = ? AND is_active = 1', (email,))
     user = c.fetchone()
     conn.close()
-    
+
     if not user:
+        verify_password(_DUMMY_PASSWORD_HASH, password)
         return jsonify({'error': 'Invalid email or password'}), 401
-    
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    if password_hash != user['password_hash']:
+
+    valid, needs_upgrade = verify_password(user['password_hash'], password)
+    if not valid:
         return jsonify({'error': 'Invalid email or password'}), 401
-    
+
     session['user_id'] = user['id']
     session['role'] = user['role']
     session['user_name'] = user['full_name']
-    
-    # Update last login
+
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user['id'],))
-    conn.commit()
-    conn.close()
-    
+    try:
+        c = conn.cursor()
+        if needs_upgrade:
+            c.execute('UPDATE users SET password_hash = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?',
+                      (hash_password(password), user['id']))
+        else:
+            c.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user['id'],))
+        conn.commit()
+    finally:
+        conn.close()
+
     return jsonify({
         'message': 'Login successful',
         'user': {
@@ -2207,20 +2213,24 @@ def get_users():
 @app.route('/api/auth/users', methods=['POST'])
 @login_required('admin')
 def create_user():
-    data = request.json
-    email = data.get('email', '').strip().lower()
+    data = request.get_json(silent=True) or {}
+    email = str(data.get('email', '')).strip().lower()
     password = data.get('password', '')
     full_name = data.get('full_name', '')
     role = data.get('role', 'recruiter')
-    
+
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
-    
+
     if role not in ['admin', 'manager', 'recruiter']:
         return jsonify({'error': 'Invalid role'}), 400
-    
-    password_hash = hashlib.sha256(password.encode()).hexdigest()
-    
+
+    problem = password_policy_error(password, email)
+    if problem:
+        return jsonify({'error': problem}), 400
+
+    password_hash = hash_password(password)
+
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     try:
@@ -2231,16 +2241,21 @@ def create_user():
         conn.close()
         return jsonify({'error': 'Email already exists'}), 400
     conn.close()
-    
-    return jsonify({'message': 'User created'})
 
+    return jsonify({'message': 'User created'})
 @app.route('/api/auth/users/<int:user_id>', methods=['PUT'])
 @login_required('admin')
 def update_user(user_id):
-    data = request.json
+    data = request.get_json(silent=True) or {}
+
+    if 'password' in data:
+        problem = password_policy_error(data['password'])
+        if problem:
+            return jsonify({'error': problem}), 400
+
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    
+
     if 'role' in data:
         c.execute('UPDATE users SET role = ? WHERE id = ?', (data['role'], user_id))
     if 'is_active' in data:
@@ -2248,9 +2263,8 @@ def update_user(user_id):
     if 'full_name' in data:
         c.execute('UPDATE users SET full_name = ? WHERE id = ?', (data['full_name'], user_id))
     if 'password' in data:
-        password_hash = hashlib.sha256(data['password'].encode()).hexdigest()
-        c.execute('UPDATE users SET password_hash = ? WHERE id = ?', (password_hash, user_id))
-    
+        c.execute('UPDATE users SET password_hash = ? WHERE id = ?', (hash_password(data['password']), user_id))
+
     conn.commit()
     conn.close()
     return jsonify({'message': 'User updated'})
