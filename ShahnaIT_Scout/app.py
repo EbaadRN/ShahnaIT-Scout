@@ -2018,110 +2018,173 @@ UPLOAD_FOLDER = '/data/attachments'
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+# ---- Attachment allowlist: PDF, DOCX, JPG, PNG only ----
+import uuid
+import zipfile
+
+ALLOWED_ATTACHMENT_EXT = {'pdf', 'docx', 'jpg', 'jpeg', 'png'}
+ATTACHMENT_MIME = {
+    'pdf': 'application/pdf',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+}
+MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024   # 10 MB per file
+
+
+def _attachment_content_ok(ext, path):
+    try:
+        with open(path, 'rb') as fh:
+            head = fh.read(1024)
+        if ext == 'pdf':
+            return b'%PDF-' in head
+        if ext in ('jpg', 'jpeg'):
+            return head.startswith(b'\xff\xd8\xff')
+        if ext == 'png':
+            return head.startswith(b'\x89PNG\r\n\x1a\n')
+        if ext == 'docx':
+            if not zipfile.is_zipfile(path):
+                return False
+            with zipfile.ZipFile(path) as z:
+                return any(name.startswith('word/') for name in z.namelist())
+    except (OSError, zipfile.BadZipFile):
+        return False
+    return False
+
+
+def _candidate_attachment_dir(candidate_id):
+    return os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
+
+
+def _resolve_attachment(candidate_id, filename):
+    folder = os.path.realpath(_candidate_attachment_dir(candidate_id))
+    real = os.path.realpath(os.path.join(folder, filename))
+    if real.startswith(folder + os.sep) and os.path.isfile(real):
+        return real
+    return None
+
+
 @app.route('/api/candidates/<int:candidate_id>/attachments', methods=['POST'])
+@login_required()
 def upload_candidate_attachment(candidate_id):
-    """Upload attachment for a candidate"""
     try:
         if 'file' not in request.files:
             return jsonify({"success": False, "error": "No file provided"}), 400
-        
+
         file = request.files['file']
         if file.filename == '':
             return jsonify({"success": False, "error": "No file selected"}), 400
-        
-        # Create candidate folder
-        candidate_folder = os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
-        if not os.path.exists(candidate_folder):
-            os.makedirs(candidate_folder)
-        
-        # Secure filename and save
-        filename = secure_filename(file.filename)
-        # Add timestamp to avoid duplicates
-        name, ext = os.path.splitext(filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        unique_filename = f"{name}_{timestamp}{ext}"
-        file_path = os.path.join(candidate_folder, unique_filename)
-        file.save(file_path)
-        
-        # Get existing attachments
+
+        original = secure_filename(file.filename) or 'attachment'
+        ext = os.path.splitext(original)[1].lower().lstrip('.')
+        if ext not in ALLOWED_ATTACHMENT_EXT:
+            return jsonify({"success": False, "error": "Only PDF, DOCX, JPG and PNG files are allowed"}), 400
+
+        file.stream.seek(0, os.SEEK_END)
+        size = file.stream.tell()
+        file.stream.seek(0)
+        if size > MAX_ATTACHMENT_BYTES:
+            return jsonify({"success": False, "error": "File is too large (max 10 MB)"}), 413
+
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         c.execute('SELECT attachments FROM candidates WHERE id = ?', (candidate_id,))
         row = c.fetchone()
-        
+        if not row:
+            conn.close()
+            return jsonify({"success": False, "error": "Candidate not found"}), 404
+
+        candidate_folder = _candidate_attachment_dir(candidate_id)
+        os.makedirs(candidate_folder, exist_ok=True)
+
+        stem = os.path.splitext(original)[0][:60] or 'attachment'
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        unique_filename = f"{stem}_{timestamp}_{uuid.uuid4().hex[:6]}.{ext}"
+        file_path = os.path.join(candidate_folder, unique_filename)
+        file.save(file_path)
+
+        if not _attachment_content_ok(ext, file_path):
+            os.remove(file_path)
+            conn.close()
+            return jsonify({"success": False, "error": "File content does not match its extension"}), 400
+
         attachments = []
-        if row and row['attachments']:
+        if row['attachments']:
             try:
                 attachments = json.loads(row['attachments']) if isinstance(row['attachments'], str) else row['attachments']
-            except:
+            except Exception:
                 attachments = []
-        
-        # Add new attachment
+
         attachments.append({
             'filename': unique_filename,
-            'original_name': filename,
-            'path': file_path,
+            'original_name': original,
             'uploaded_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'size': os.path.getsize(file_path)
         })
-        
-        c.execute('UPDATE candidates SET attachments = ? WHERE id = ?', 
+
+        c.execute('UPDATE candidates SET attachments = ? WHERE id = ?',
                   (json.dumps(attachments), candidate_id))
         conn.commit()
         conn.close()
-        
+
         return jsonify({
-            "success": True, 
+            "success": True,
             "message": "File uploaded",
             "attachments": attachments
         })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+    except Exception:
+        app.logger.exception('attachment upload failed')
+        return jsonify({"success": False, "error": "Upload failed"}), 500
+
 
 @app.route('/api/candidates/<int:candidate_id>/attachments/<filename>', methods=['GET'])
+@login_required()
 def download_attachment(candidate_id, filename):
-    """Download or view a candidate attachment"""
-    candidate_folder = os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
-    file_path = os.path.join(candidate_folder, filename)
-    
-    if os.path.exists(file_path):
-        # If ?view=1 is in URL, open in browser instead of downloading
-        view_mode = request.args.get('view', '0')
-        if view_mode == '1':
-            return send_file(file_path)
-        return send_file(file_path, as_attachment=True, download_name=filename)
-    return jsonify({"error": "File not found"}), 404
+    file_path = _resolve_attachment(candidate_id, filename)
+    if not file_path:
+        return jsonify({"error": "File not found"}), 404
+
+    ext = os.path.splitext(file_path)[1].lower().lstrip('.')
+    response = send_file(
+        file_path,
+        mimetype=ATTACHMENT_MIME.get(ext, 'application/octet-stream'),
+        as_attachment=True,
+        download_name=os.path.basename(file_path),
+    )
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['Content-Security-Policy'] = "default-src 'none'; sandbox"
+    response.headers['Cache-Control'] = 'private, no-store'
+    return response
+
 
 @app.route('/api/candidates/<int:candidate_id>/attachments/<filename>', methods=['DELETE'])
+@login_required()
 def delete_attachment(candidate_id, filename):
-    """Delete a candidate attachment"""
     try:
-        candidate_folder = os.path.join(UPLOAD_FOLDER, f"candidate_{candidate_id}")
-        file_path = os.path.join(candidate_folder, filename)
-        
-        # Delete file
-        if os.path.exists(file_path):
+        file_path = _resolve_attachment(candidate_id, filename)
+        if file_path:
             os.remove(file_path)
-        
-        # Update database
+
         conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute('SELECT attachments FROM candidates WHERE id = ?', (candidate_id,))
-        row = c.fetchone()
-        
-        if row and row[0]:
-            attachments = json.loads(row[0]) if isinstance(row[0], str) else row[0]
-            attachments = [a for a in attachments if a.get('filename') != filename]
-            c.execute('UPDATE candidates SET attachments = ? WHERE id = ?', 
-                      (json.dumps(attachments), candidate_id))
-        
-        conn.commit()
-        conn.close()
-        
+        try:
+            c = conn.cursor()
+            c.execute('SELECT attachments FROM candidates WHERE id = ?', (candidate_id,))
+            row = c.fetchone()
+            if row and row[0]:
+                attachments = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                attachments = [a for a in attachments if a.get('filename') != filename]
+                c.execute('UPDATE candidates SET attachments = ? WHERE id = ?',
+                          (json.dumps(attachments), candidate_id))
+            conn.commit()
+        finally:
+            conn.close()
+
         return jsonify({"success": True, "message": "File deleted"})
-    except Exception as e:
-       return jsonify({"success": False, "error": str(e)}), 500
+    except Exception:
+        app.logger.exception('attachment delete failed')
+        return jsonify({"success": False, "error": "Delete failed"}), 500
 
 @app.route('/api/requirements', methods=['GET'])
 def get_requirements():
