@@ -517,7 +517,48 @@ def get_current_user():
     user = c.fetchone()
     conn.close()
     return dict(user) if user else None
-    # ---- DEFAULT-DENY: every route requires a session unless listed here -------------------------
+# ============ PASSWORD HASHING (scrypt via Werkzeug; legacy SHA-256 is upgraded on login) ============
+import hmac
+from werkzeug.security import generate_password_hash, check_password_hash
+
+MIN_PASSWORD_LENGTH = 10
+_LEGACY_SHA256_RE = re.compile(r'^[0-9a-f]{64}$')
+_RETIRED_PASSWORD_SHA256 = '32c78759d0cb23dd2134c29242867d42b2b335a15e360cfacf908ffb8c9a08e4'
+
+
+def hash_password(password):
+    try:
+        return generate_password_hash(password, method='scrypt')
+    except Exception:
+        return generate_password_hash(password, method='pbkdf2:sha256:600000')
+
+
+def verify_password(stored_hash, password):
+    stored_hash = stored_hash or ''
+    if _LEGACY_SHA256_RE.match(stored_hash):
+        legacy = hashlib.sha256(password.encode()).hexdigest()
+        valid = hmac.compare_digest(legacy, stored_hash)
+        return valid, valid
+    try:
+        return check_password_hash(stored_hash, password), False
+    except Exception:
+        return False, False
+
+
+def password_policy_error(password, email=''):
+    if not isinstance(password, str) or len(password) < MIN_PASSWORD_LENGTH:
+        return f'Password must be at least {MIN_PASSWORD_LENGTH} characters'
+    if len(password) > 256:
+        return 'Password is too long (max 256 characters)'
+    if email and password.strip().lower() == email.strip().lower():
+        return 'Password must not be the same as the email'
+    if hashlib.sha256(password.encode()).hexdigest() == _RETIRED_PASSWORD_SHA256:
+        return 'That password was publicly exposed and can no longer be used'
+    return None
+
+
+_DUMMY_PASSWORD_HASH = hash_password('not-a-real-password')   
+# ---- DEFAULT-DENY: every route requires a session unless listed here -------------------------
 PUBLIC_ENDPOINTS = {
     'index',
     'login',
