@@ -3419,15 +3419,12 @@ def dispatch_proposal():
     msg = _dispatch_compose_email(smtp_email, recipient, subject, table_html, table_plain, docx_bytes, filename,
                                   session.get('user_name') or current.get('full_name') or '',
                                                                     reply_to_raw or (current.get('email') if _DISPATCH_EMAIL_RE.match(str(current.get('email') or '')) else ''))
-    try:
-        _dispatch_send_email(msg, smtp_email, smtp_password)
-    except smtplib.SMTPAuthenticationError:
-        app.logger.error('proposal dispatch: SMTP authentication failed (check SMTP_EMAIL / App Password)')
-        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'smtp auth')
-        return _dispatch_error('The mail server rejected the login. Check SMTP_EMAIL and the App Password.', 502)
-    except smtplib.SMTPRecipientsRefused:
-        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'recipient refused')
-        return _dispatch_error('The mail server refused all of the recipient addresses.', 400)
+        try:
+        refused = _dispatch_send_email(msg, smtp_email, smtp_password) or {}
+    except Exception as e:
+        app.logger.exception('proposal dispatch: send failed')
+        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
+        return _dispatch_error('Could not send the email. Please try again.', 502)
     except Exception as e:
         app.logger.exception('proposal dispatch: send failed')
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
