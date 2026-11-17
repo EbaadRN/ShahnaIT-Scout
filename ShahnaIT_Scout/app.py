@@ -10369,7 +10369,7 @@ def _dispatch_compose_email(sender, recipient, subject, table_html, table_plain,
     return msg
 
 
-def         refused = _dispatch_send_email(msg, smtp_email, smtp_password) or {}:
+     def _dispatch_send_email(msg, smtp_email, smtp_password):
     """Gmail by default (use an App Password). Override with SMTP_HOST / SMTP_PORT for another provider."""
     host = os.environ.get('SMTP_HOST', 'smtp.gmail.com').strip()
     port = int(os.environ.get('SMTP_PORT', '465'))
@@ -10380,11 +10380,7 @@ def         refused = _dispatch_send_email(msg, smtp_email, smtp_password) or {}
         if port != 465:
             server.starttls()
         server.login(smtp_email, smtp_password)
-        server.send_message(msg)
-
-# ---------------------------------------------------------------- recipients
-DISPATCH_MAX_RECIPIENTS = 10
-
+        return server.send_message(msg)                              # {} or {address: error} for refused recipients
 
 def _dispatch_parse_recipients(raw):
     """'a@x.com, b@y.com' -> (['a@x.com', 'b@y.com'], None) or ([], 'error message'). Commas or semicolons; duplicates dropped."""
