@@ -4966,8 +4966,15 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 
             <div class="dp-grid">
                 <div>
-                    <label for="dpRecipient">Recipient email</label>
-                    <input type="email" id="dpRecipient" class="form-input" placeholder="client@company.com" autocomplete="off" maxlength="254" style="width:100%;">
+                                   <div>
+                    <label for="dpRecipient">Recipient email(s)</label>
+                    <input type="text" id="dpRecipient" class="form-input" inputmode="email" placeholder="client1@company.com, client2@company.com" autocomplete="off" maxlength="2000" style="width:100%;">
+                    <small style="color:var(--ae-muted,#5A6F8A);">Separate several addresses with commas (max 10). Everyone will see the other recipients.</small>
+                </div>
+                <div>
+                    <label for="dpReplyTo">Reply-To Email (Optional)</label>
+                    <input type="email" id="dpReplyTo" class="form-input" placeholder="you@shahnait.com" autocomplete="off" maxlength="254" style="width:100%;">
+                    <small style="color:var(--ae-muted,#5A6F8A);">Replies go here. Left blank, replies go to your own login email.</small>
                 </div>
                 <div>
                     <label for="dpSubject">Email subject</label>
@@ -5129,6 +5136,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
         $('dpCandidateLabel').textContent = name;
         buildTable(HEADERS, [candidateRow(c)]);
         $('dpRecipient').value = '';
+        $('dpReplyTo').value = '';
         $('dpSubject').value = 'Profile Proposal - ' + (name || 'Candidate');
         $('dpMask').checked = false;
         $('dpBlank').value = 0;
@@ -5155,9 +5163,18 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     // ---- send ----
     window.dpSend = async function () {
         if (state.sending) return;
-        const email = $('dpRecipient').value.trim();
-        if (!/^[^@,; ]+@[^@,; ]+[.][^@,; ]{2,}$/.test(email)) {
-            setStatus('err', 'Please enter one valid recipient email address.'); $('dpRecipient').focus(); return;
+                const emailRe = /^[^@,; ]+@[^@,; ]+[.][^@,; ]{2,}$/;
+        const list = $('dpRecipient').value.split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+        const badAddr = list.find((a) => !emailRe.test(a));
+        if (!list.length || badAddr) {
+            setStatus('err', badAddr ? '"' + badAddr + '" is not a valid email address.' : 'Please enter at least one recipient email address.');
+            $('dpRecipient').focus(); return;
+        }
+        if (list.length > 10) { setStatus('err', 'You can send to at most 10 recipients at a time.'); $('dpRecipient').focus(); return; }
+        const email = list.join(', ');
+        const replyTo = $('dpReplyTo').value.trim();
+        if (replyTo && !emailRe.test(replyTo)) {
+            setStatus('err', 'The Reply-To address is not a valid email address.'); $('dpReplyTo').focus(); return;
         }
         const mask = $('dpMask').checked;
         let blank = parseInt($('dpBlank').value, 10); if (!(blank >= 0)) blank = 0; blank = Math.min(blank, 10);
@@ -5166,6 +5183,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
         const payload = {
             candidate_id: state.candidateId,
             recipient_email: email,
+            reply_to_email: replyTo,
             email_subject: $('dpSubject').value.trim(),
             table_html: tableHtml(),
             mask_contact_details: mask,
