@@ -4912,7 +4912,6 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 <!-- MODALS - SHAHNAIT SCOUT                     -->
 <!-- ============================================ -->
 
-<!-- CANDIDATE PROFILE MODAL -->
 <!-- ============ PROPOSAL DISPATCH MODAL ============ -->
 <style>
 #dispatchModal { z-index: 1300; }
@@ -4945,6 +4944,8 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 #dispatchModal .dp-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
 @media (max-width: 700px) { #dispatchModal .dp-grid { grid-template-columns: 1fr; } }
 </style>
+
+<!-- ============ END OF PROPOSAL DISPATCH MODAL ============ -->
 
 <div id="dispatchModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="dpTitle">
     <div class="modal-content modal-xl">
@@ -5217,6 +5218,7 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     };
 })();
 </script>
+<!-- ============ CANDIDATE PROFILE MODAL ============ -->
 <div id="candidateModal" class="modal">
     <div class="modal-content modal-xl">
         <div class="modal-header">
