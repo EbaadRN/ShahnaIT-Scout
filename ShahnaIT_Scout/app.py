@@ -3296,18 +3296,25 @@ def _dispatch_compose_email(sender, recipient, subject, table_html, table_plain,
     return msg
 
 
-def _dispatch_send_email(msg, smtp_email, smtp_password):
-    """Gmail by default (use an App Password). Override with SMTP_HOST / SMTP_PORT for another provider."""
-    host = os.environ.get('SMTP_HOST', 'smtp.gmail.com').strip()
-    port = int(os.environ.get('SMTP_PORT', '465'))
-    if 'gmail' in host.lower():
-        smtp_password = smtp_password.replace(' ', '')               # Google shows app passwords in 4 groups
-    server_cm = smtplib.SMTP_SSL(host, port, timeout=20) if port == 465 else smtplib.SMTP(host, port, timeout=20)
-    with server_cm as server:
-        if port != 465:
-            server.starttls()
-        server.login(smtp_email, smtp_password)
-        return server.send_message(msg)                              # {} or {address: error} for refused recipients
+def _dispatch_send_email(msg, smtp_email=None, smtp_password=None):
+    """Sends via the Resend HTTPS API (Railway blocks SMTP). Needs RESEND_API_KEY and RESEND_FROM_EMAIL."""
+    import base64
+    import resend
+    resend.api_key = os.environ['RESEND_API_KEY']
+    html_part, text_part = msg.get_body(('html',)), msg.get_body(('plain',))
+    params = {
+        'from': msg['From'],
+        'to': [a.strip() for a in msg['To'].split(',') if a.strip()],
+        'subject': msg['Subject'],
+        'html': html_part.get_content() if html_part else None,
+        'text': text_part.get_content() if text_part else None,
+        'attachments': [{'filename': p.get_filename(), 'content': base64.b64encode(p.get_payload(decode=True)).decode()}
+                        for p in msg.iter_attachments()],
+    }
+    if msg['Reply-To']:
+        params['reply_to'] = msg['Reply-To']
+    resend.Emails.send({k: v for k, v in params.items() if v})
+    return {}                              # {} or {address: error} for refused recipients
 
 DISPATCH_MAX_RECIPIENTS = 10
 
