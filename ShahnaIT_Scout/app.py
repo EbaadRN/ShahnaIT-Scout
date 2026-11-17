@@ -3414,7 +3414,7 @@ def dispatch_proposal():
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'resume generation')
         return _dispatch_error('Could not generate the resume document', 500)
 
-       filename = (secure_filename(f'{full_name}_Profile') or 'Profile') + '.docx'
+           filename = (secure_filename(f'{full_name}_Profile') or 'Profile') + '.docx'
     current = get_current_user() or {}
     msg = _dispatch_compose_email(smtp_email, recipient, subject, table_html, table_plain, docx_bytes, filename,
                                   session.get('user_name') or current.get('full_name') or '',
@@ -3423,8 +3423,6 @@ def dispatch_proposal():
         refused = _dispatch_send_email(msg, smtp_email, smtp_password) or {}
     except Exception as e:
         app.logger.exception('proposal dispatch: send failed')
-        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
-        return _dispatch_error('Could not send the email. Please try again.', 502)
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
         return _dispatch_error('Could not send the email. Please try again.', 502)
     
