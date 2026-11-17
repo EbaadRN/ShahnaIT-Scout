@@ -3378,10 +3378,10 @@ def dispatch_proposal():
     except ValueError as e:
         return _dispatch_error(str(e), 400)
 
-    smtp_email = (os.environ.get('SMTP_EMAIL') or '').strip()
-    smtp_password = os.environ.get('SMTP_PASSWORD') or ''
+    smtp_email = (os.environ.get('RESEND_FROM_EMAIL') or '').strip()
+    smtp_password = (os.environ.get('RESEND_API_KEY') or '').strip()
     if not smtp_email or not smtp_password:
-        return _dispatch_error('Email is not configured on the server (SMTP_EMAIL / SMTP_PASSWORD).', 503)
+        return _dispatch_error('Email is not configured on the server (RESEND_API_KEY / RESEND_FROM_EMAIL).', 503)
     if _dispatch_rate_limited(session.get('user_id')):
         return _dispatch_error('Too many proposals sent in a short time. Please wait a few minutes.', 429)
 
