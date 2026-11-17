@@ -5241,143 +5241,145 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
             </div>
             
             <!-- Main Content Grid -->
-<!-- Main Content -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;">
-    
-    <!-- LEFT COLUMN -->
-    <div style="min-width:0;">
-        <!-- Basic Info -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-user"></i> Basic Information</h3>
-            <div class="form-row">
-                <div class="form-group"><label>First Name</label><input type="text" id="edit_first_name" class="form-input"></div>
-                <div class="form-group"><label>Last Name</label><input type="text" id="edit_last_name" class="form-input"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Email ID</label><input type="email" id="edit_email" class="form-input"></div>
-                <div class="form-group"><label>Phone Number</label><input type="text" id="edit_phone" class="form-input"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Designation</label><input type="text" id="edit_designation" class="form-input"></div>
-                <div class="form-group"><label>LinkedIn</label><input type="text" id="edit_linkedin" class="form-input"></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Location</label><input type="text" id="edit_location" class="form-input"></div>
-                <div class="form-group"><label>Years of Experience</label><input type="text" id="edit_years_exp" class="form-input"></div>
-            </div>
-        </div>
-        
-        <!-- Compensation -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-money-bill-wave"></i> Compensation</h3>
-            <div class="form-row">
-                <div class="form-group"><label>Current CTC</label><input type="text" id="edit_current_ctc" class="form-input"></div>
-                <div class="form-group"><label>Expected CTC</label><input type="text" id="edit_expected_ctc" class="form-input"></div>
-            </div>
-        </div>
-        
-        <!-- Skills -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-code"></i> Skill Sets</h3>
-            <div id="skillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;min-height:30px;"></div>
-            <div style="display:flex;gap:6px;margin-top:8px;">
-                <input type="text" id="newSkillInput" class="form-input" placeholder="Add skill..." style="flex:1;">
-                <button class="btn btn-sm" onclick="addSkillToCandidate()">+</button>
-            </div>
-        </div>
-<!-- Projects -->
-<div class="modal-section">
-    <h3 class="modal-section-title"><i class="fas fa-project-diagram"></i> Projects</h3>
-    <div id="projectsContainer"></div>
-    <button class="btn btn-sm btn-secondary" onclick="addProjectEntry()" style="margin-top:6px;">+ Add Project</button>
-</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;">
+                <!-- LEFT COLUMN -->
+                <div style="min-width:0;">
+                    <!-- Basic Info -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-user"></i> Basic Information</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>First Name</label><input type="text" id="edit_first_name" class="form-input"></div>
+                            <div class="form-group"><label>Last Name</label><input type="text" id="edit_last_name" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Email ID</label><input type="email" id="edit_email" class="form-input"></div>
+                            <div class="form-group"><label>Phone Number</label><input type="text" id="edit_phone" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Designation</label><input type="text" id="edit_designation" class="form-input"></div>
+                            <div class="form-group"><label>LinkedIn</label><input type="text" id="edit_linkedin" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Location</label><input type="text" id="edit_location" class="form-input"></div>
+                            <div class="form-group"><label>Years of Experience</label><input type="text" id="edit_years_exp" class="form-input"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Compensation -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-money-bill-wave"></i> Compensation</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>Current CTC</label><input type="text" id="edit_current_ctc" class="form-input"></div>
+                            <div class="form-group"><label>Expected CTC</label><input type="text" id="edit_expected_ctc" class="form-input"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Skills -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-code"></i> Skill Sets</h3>
+                        <div id="skillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;min-height:30px;"></div>
+                        <div style="display:flex;gap:6px;margin-top:8px;">
+                            <input type="text" id="newSkillInput" class="form-input" placeholder="Add skill..." style="flex:1;">
+                            <button class="btn btn-sm" onclick="addSkillToCandidate()">+</button>
+                        </div>
+                    </div>
 
-<!-- Education -->
-<div class="modal-section">
-    <h3 class="modal-section-title"><i class="fas fa-graduation-cap"></i> Education</h3>
-    <div id="educationContainer"></div>
-    <button class="btn btn-sm btn-secondary" onclick="addEducationEntry()" style="margin-top:6px;">+ Add Education</button>
-</div>
-   
-    </div>
-    
-    <!-- RIGHT COLUMN -->
-    <div style="min-width:0;">
-        <!-- Proposed Info -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-building"></i> Proposed To</h3>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Client</label>
-                    <div style="display:flex;gap:4px;align-items:center;">
-                        <select id="edit_proposed_client" class="form-input" style="flex:1;min-width:0;" onchange="loadRequirementsForClient()">
-                            <option value="">-- Select Client --</option>
+                    <!-- Projects -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-project-diagram"></i> Projects</h3>
+                        <div id="projectsContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addProjectEntry()" style="margin-top:6px;">+ Add Project</button>
+                    </div>
+
+                    <!-- Education -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-graduation-cap"></i> Education</h3>
+                        <div id="educationContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addEducationEntry()" style="margin-top:6px;">+ Add Education</button>
+                    </div>
+                </div>
+                
+                <!-- RIGHT COLUMN -->
+                <div style="min-width:0;">
+                    <!-- Proposed Info -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-building"></i> Proposed To</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Client</label>
+                                <div style="display:flex;gap:4px;align-items:center;">
+                                    <select id="edit_proposed_client" class="form-input" style="flex:1;min-width:0;" onchange="loadRequirementsForClient()">
+                                        <option value="">-- Select Client --</option>
+                                    </select>
+                                    <button class="btn btn-sm" onclick="addNewClient()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Requirement</label>
+                                <div style="display:flex;gap:4px;align-items:center;">
+                                    <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;flex:1;min-width:0;">
+                                        <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>
+                                        <input type="text" id="edit_proposed_requirement" class="form-input" style="border:none;flex:1;" list="requirementList" placeholder="001" oninput="filterRequirementDropdown()" autocomplete="off">
+                                    </div>
+                                    <datalist id="requirementList"></datalist>
+                                    <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Candidate Stage -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-flag-checkered"></i> Candidate Stage</h3>
+                        <select id="edit_stage" class="form-input" onchange="updateStageColor()">
+                            <option value="new">🆕 New</option>
+                            <option value="proposed">📋 Proposed</option>
+                            <option value="screening">🔍 Screening</option>
+                            <option value="technical_l1">💻 Technical L1</option>
+                            <option value="technical_l2">💻 Technical L2</option>
+                            <option value="technical_l3">💻 Technical L3</option>
+                            <option value="rejected">❌ Rejected</option>
+                            <option value="shortlisted">⭐ Shortlisted</option>
+                            <option value="offer_letter_shared">📄 Offer Shared</option>
+                            <option value="onboarded">✅ Onboarded</option>
                         </select>
-                        <button class="btn btn-sm" onclick="addNewClient()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                        <div id="stageColorBar" style="height:6px;border-radius:3px;margin-top:6px;"></div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Requirement</label>
-                    <div style="display:flex;gap:4px;align-items:center;">
-                        <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;flex:1;min-width:0;">     <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>     <input type="text" id="edit_proposed_requirement" class="form-input" style="border:none;flex:1;" list="requirementList" placeholder="001" oninput="filterRequirementDropdown()" autocomplete="off"> </div>
-                        <datalist id="requirementList"></datalist>
-                        <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                    
+                    <!-- Work History -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-briefcase"></i> Work History</h3>
+                        <div id="workHistoryContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add</button>
+                    </div>
+
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-chart-line"></i> Relevant Experience</h3>
+                        <div id="relevantExperienceContainer"></div>
+                        <div style="display:flex;gap:6px;margin-top:8px;">
+                            <input type="text" id="relevantSkillInput" class="form-input" placeholder="Skill" style="flex:1;">
+                            <input type="number" id="relevantYearsInput" class="form-input" placeholder="Years" style="width:100px;">
+                            <button class="btn btn-sm" onclick="addRelevantExperience()">+</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Certifications -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-certificate"></i> Certifications</h3>
+                        <div id="certificationsContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addCertification()" style="margin-top:6px;">+ Add</button>
+                    </div>
+                    
+                    <!-- Attachments -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-paperclip"></i> Attachments</h3>
+                        <div id="attachmentsList" style="margin-bottom:8px;"></div>
+                        <input type="file" id="attachmentFileInput" multiple style="display:none;" onchange="uploadAttachments()">
+                        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('attachmentFileInput').click()">📎 Attach Files</button>
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Candidate Stage -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-flag-checkered"></i> Candidate Stage</h3>
-            <select id="edit_stage" class="form-input" onchange="updateStageColor()">
-                <option value="new">🆕 New</option>
-                <option value="proposed">📋 Proposed</option>
-                <option value="screening">🔍 Screening</option>
-                <option value="technical_l1">💻 Technical L1</option>
-                <option value="technical_l2">💻 Technical L2</option>
-                <option value="technical_l3">💻 Technical L3</option>
-                <option value="rejected">❌ Rejected</option>
-                <option value="shortlisted">⭐ Shortlisted</option>
-                <option value="offer_letter_shared">📄 Offer Shared</option>
-                <option value="onboarded">✅ Onboarded</option>
-            </select>
-            <div id="stageColorBar" style="height:6px;border-radius:3px;margin-top:6px;"></div>
-        </div>
-        
-        <!-- Work History -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-briefcase"></i> Work History</h3>
-            <div id="workHistoryContainer"></div>
-            <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add</button>
-        </div>
-
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-chart-line"></i> Relevant Experience</h3>
-            <div id="relevantExperienceContainer"></div>
-            <div style="display:flex;gap:6px;margin-top:8px;">
-        <input type="text" id="relevantSkillInput" class="form-input" placeholder="Skill" style="flex:1;">
-        <input type="number" id="relevantYearsInput" class="form-input" placeholder="Years" style="width:100px;">
-        <button class="btn btn-sm" onclick="addRelevantExperience()">+</button>
-    </div>
-</div>
-        
-        <!-- Certifications -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-certificate"></i> Certifications</h3>
-            <div id="certificationsContainer"></div>
-            <button class="btn btn-sm btn-secondary" onclick="addCertification()" style="margin-top:6px;">+ Add</button>
-        </div>
-        
-        <!-- Attachments -->
-        <div class="modal-section">
-            <h3 class="modal-section-title"><i class="fas fa-paperclip"></i> Attachments</h3>
-            <div id="attachmentsList" style="margin-bottom:8px;"></div>
-            <input type="file" id="attachmentFileInput" multiple style="display:none;" onchange="uploadAttachments()">
-            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('attachmentFileInput').click()">📎 Attach Files</button>
-        </div>
-    </div>
-</div>
+            
             <!-- FULL WIDTH: Resume Section -->
             <div style="padding:0 20px 20px 20px;">
                 <div class="modal-section">
