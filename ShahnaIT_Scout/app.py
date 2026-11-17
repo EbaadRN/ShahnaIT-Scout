@@ -10489,7 +10489,7 @@ def dispatch_proposal():
         return _dispatch_error('The mail server rejected the login. Check SMTP_EMAIL and the App Password.', 502)
     except smtplib.SMTPRecipientsRefused:
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'recipient refused')
-                return _dispatch_error('The mail server refused all of the recipient addresses.', 400)
+        return _dispatch_error('The mail server refused all of the recipient addresses.', 400)
     except Exception as e:
         app.logger.exception('proposal dispatch: send failed')
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
