@@ -10369,7 +10369,7 @@ def _dispatch_compose_email(sender, recipient, subject, table_html, table_plain,
     return msg
 
 
-     def _dispatch_send_email(msg, smtp_email, smtp_password):
+def _dispatch_send_email(msg, smtp_email, smtp_password):
     """Gmail by default (use an App Password). Override with SMTP_HOST / SMTP_PORT for another provider."""
     host = os.environ.get('SMTP_HOST', 'smtp.gmail.com').strip()
     port = int(os.environ.get('SMTP_PORT', '465'))
