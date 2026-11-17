@@ -3309,6 +3309,8 @@ def _dispatch_send_email(msg, smtp_email, smtp_password):
         server.login(smtp_email, smtp_password)
         return server.send_message(msg)                              # {} or {address: error} for refused recipients
 
+DISPATCH_MAX_RECIPIENTS = 10
+
 def _dispatch_parse_recipients(raw):
     """'a@x.com, b@y.com' -> (['a@x.com', 'b@y.com'], None) or ([], 'error message'). Commas or semicolons; duplicates dropped."""
     if isinstance(raw, (list, tuple)):
