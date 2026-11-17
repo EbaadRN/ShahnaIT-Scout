@@ -10495,7 +10495,7 @@ def dispatch_proposal():
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
         return _dispatch_error('Could not send the email. Please try again.', 502)
 
-        if refused:
+    if refused:
         bad = ', '.join(sorted(refused))
         log_id = _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'partial', f'refused: {bad}')
         return jsonify({'success': True, 'dispatch_id': log_id,
