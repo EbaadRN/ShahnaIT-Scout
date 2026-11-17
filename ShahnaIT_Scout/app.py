@@ -3425,11 +3425,7 @@ def dispatch_proposal():
         app.logger.exception('proposal dispatch: send failed')
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
         return _dispatch_error('Could not send the email. Please try again.', 502)
-    except Exception as e:
-        app.logger.exception('proposal dispatch: send failed')
-        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
-        return _dispatch_error('Could not send the email. Please try again.', 502)
-
+    
     if refused:
         bad = ', '.join(sorted(refused))
         log_id = _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'partial', f'refused: {bad}')
