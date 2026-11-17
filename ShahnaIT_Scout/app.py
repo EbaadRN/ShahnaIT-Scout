@@ -4913,12 +4913,299 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
 <!-- ============================================ -->
 
 <!-- CANDIDATE PROFILE MODAL -->
+<!-- ============ PROPOSAL DISPATCH MODAL ============ -->
+<style>
+#dispatchModal { z-index: 1300; }
+#dispatchModal .dp-hint { font-size: 13px; color: var(--ae-muted, #5A6F8A); margin: 0 0 10px; }
+#dispatchModal .dp-toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+#dispatchModal .dp-toolbar .dp-label { font-weight: 700; margin-right: auto; }
+.dp-scroll { overflow-x: auto; border: 1px solid var(--ae-line, #D0D8E4); border-radius: 10px; background: var(--ae-surface, #fff); }
+.dp-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.dp-table th, .dp-table td { border: 1px solid var(--ae-line, #D0D8E4); padding: 0; min-width: 130px; vertical-align: top; position: relative; }
+.dp-table th { background: var(--ae-surface-2, #F0F4FA); text-align: left; }
+.dp-table th.dp-ctl, .dp-table td.dp-ctl { min-width: 0; width: 34px; text-align: center; vertical-align: middle; background: var(--ae-surface-2, #F0F4FA); }
+.dp-c { padding: 8px 10px; min-height: 20px; outline: none; white-space: pre-wrap; word-break: break-word; }
+.dp-hd { font-weight: 700; padding-right: 26px; }
+.dp-c:focus { background: rgba(47, 90, 97, .10); box-shadow: inset 0 0 0 2px var(--teal-light, #3B5998); }
+.dp-x { border: none; background: transparent; cursor: pointer; font-size: 16px; line-height: 1; color: #9c3f37; padding: 4px 6px; border-radius: 6px; }
+.dp-x:hover { background: rgba(156, 63, 55, .14); }
+.dp-table th .dp-x { position: absolute; top: 6px; right: 2px; font-size: 15px; }
+#dispatchModal .dp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+#dispatchModal .dp-grid label { display: block; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+#dispatchModal .dp-grid .dp-wide { grid-column: 1 / -1; }
+#dispatchModal .dp-check { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--ae-line, #D0D8E4); border-radius: 10px; }
+#dispatchModal .dp-check input { margin-top: 3px; width: 17px; height: 17px; }
+#dispatchModal .dp-check small { display: block; color: var(--ae-muted, #5A6F8A); font-weight: 400; }
+.dp-status { min-height: 24px; margin-top: 14px; font-size: 14px; font-weight: 600; }
+.dp-status.busy { color: var(--ae-muted, #5A6F8A); }
+.dp-status.ok { color: #2f6f5e; background: rgba(47, 111, 94, .12); padding: 10px 12px; border-radius: 10px; }
+.dp-status.err { color: #9c3f37; background: rgba(156, 63, 55, .10); padding: 10px 12px; border-radius: 10px; }
+.dp-spin { display: inline-block; width: 15px; height: 15px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: dpSpin .7s linear infinite; vertical-align: -2px; margin-right: 8px; }
+@keyframes dpSpin { to { transform: rotate(360deg); } }
+#dispatchModal .dp-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+@media (max-width: 700px) { #dispatchModal .dp-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div id="dispatchModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="dpTitle">
+    <div class="modal-content modal-xl">
+        <div class="modal-header">
+            <h2 id="dpTitle">📤 Dispatch Proposal</h2>
+            <div style="display:flex;align-items:center;gap:15px;">
+                <span id="dpCandidateLabel" style="font-size:13px;opacity:0.9;"></span>
+                <span class="close" onclick="dpClose()" title="Close">&times;</span>
+            </div>
+        </div>
+        <div class="modal-body" style="padding:20px 24px;">
+            <div class="dp-toolbar">
+                <span class="dp-label">Tracker</span>
+                <button type="button" class="btn btn-secondary" onclick="dpAddRow()">+ Row</button>
+                <button type="button" class="btn btn-secondary" onclick="dpAddCol()">+ Column</button>
+            </div>
+            <p class="dp-hint">Prefilled from the saved profile. Click any cell to edit it; use ✕ to remove a row or column. Empty rows are skipped.</p>
+            <div class="dp-scroll"><table class="dp-table" id="dpTable"></table></div>
+
+            <div class="dp-grid">
+                <div>
+                    <label for="dpRecipient">Recipient email</label>
+                    <input type="email" id="dpRecipient" class="form-input" placeholder="client@company.com" autocomplete="off" maxlength="254" style="width:100%;">
+                </div>
+                <div>
+                    <label for="dpSubject">Email subject</label>
+                    <input type="text" id="dpSubject" class="form-input" maxlength="200" style="width:100%;">
+                </div>
+                <div class="dp-check">
+                    <input type="checkbox" id="dpMask">
+                    <label for="dpMask" style="margin:0;">Mask Contact Details
+                        <small>Leaves the phone and email blank in the resume and removes any in the tracker.</small></label>
+                </div>
+                <div>
+                    <label for="dpBlank">Add Blank Project Boxes</label>
+                    <input type="number" id="dpBlank" class="form-input" min="0" max="10" value="0" style="width:100%;">
+                    <small style="color:var(--ae-muted,#5A6F8A);">Empty project tables added to the end of the resume to fill in later in Word (0–10).</small>
+                </div>
+            </div>
+
+            <div id="dpStatus" class="dp-status" role="status" aria-live="polite"></div>
+            <div class="dp-footer">
+                <button type="button" class="btn btn-secondary" id="dpCancelBtn" onclick="dpClose()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="dpSendBtn" onclick="dpSend()">📤 Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+    const HEADERS = ['Name', 'Total Exp', 'Rel exp', 'Current company', 'Location', 'Notice period', 'Note', 'CCTC', 'ECTC'];
+    const NL = String.fromCharCode(10), CR = String.fromCharCode(13), NBSP = String.fromCharCode(160);
+    const state = { candidateId: null, sending: false, closeTimer: null };
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const cellText = (el) => (el.innerText || el.textContent || '').split(CR).join('').split(NBSP).join(' ').trim();
+    const toast = (msg, type) => { if (typeof showToast === 'function') showToast(msg, type); };
+
+    function parseList(v) {
+        try { const x = typeof v === 'string' ? JSON.parse(v || '[]') : (v || []); return Array.isArray(x) ? x : []; }
+        catch (e) { return []; }
+    }
+    const withYears = (v) => { const s = String(v == null ? '' : v).trim(); return /^[0-9]+([.][0-9]+)?$/.test(s) ? s + ' yrs' : s; };
+
+    // ---- the first row, from the saved candidate record ----
+    function candidateRow(c) {
+        const rel = parseList(c.relevant_experience)
+            .map((e) => (e && e.skill) ? e.skill + (e.years ? ' - ' + e.years + ' yrs' : '') : '').filter(Boolean).join(', ');
+        const first = parseList(c.work_experience)[0];
+        const company = first ? (typeof first === 'string' ? first : (first.company || first.organization || '')) : '';
+        const notice = parseInt(c.notice_period_days, 10);
+        return [
+            [c.first_name, c.last_name].filter(Boolean).join(' ').trim(),
+            withYears(c.years_of_experience),
+            rel,
+            company,
+            c.location || c.address || '',
+            notice > 0 ? notice + ' days' : '',
+            '',
+            c.current_ctc == null ? '' : String(c.current_ctc),
+            c.expected_ctc == null ? '' : String(c.expected_ctc),
+        ];
+    }
+
+    // ---- table construction ----
+    function cell(value, header) {
+        const d = document.createElement('div');
+        d.className = 'dp-c' + (header ? ' dp-hd' : '');
+        d.contentEditable = 'true';
+        d.spellcheck = false;
+        d.textContent = value || '';
+        return d;
+    }
+    function xButton(title, handler) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'dp-x'; b.title = title; b.tabIndex = -1;
+        b.setAttribute('aria-label', title); b.textContent = '✕';
+        b.addEventListener('click', handler);
+        return b;
+    }
+    const headRow = () => $('dpTable').querySelector('thead tr');
+    const bodyRows = () => Array.from($('dpTable').querySelectorAll('tbody tr'));
+    const colCount = () => headRow().querySelectorAll('th:not(.dp-ctl)').length;
+
+    function addHeader(value) {
+        const th = document.createElement('th');
+        th.appendChild(cell(value, true));
+        th.appendChild(xButton('Remove this column', () => removeCol(th)));
+        headRow().insertBefore(th, headRow().querySelector('th.dp-ctl'));
+    }
+    function addBodyRow(values) {
+        const tr = document.createElement('tr');
+        const n = colCount();
+        for (let i = 0; i < n; i++) { const td = document.createElement('td'); td.appendChild(cell(values ? values[i] : '', false)); tr.appendChild(td); }
+        const ctl = document.createElement('td'); ctl.className = 'dp-ctl';
+        ctl.appendChild(xButton('Remove this row', () => removeRow(tr)));
+        tr.appendChild(ctl);
+        $('dpTable').querySelector('tbody').appendChild(tr);
+        return tr;
+    }
+    function buildTable(headers, rows) {
+        const t = $('dpTable');
+        t.innerHTML = '<thead><tr><th class="dp-ctl"></th></tr></thead><tbody></tbody>';   // th.dp-ctl = spacer above the row-delete buttons
+        headers.forEach((h) => addHeader(h));
+        rows.forEach((r) => addBodyRow(r));
+    }
+    function removeCol(th) {
+        if (colCount() <= 1) { setStatus('err', 'The tracker needs at least one column.'); return; }
+        const idx = Array.prototype.indexOf.call(headRow().children, th);
+        th.remove();
+        bodyRows().forEach((tr) => { if (tr.children[idx]) tr.children[idx].remove(); });
+    }
+    function removeRow(tr) {
+        if (bodyRows().length <= 1) { Array.from(tr.querySelectorAll('.dp-c')).forEach((c) => (c.textContent = '')); return; }
+        tr.remove();
+    }
+    window.dpAddRow = function () { const tr = addBodyRow(null); const c = tr.querySelector('.dp-c'); if (c) c.focus(); };
+    window.dpAddCol = function () {
+        addHeader('New column');
+        const idx = colCount() - 1;
+        bodyRows().forEach((tr) => {
+            const td = document.createElement('td'); td.appendChild(cell('', false));
+            tr.insertBefore(td, tr.children[idx]);
+        });
+        const hd = headRow().querySelectorAll('.dp-hd')[idx]; if (hd) { hd.focus(); document.execCommand && document.execCommand('selectAll'); }
+    };
+
+    // ---- the table as simple, safe HTML (the server re-parses and re-renders it anyway) ----
+    function tableHtml() {
+        const heads = Array.from($('dpTable').querySelectorAll('thead .dp-hd')).map(cellText);
+        const rows = bodyRows().map((tr) => Array.from(tr.querySelectorAll('.dp-c')).map(cellText)).filter((r) => r.some((v) => v !== ''));
+        const c = (tag, v) => '<' + tag + '>' + esc(v).split(NL).join('<br>') + '</' + tag + '>';
+        return '<table><thead><tr>' + heads.map((h) => c('th', h)).join('') + '</tr></thead><tbody>' +
+            rows.map((r) => '<tr>' + r.map((v) => c('td', v)).join('') + '</tr>').join('') + '</tbody></table>';
+    }
+
+    // ---- status + busy state ----
+    function setStatus(kind, msg) {
+        const s = $('dpStatus');
+        s.className = 'dp-status' + (kind ? ' ' + kind : '');
+        s.textContent = '';
+        if (!msg) return;
+        if (kind === 'busy') { const sp = document.createElement('span'); sp.className = 'dp-spin'; s.appendChild(sp); }
+        s.appendChild(document.createTextNode(msg));
+    }
+    function setSending(on) {
+        state.sending = on;
+        $('dpSendBtn').disabled = on; $('dpCancelBtn').disabled = on;
+        $('dpSendBtn').textContent = on ? 'Sending…' : '📤 Send';
+    }
+
+    // ---- open / close ----
+    window.openDispatchModal = function () {
+        const c = (typeof currentCandidateData !== 'undefined') ? currentCandidateData : null;
+        if (!c || !c.id) { toast('Open a candidate profile first.', 'error'); return; }
+        clearTimeout(state.closeTimer);
+        state.candidateId = c.id;
+        const name = [c.first_name, c.last_name].filter(Boolean).join(' ').trim();
+        $('dpCandidateLabel').textContent = name;
+        buildTable(HEADERS, [candidateRow(c)]);
+        $('dpRecipient').value = '';
+        $('dpSubject').value = 'Profile Proposal - ' + (name || 'Candidate');
+        $('dpMask').checked = false;
+        $('dpBlank').value = 0;
+        setStatus('');
+        setSending(false);
+        $('dispatchModal').style.display = 'block';
+        $('dpRecipient').focus();
+    };
+    window.dpClose = function () {
+        if (state.sending) return;
+        clearTimeout(state.closeTimer);
+        $('dispatchModal').style.display = 'none';
+    };
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && $('dispatchModal') && $('dispatchModal').style.display === 'block') window.dpClose();
+    });
+    document.addEventListener('paste', (e) => {          // keep cells plain text: no rich HTML from Word/web pages
+        if (!e.target.closest || !e.target.closest('#dpTable .dp-c')) return;
+        e.preventDefault();
+        const t = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, t);
+    });
+
+    // ---- send ----
+    window.dpSend = async function () {
+        if (state.sending) return;
+        const email = $('dpRecipient').value.trim();
+        if (!/^[^@,; ]+@[^@,; ]+[.][^@,; ]{2,}$/.test(email)) {
+            setStatus('err', 'Please enter one valid recipient email address.'); $('dpRecipient').focus(); return;
+        }
+        const mask = $('dpMask').checked;
+        let blank = parseInt($('dpBlank').value, 10); if (!(blank >= 0)) blank = 0; blank = Math.min(blank, 10);
+        if (!mask && !window.confirm('Phone and email WILL be included in the resume sent to ' + email + '.' + NL + NL + 'Continue?')) return;
+
+        const payload = {
+            candidate_id: state.candidateId,
+            recipient_email: email,
+            email_subject: $('dpSubject').value.trim(),
+            table_html: tableHtml(),
+            mask_contact_details: mask,
+            add_blank_projects: blank,
+        };
+        setSending(true);
+        setStatus('busy', 'Generating the resume and sending the email…');
+        const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 60000);
+        try {
+            const res = await fetch('/api/dispatch-proposal', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin', body: JSON.stringify(payload), signal: ctl.signal,
+            });
+            let j = {}; try { j = await res.json(); } catch (e) { /* non-JSON error page */ }
+            if (res.status === 401) {
+                setStatus('err', 'Your session has expired. Please log in again, then retry.');
+            } else if (res.ok && j.success) {
+                setStatus('ok', '✔ ' + (j.message || 'Proposal sent.'));
+                toast(j.message || 'Proposal sent.', 'success');
+                state.closeTimer = setTimeout(() => { setSending(false); window.dpClose(); }, 2500);
+                return;
+            } else {
+                setStatus('err', j.error || ('Could not send the proposal (HTTP ' + res.status + ').'));
+            }
+        } catch (e) {
+            setStatus('err', e && e.name === 'AbortError' ? 'The request timed out. Check your inbox log before retrying.' : 'Network error. Please try again.');
+        } finally {
+            clearTimeout(timer);
+        }
+        setSending(false);
+    };
+})();
+</script>
 <div id="candidateModal" class="modal">
     <div class="modal-content modal-xl">
         <div class="modal-header">
             <h2 id="modalCandidateName">Candidate Profile</h2>
             <div style="display:flex;align-items:center;gap:15px;">
                 <span id="modalHRName" style="font-size:13px;opacity:0.9;"></span>
+                <button type="button" id="dispatchProposalBtn" class="btn btn-primary" onclick="openDispatchModal()" style="padding:7px 14px;font-size:13px;white-space:nowrap;background:#fff;color:#1B2A4A;border:1px solid rgba(255,255,255,.7);">📤 Dispatch Proposal</button>
                 <span class="close" onclick="closeModal()">&times;</span>
             </div>
         </div>
@@ -9527,6 +9814,643 @@ def mark_proposed(candidate_id):
     return jsonify({'message': 'Marked as proposed'})
 
 # ============ PROJECTS API ============
+# ============ PROPOSAL DISPATCH: resume (.docx) + tracker email ============
+import io
+import html as _html
+import threading
+import time
+from email.message import EmailMessage
+from email.utils import formataddr
+from html.parser import HTMLParser
+
+import docx as _docx
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT as _VALIGN, WD_ROW_HEIGHT_RULE as _ROWRULE
+from docx.enum.text import WD_ALIGN_PARAGRAPH as _ALIGN
+from docx.oxml import OxmlElement as _OxmlElement
+from docx.oxml.ns import qn as _qn
+from docx.shared import Cm as _Cm, Pt as _Pt, RGBColor as _RGB
+
+DISPATCH_FOOTER_TEXT = 'Proprietary & Confidential - An asset of ShahnaIT'
+DISPATCH_MAX_BLANK_PROJECTS = 10
+DISPATCH_MAX_PROJECTS = 30
+DISPATCH_RATE_LIMIT = (15, 600)        # max 15 sends per user per 10 minutes (counted per worker process)
+_DISPATCH_EMAIL_RE = re.compile(r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$')
+_CONTACT_EMAIL_RE = re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}')
+_CONTACT_PHONE_RE = re.compile(
+    r'(?<!\d)(?:\+\d{1,3}[\s\-]?\d[\d\s\-]{7,13}\d|(?:\+?\d{1,3}[\s\-]?)?[6-9]\d{4}[\s\-]?\d{5})(?!\d)')
+_CONTACT_LABEL_RE = re.compile(r'(?im)\b(?:e-?mail(?:\s*id)?|phone|mobile|mob|contact(?:\s*no\.?)?|tel)\s*[:\-]?\s*$')
+
+
+def _dispatch_scrub_contact(text):
+    """Remove e-mail addresses and phone numbers from free text (used when 'Mask Contact Details' is on)."""
+    text = _CONTACT_EMAIL_RE.sub('', str(text or ''))
+    text = _CONTACT_PHONE_RE.sub('', text)
+    text = _CONTACT_LABEL_RE.sub('', text)
+    return re.sub(r'[ \t]{2,}', ' ', text).strip()
+
+
+def _dispatch_error(message, status):
+    return jsonify({'success': False, 'error': message}), status
+
+
+# ---------------------------------------------------------------- abuse protection
+_dispatch_hits = {}
+_dispatch_lock = threading.Lock()
+
+
+def _dispatch_rate_limited(user_id):
+    limit, window = DISPATCH_RATE_LIMIT
+    now = time.time()
+    with _dispatch_lock:
+        hits = [t for t in _dispatch_hits.get(user_id, []) if now - t < window]
+        limited = len(hits) >= limit
+        if not limited:
+            hits.append(now)
+        _dispatch_hits[user_id] = hits
+        return limited
+
+
+# ---------------------------------------------------------------- audit trail
+def _ensure_dispatch_log_table():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            conn.execute('''CREATE TABLE IF NOT EXISTS proposal_dispatch_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                candidate_id INTEGER, sent_by INTEGER, sent_by_name TEXT,
+                recipient_email TEXT, subject TEXT, masked INTEGER, blank_projects INTEGER,
+                status TEXT, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"proposal_dispatch_log table not created: {e}")
+
+
+_ensure_dispatch_log_table()
+
+
+def _dispatch_log(candidate_id, recipient, subject, masked, blank_projects, status, error=''):
+    """Record who sent which candidate to whom. Never raises."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            cur = conn.execute(
+                '''INSERT INTO proposal_dispatch_log
+                   (candidate_id, sent_by, sent_by_name, recipient_email, subject, masked, blank_projects, status, error)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                (candidate_id, session.get('user_id'), session.get('user_name') or '', recipient,
+                 subject, 1 if masked else 0, blank_projects, status, str(error)[:300]))
+            conn.commit()
+            return cur.lastrowid
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"dispatch log failed: {e}")
+        return None
+
+
+# ---------------------------------------------------------------- tracker table: parse + re-render (never echo input)
+class _TrackerTableParser(HTMLParser):
+    """Reads UNTRUSTED table HTML into plain rows/cells. No tag, attribute or link from the input survives."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.rows = []
+        self.saw_table = False
+        self._row = None
+        self._cell = None
+        self._depth = 0
+        self._skip = 0
+
+    @staticmethod
+    def _span(value):
+        try:
+            n = int(str(value).strip())
+        except (TypeError, ValueError):
+            return 1
+        return n if 1 <= n <= 10 else 1
+
+    def _close_cell(self):
+        if self._cell is not None:
+            if self._row is None:
+                self._row = []
+                self.rows.append(self._row)
+            self._row.append(self._cell)
+        self._cell = None
+
+    def _newline(self):
+        if self._cell is not None and self._cell['text'] and not self._cell['text'].endswith('\n'):
+            self._cell['text'] += '\n'
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style'):
+            self._skip += 1
+            return
+        if self._skip:
+            return
+        if tag == 'table':
+            self._depth += 1
+            self.saw_table = True
+            return
+        if self._depth != 1:
+            return                                   # ignore anything outside / nested deeper than the first table
+        if tag == 'tr':
+            self._close_cell()
+            self._row = []
+            self.rows.append(self._row)
+        elif tag in ('td', 'th'):
+            self._close_cell()
+            a = dict(attrs)
+            self._cell = {'th': tag == 'th', 'text': '',
+                          'colspan': self._span(a.get('colspan')), 'rowspan': self._span(a.get('rowspan'))}
+        elif tag in ('br', 'div', 'p'):
+            self._newline()
+
+    def handle_startendtag(self, tag, attrs):
+        if tag == 'br' and not self._skip and self._depth == 1:
+            self._newline()
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style'):
+            self._skip = max(0, self._skip - 1)
+            return
+        if self._skip:
+            return
+        if tag == 'table':
+            if self._depth == 1:
+                self._close_cell()
+            self._depth = max(0, self._depth - 1)
+        elif self._depth == 1:
+            if tag in ('td', 'th'):
+                self._close_cell()
+            elif tag == 'tr':
+                self._close_cell()
+                self._row = None
+            elif tag in ('div', 'p'):
+                self._newline()
+
+    def handle_data(self, data):
+        if self._skip or self._depth != 1 or self._cell is None:
+            return
+        self._cell['text'] += re.sub(r'\s+', ' ', data)
+
+
+def _dispatch_clean_tracker(raw, mask):
+    """Return (safe_html, plain_text) for the tracker table, or raise ValueError."""
+    raw = str(raw or '')
+    if len(raw) > 200000:
+        raise ValueError('The tracker table is too large')
+    parser = _TrackerTableParser()
+    try:
+        parser.feed(raw)
+        parser.close()
+    except Exception:
+        raise ValueError('The tracker table could not be read')
+    rows = [r for r in parser.rows if r]
+    if not parser.saw_table or not rows:
+        raise ValueError('The tracker table is empty')
+    if len(rows) > 200 or any(len(r) > 30 for r in rows):
+        raise ValueError('The tracker table has too many rows or columns')
+
+    cell_style = 'border:1px solid #9aa5a8;padding:6px 10px;text-align:left;vertical-align:top;'
+    out = ['<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;'
+           'font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1f2d30;">']
+    plain = []
+    for row in rows:
+        out.append('<tr>')
+        plain_cells = []
+        for cell in row:
+            text = '\n'.join(line.strip() for line in cell['text'].split('\n')).strip()[:1000]
+            if mask:
+                text = _dispatch_scrub_contact(text)
+            tag = 'th' if cell['th'] else 'td'
+            style = cell_style + ('background:#e8eef0;font-weight:bold;' if cell['th'] else '')
+            spans = ''.join(f' {k}="{cell[k]}"' for k in ('colspan', 'rowspan') if cell[k] > 1)
+            body = '<br>'.join(_html.escape(line) for line in text.split('\n'))
+            out.append(f'<{tag}{spans} style="{style}">{body}</{tag}>')
+            plain_cells.append(text.replace('\n', ' '))
+        out.append('</tr>')
+        plain.append(' | '.join(plain_cells))
+    out.append('</table>')
+    return ''.join(out), '\n'.join(plain)
+
+
+# ---------------------------------------------------------------- resume content helpers
+_DISPATCH_STOP_HEADING = re.compile(
+    r'^\s*(?:work\s+(?:experience|history)|professional\s+experience|experience|employment(?:\s+history)?|'
+    r'education(?:al)?(?:\s+qualifications?)?|(?:technical\s+|key\s+|core\s+|functional\s+|soft\s+)?skills?|'
+    r'projects?|certifications?|achievements?|awards?|personal\s+(?:details|information)|declaration|'
+    r'references?|languages?|interests?|hobbies|summary|profile|objective)\s*:?\s*$', re.I)
+_DISPATCH_BULLET_GLYPH = re.compile(r'^[\u2022\u25cf\u25aa\u25a0\u2023\u2043\-\*\u00b7\u27a2\u2713]+\s*')
+
+
+def _dispatch_json_list(value):
+    if isinstance(value, list):
+        return value
+    try:
+        parsed = json.loads(value) if value else []
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
+def _dispatch_resume_section(text, heading_re, max_chars=1800):
+    """Lines under a heading (e.g. 'Professional Summary') in the candidate's own resume text."""
+    lines = [l.strip() for l in str(text or '').replace('\r', '').split('\n')]
+    head = re.compile(r'^\s*(?:%s)\s*:?\s*$' % heading_re, re.I)
+    for i, line in enumerate(lines):
+        if head.match(line):
+            out = []
+            for nxt in lines[i + 1:i + 40]:
+                if not nxt:
+                    continue
+                if _DISPATCH_STOP_HEADING.match(nxt) or (nxt.isupper() and len(nxt) < 40 and len(nxt.split()) <= 4):
+                    break
+                out.append(nxt)
+                if sum(len(x) for x in out) > max_chars:
+                    break
+            if out:
+                return out
+    return []
+
+
+def _dispatch_lines_to_bullets(lines, max_bullets=8, max_len=320, per_line=False):
+    if per_line:                                                    # each non-empty line is its own bullet
+        out = [_DISPATCH_BULLET_GLYPH.sub('', l).strip() for l in lines]
+        return [b[:max_len] for b in out if b][:max_bullets]
+    bullets, buf = [], ''
+    for line in lines:
+        starts_new = bool(_DISPATCH_BULLET_GLYPH.match(line))
+        line = _DISPATCH_BULLET_GLYPH.sub('', line).strip()
+        if not line:
+            continue
+        if starts_new and buf:
+            bullets.append(buf)
+            buf = line
+        else:
+            buf = (buf + ' ' + line).strip()
+    if buf:
+        bullets.append(buf)
+    if len(bullets) == 1 and len(bullets[0]) > max_len:         # one long paragraph -> sentences
+        bullets = [s.strip() for s in re.split(r'(?<=[.!?])\s+', bullets[0]) if s.strip()]
+    return [b[:max_len] for b in bullets[:max_bullets]]
+
+
+def _dispatch_candidate_content(cand, projects, mask):
+    """Everything that goes into the resume, taken from the candidate's own data only.
+    Internal fields (notes, analysis_summary, recommendation) are deliberately never used."""
+    scrub = _dispatch_scrub_contact if mask else (lambda t: str(t or ''))
+    name = ' '.join(p for p in [cand.get('first_name'), cand.get('middle_name'), cand.get('last_name')] if p).strip()
+    role = cand.get('designation') or cand.get('current_role') or ''
+    skills = [str(s).strip() for s in _dispatch_json_list(cand.get('core_skills')) if str(s).strip()]
+    resume_text = cand.get('resume_text') or ''
+    if not skills:
+        skills = [s.strip() for s in re.split(r'[,|\u2022;]', ' '.join(_dispatch_resume_section(
+            resume_text, r'(?:technical\s+|key\s+)?skills?|core\s+competenc(?:y|ies)'))) if s.strip()][:40]
+
+    summary = _dispatch_lines_to_bullets(_dispatch_resume_section(
+        resume_text, r'(?:professional\s+|career\s+|executive\s+)?(?:summary|profile|objective)|about\s+me'))
+    if not summary:                                                 # generated from structured fields
+        years = str(cand.get('years_of_experience') or '').strip()
+        if role or years:
+            summary.append(f"{role or 'Professional'}" + (f" with {years} years of total experience" if years else ''))
+        if skills:
+            summary.append('Hands-on experience with ' + ', '.join(skills[:8]))
+        companies = []
+        for w in _dispatch_json_list(cand.get('work_experience')):
+            c = w.get('company') if isinstance(w, dict) else w
+            if c and str(c).strip() and str(c).strip() not in companies:
+                companies.append(str(c).strip())
+        if companies:
+            summary.append('Has worked with ' + ', '.join(companies[:4]))
+        certs = [str(c).strip() for c in _dispatch_json_list(cand.get('certifications')) if str(c).strip()]
+        if certs:
+            summary.append('Certifications: ' + ', '.join(certs[:5]))
+
+    functional = _dispatch_lines_to_bullets(_dispatch_resume_section(
+        resume_text, r'(?:functional|soft|domain)\s+(?:skills?|expertise|knowledge)|functional\s+expertise'), max_bullets=12)
+
+    proj_out = []
+    for p in projects[:DISPATCH_MAX_PROJECTS]:
+        pname = str(p.get('project_name') or '').strip()
+        if p.get('organization'):
+            pname = f"{pname} ({str(p['organization']).strip()})" if pname else str(p['organization']).strip()
+        resp = [l for l in re.split(r'\r?\n', str(p.get('description') or '')) if l.strip()]
+        resp = _dispatch_lines_to_bullets(resp, max_bullets=15, max_len=400, per_line=True)
+        if p.get('role'):
+            resp.insert(0, 'Role: ' + str(p['role']).strip())
+        proj_out.append({'name': scrub(pname), 'env': scrub(p.get('tech_stack') or ''), 'resp': [scrub(r) for r in resp]})
+
+    return {
+        'name': scrub(name), 'role': scrub(role),
+        'phone': '' if mask else str(cand.get('phone') or ''),
+        'email': '' if mask else str(cand.get('email') or ''),
+        'summary': [scrub(s) for s in summary], 'skills': [scrub(s) for s in skills],
+        'functional': [scrub(s) for s in functional], 'projects': proj_out,
+    }
+
+
+# ---------------------------------------------------------------- .docx builder
+def _dx_shade(cell, fill):
+    tcPr = cell._tc.get_or_add_tcPr()
+    shd = _OxmlElement('w:shd')
+    shd.set(_qn('w:val'), 'clear')
+    shd.set(_qn('w:color'), 'auto')
+    shd.set(_qn('w:fill'), fill)
+    tcPr.insert_element_before(shd, 'w:noWrap', 'w:tcMar', 'w:textDirection', 'w:tcFitText', 'w:vAlign', 'w:hideMark')
+
+
+def _dx_heading(doc, text):
+    p = doc.add_paragraph()
+    p.paragraph_format.space_before = _Pt(12)
+    p.paragraph_format.space_after = _Pt(4)
+    p.paragraph_format.keep_with_next = True
+    run = p.add_run(text)
+    run.bold = True
+    run.font.size = _Pt(13)
+    run.font.color.rgb = _RGB(0x1F, 0x3A, 0x3F)
+    pPr = p._p.get_or_add_pPr()
+    borders = _OxmlElement('w:pBdr')
+    bottom = _OxmlElement('w:bottom')
+    for k, v in (('val', 'single'), ('sz', '8'), ('space', '1'), ('color', '1F3A3F')):
+        bottom.set(_qn('w:' + k), v)
+    borders.append(bottom)
+    pPr.insert_element_before(borders, 'w:shd', 'w:tabs', 'w:suppressAutoHyphens', 'w:spacing', 'w:ind',
+                              'w:contextualSpacing', 'w:jc', 'w:outlineLvl', 'w:rPr', 'w:sectPr', 'w:pPrChange')
+    return p
+
+
+def _dx_cell(cell, text='', bold=False, size=10, color=None, align=None, italic=False):
+    cell.text = ''
+    p = cell.paragraphs[0]
+    p.paragraph_format.space_after = _Pt(2)
+    if align is not None:
+        p.alignment = align
+    run = p.add_run(str(text))
+    run.bold = bold
+    run.italic = italic
+    run.font.size = _Pt(size)
+    if color:
+        run.font.color.rgb = _RGB(*color)
+    return p
+
+
+def _dx_widths(table, widths):
+    table.autofit = False
+    for row in table.rows:
+        for idx, w in enumerate(widths):
+            row.cells[idx].width = w
+    for idx, w in enumerate(widths):
+        table.columns[idx].width = w
+
+
+def _dx_bullets_in_cell(cell, lines):
+    cell.text = ''
+    first = True
+    for line in lines:
+        p = cell.paragraphs[0] if first else cell.add_paragraph()
+        p.style = cell.part.document.styles['List Bullet']
+        p.paragraph_format.space_after = _Pt(1)
+        run = p.add_run(line)
+        run.font.size = _Pt(10)
+        first = False
+
+
+def _dx_project_table(doc, name='', env='', resp_lines=None, blank=False):
+    table = doc.add_table(rows=3, cols=2)
+    table.style = 'Table Grid'
+    _dx_widths(table, [_Cm(3.6), _Cm(13.8)])
+    for i, label in enumerate(('Project Name', 'Environment', 'Responsibilities')):
+        _dx_cell(table.cell(i, 0), label, bold=True)
+        _dx_shade(table.cell(i, 0), 'EAF0F1')
+    _dx_cell(table.cell(0, 1), name)
+    _dx_cell(table.cell(1, 1), env)
+    if resp_lines:
+        _dx_bullets_in_cell(table.cell(2, 1), resp_lines)
+    else:
+        _dx_cell(table.cell(2, 1), '')
+    if blank:                                                       # roomy boxes to fill in later in Word
+        table.rows[2].height = _Cm(3.2)
+        table.rows[2].height_rule = _ROWRULE.AT_LEAST
+    for row in table.rows[:-1]:                                     # keep the whole project table on one page
+        for cell in row.cells:
+            for para in cell.paragraphs:
+                para.paragraph_format.keep_with_next = True
+    for row in table.rows:                                          # keep each row on one page
+        trPr = row._tr.get_or_add_trPr()
+        trPr.insert_element_before(_OxmlElement('w:cantSplit'), 'w:trHeight', 'w:tblHeader', 'w:tblCellSpacing',
+                                   'w:jc', 'w:hidden', 'w:ins', 'w:del', 'w:trPrChange')
+    spacer = doc.add_paragraph()                                    # required: Word merges tables with no paragraph between
+    spacer.paragraph_format.space_before = _Pt(0)
+    spacer.paragraph_format.space_after = _Pt(0)
+    spacer.paragraph_format.line_spacing = _Pt(8)
+    return table
+
+
+def _dispatch_build_docx(cand, projects, mask, blank_projects):
+    """Build the resume .docx and return its bytes."""
+    c = _dispatch_candidate_content(cand, projects, mask)
+    doc = _docx.Document()
+    sec = doc.sections[0]
+    sec.page_width, sec.page_height = _Cm(21.0), _Cm(29.7)
+    sec.left_margin = sec.right_margin = _Cm(1.8)
+    sec.top_margin, sec.bottom_margin = _Cm(1.6), _Cm(1.8)
+    normal = doc.styles['Normal']
+    normal.font.name = 'Calibri'
+    normal.font.size = _Pt(10.5)
+    normal.element.rPr.rFonts.set(_qn('w:eastAsia'), 'Calibri')
+
+    # ---- Profile: photo placeholder + Name / Role / Phone / Email ----
+    _dx_heading(doc, 'Profile')
+    prof = doc.add_table(rows=4, cols=3)
+    prof.style = 'Table Grid'
+    _dx_widths(prof, [_Cm(3.6), _Cm(3.4), _Cm(10.4)])
+    for r, (label, value) in enumerate((('Name', c['name']), ('Role', c['role']),
+                                        ('Phone', c['phone']), ('Email', c['email']))):
+        prof.rows[r].height = _Cm(1.0)
+        prof.rows[r].height_rule = _ROWRULE.AT_LEAST
+        _dx_cell(prof.cell(r, 1), label, bold=True)
+        _dx_shade(prof.cell(r, 1), 'EAF0F1')
+        _dx_cell(prof.cell(r, 2), value)                            # blank when contact details are masked
+        prof.cell(r, 2).vertical_alignment = _VALIGN.CENTER
+        prof.cell(r, 1).vertical_alignment = _VALIGN.CENTER
+    photo = prof.cell(0, 0).merge(prof.cell(3, 0))
+    _dx_cell(photo, 'PHOTO', bold=True, size=11, color=(0x8A, 0x99, 0x9C), align=_ALIGN.CENTER)
+    hint = photo.add_paragraph()
+    hint.alignment = _ALIGN.CENTER
+    hr = hint.add_run('(paste photo here)')
+    hr.font.size = _Pt(8)
+    hr.font.color.rgb = _RGB(0x8A, 0x99, 0x9C)
+    photo.vertical_alignment = _VALIGN.CENTER
+    _dx_shade(photo, 'F4F6F6')
+
+    # ---- Profile Summary ----
+    _dx_heading(doc, 'Profile Summary')
+    for line in (c['summary'] or ['']):
+        doc.add_paragraph(line, style='List Bullet').paragraph_format.space_after = _Pt(2)
+
+    # ---- Technical Skills / Functional Skills ----
+    _dx_heading(doc, 'Technical Skills')
+    if c['skills']:
+        doc.add_paragraph(', '.join(c['skills']))
+    else:
+        doc.add_paragraph('', style='List Bullet')
+    _dx_heading(doc, 'Functional Skills')
+    for line in (c['functional'] or ['']):
+        doc.add_paragraph(line, style='List Bullet').paragraph_format.space_after = _Pt(2)
+
+    # ---- Projects: one bordered table per project, then any blank ones ----
+    _dx_heading(doc, 'Projects')
+    for p in c['projects']:
+        _dx_project_table(doc, p['name'], p['env'], p['resp'])
+    for _ in range(blank_projects):
+        _dx_project_table(doc, blank=True)
+
+    # ---- Footer ----
+    footer = sec.footer
+    footer.is_linked_to_previous = False
+    fp = footer.paragraphs[0]
+    fp.alignment = _ALIGN.CENTER
+    fr = fp.add_run(DISPATCH_FOOTER_TEXT)
+    fr.italic = True
+    fr.font.size = _Pt(8.5)
+    fr.font.color.rgb = _RGB(0x6B, 0x7C, 0x80)
+
+    props = doc.core_properties
+    props.author = 'ShahnaIT'
+    props.last_modified_by = 'ShahnaIT'
+    props.title = f"Profile - {c['name']}".strip(' -')
+    props.comments = ''
+    props.created = props.modified = datetime.now()
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+# ---------------------------------------------------------------- e-mail
+def _dispatch_compose_email(sender, recipient, subject, table_html, table_plain, docx_bytes, filename, sender_name, reply_to):
+    msg = EmailMessage()
+    msg['From'] = formataddr(('ShahnaIT', sender))
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    if reply_to:
+        msg['Reply-To'] = reply_to
+    msg.set_content('Hello,\n\nPlease find the candidate profile details below. The detailed resume is attached.\n\n'
+                    + table_plain + '\n\nRegards,\n' + (sender_name or 'ShahnaIT') + '\n\n' + DISPATCH_FOOTER_TEXT + '\n')
+    msg.add_alternative(
+        '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#1f2d30;">'
+        '<p>Hello,</p><p>Please find the candidate profile details below. The detailed resume is attached.</p>'
+        + table_html +
+        '<p style="margin-top:18px;">Regards,<br>' + _html.escape(sender_name or 'ShahnaIT') + '<br>ShahnaIT</p>'
+        '<p style="font-size:11px;color:#6b7c80;border-top:1px solid #d9cfb8;padding-top:8px;">'
+        + _html.escape(DISPATCH_FOOTER_TEXT) + '</p></div>', subtype='html')
+    msg.add_attachment(docx_bytes, maintype='application',
+                       subtype='vnd.openxmlformats-officedocument.wordprocessingml.document', filename=filename)
+    return msg
+
+
+def _dispatch_send_email(msg, smtp_email, smtp_password):
+    """Gmail by default (use an App Password). Override with SMTP_HOST / SMTP_PORT for another provider."""
+    host = os.environ.get('SMTP_HOST', 'smtp.gmail.com').strip()
+    port = int(os.environ.get('SMTP_PORT', '465'))
+    if 'gmail' in host.lower():
+        smtp_password = smtp_password.replace(' ', '')               # Google shows app passwords in 4 groups
+    server_cm = smtplib.SMTP_SSL(host, port, timeout=20) if port == 465 else smtplib.SMTP(host, port, timeout=20)
+    with server_cm as server:
+        if port != 465:
+            server.starttls()
+        server.login(smtp_email, smtp_password)
+        server.send_message(msg)
+
+
+# ---------------------------------------------------------------- the route
+@app.route('/api/dispatch-proposal', methods=['POST'])
+@login_required()
+def dispatch_proposal():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return _dispatch_error('Invalid request', 400)
+
+    # ---- validate input ----
+    try:
+        candidate_id = int(data.get('candidate_id'))
+    except (TypeError, ValueError):
+        return _dispatch_error('A valid candidate_id is required', 400)
+    recipient = str(data.get('recipient_email') or '').strip()
+    if len(recipient) > 254 or not _DISPATCH_EMAIL_RE.match(recipient):
+        return _dispatch_error('Please enter one valid recipient email address', 400)
+    mask = data.get('mask_contact_details') in (True, 'true', 'True', 1, '1', 'on')
+    try:
+        blank_projects = int(data.get('add_blank_projects') or 0)
+    except (TypeError, ValueError):
+        blank_projects = -1
+    if not 0 <= blank_projects <= DISPATCH_MAX_BLANK_PROJECTS:
+        return _dispatch_error(f'Blank project boxes must be between 0 and {DISPATCH_MAX_BLANK_PROJECTS}', 400)
+    subject = ' '.join(str(data.get('email_subject') or '').split())[:200]   # collapses CR/LF: no header injection
+    try:
+        table_html, table_plain = _dispatch_clean_tracker(data.get('table_html'), mask)
+    except ValueError as e:
+        return _dispatch_error(str(e), 400)
+
+    smtp_email = (os.environ.get('SMTP_EMAIL') or '').strip()
+    smtp_password = os.environ.get('SMTP_PASSWORD') or ''
+    if not smtp_email or not smtp_password:
+        return _dispatch_error('Email is not configured on the server (SMTP_EMAIL / SMTP_PASSWORD).', 503)
+    if _dispatch_rate_limited(session.get('user_id')):
+        return _dispatch_error('Too many proposals sent in a short time. Please wait a few minutes.', 429)
+
+    # ---- load candidate (+ same ownership rule as editing) ----
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute('SELECT * FROM candidates WHERE id = ?', (candidate_id,)).fetchone()
+        if not row:
+            return _dispatch_error('Candidate not found', 404)
+        cand = dict(row)
+        projects = [dict(r) for r in conn.execute(
+            'SELECT * FROM candidate_projects WHERE candidate_id = ? ORDER BY id LIMIT ?',
+            (candidate_id, DISPATCH_MAX_PROJECTS))]
+    finally:
+        conn.close()
+    if session.get('role') != 'admin':
+        user_name = session.get('user_name') or ''
+        if not user_name or ((cand.get('uploaded_by_name') or '') != user_name and (cand.get('uploaded_by') or '') != user_name):
+            return _dispatch_error('You can only dispatch your own candidates', 403)
+
+    full_name = ' '.join(p for p in [cand.get('first_name'), cand.get('last_name')] if p).strip() or 'Candidate'
+    if not subject:
+        subject = f'Profile Proposal - {full_name}'[:200]
+
+    try:
+        docx_bytes = _dispatch_build_docx(cand, projects, mask, blank_projects)
+    except Exception:
+        app.logger.exception('proposal resume generation failed')
+        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'resume generation')
+        return _dispatch_error('Could not generate the resume document', 500)
+
+    filename = (secure_filename(f'{full_name}_Profile') or 'Profile') + '.docx'
+    current = get_current_user() or {}
+    msg = _dispatch_compose_email(smtp_email, recipient, subject, table_html, table_plain, docx_bytes, filename,
+                                  session.get('user_name') or current.get('full_name') or '',
+                                  current.get('email') if _DISPATCH_EMAIL_RE.match(str(current.get('email') or '')) else '')
+    try:
+        _dispatch_send_email(msg, smtp_email, smtp_password)
+    except smtplib.SMTPAuthenticationError:
+        app.logger.error('proposal dispatch: SMTP authentication failed (check SMTP_EMAIL / App Password)')
+        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'smtp auth')
+        return _dispatch_error('The mail server rejected the login. Check SMTP_EMAIL and the App Password.', 502)
+    except smtplib.SMTPRecipientsRefused:
+        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'recipient refused')
+        return _dispatch_error('The mail server refused that recipient address.', 400)
+    except Exception as e:
+        app.logger.exception('proposal dispatch: send failed')
+        _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
+        return _dispatch_error('Could not send the email. Please try again.', 502)
+
+    log_id = _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'sent')
+    return jsonify({'success': True, 'message': f'Proposal sent to {recipient}', 'dispatch_id': log_id})
 @app.route('/api/candidates/<int:candidate_id>/projects', methods=['GET'])
 @login_required()
 def get_candidate_projects(candidate_id):
