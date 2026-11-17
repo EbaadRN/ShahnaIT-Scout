@@ -3418,7 +3418,7 @@ def dispatch_proposal():
     current = get_current_user() or {}
     msg = _dispatch_compose_email(smtp_email, recipient, subject, table_html, table_plain, docx_bytes, filename,
                                   session.get('user_name') or current.get('full_name') or '',
-                                                                    reply_to_raw or (current.get('email') if _DISPATCH_EMAIL_RE.match(str(current.get('email') or '')) else ''))
+                                  reply_to_raw or (current.get('email') if _DISPATCH_EMAIL_RE.match(str(current.get('email') or '')) else ''))
         try:
         refused = _dispatch_send_email(msg, smtp_email, smtp_password) or {}
     except Exception as e:
