@@ -3347,7 +3347,9 @@ def dispatch_proposal():
         candidate_id = int(data.get('candidate_id'))
     except (TypeError, ValueError):
         return _dispatch_error('A valid candidate_id is required', 400)
-        recipients, rec_error = _dispatch_parse_recipients(data.get('recipient_email'))
+        
+    recipients, rec_error = _dispatch_parse_recipients(data.get('recipient_email'))
+    
     if rec_error:
         return _dispatch_error(rec_error, 400)
     recipient = ', '.join(recipients)
