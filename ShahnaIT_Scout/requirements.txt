@@ -14,3 +14,4 @@ nltk
 google-auth
 google-api-python-client
 fpdf2
+resend==2.54.0
