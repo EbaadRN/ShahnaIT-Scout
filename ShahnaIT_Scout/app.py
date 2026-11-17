@@ -93,7 +93,7 @@ def send_email(to_email, subject, body):
         
         with smtplib.SMTP_SSL('smtp.hostinger.com', 465) as server:
             server.login(smtp_email, smtp_password)
-            server.send_message(msg)
+            return server.send_message(msg)
         return True
     except Exception as e:
         print(f"Email error: {e}")
@@ -10369,7 +10369,7 @@ def _dispatch_compose_email(sender, recipient, subject, table_html, table_plain,
     return msg
 
 
-def _dispatch_send_email(msg, smtp_email, smtp_password):
+def         refused = _dispatch_send_email(msg, smtp_email, smtp_password) or {}:
     """Gmail by default (use an App Password). Override with SMTP_HOST / SMTP_PORT for another provider."""
     host = os.environ.get('SMTP_HOST', 'smtp.gmail.com').strip()
     port = int(os.environ.get('SMTP_PORT', '465'))
@@ -10382,7 +10382,35 @@ def _dispatch_send_email(msg, smtp_email, smtp_password):
         server.login(smtp_email, smtp_password)
         server.send_message(msg)
 
+# ---------------------------------------------------------------- recipients
+DISPATCH_MAX_RECIPIENTS = 10
 
+
+def _dispatch_parse_recipients(raw):
+    """'a@x.com, b@y.com' -> (['a@x.com', 'b@y.com'], None) or ([], 'error message'). Commas or semicolons; duplicates dropped."""
+    if isinstance(raw, (list, tuple)):
+        raw = ','.join(str(x) for x in raw)
+    raw = str(raw or '')
+    if len(raw) > 2000:
+        return [], 'The recipient list is too long'
+    found, seen = [], set()
+    for part in re.split(r'[,;]', raw):
+        addr = part.strip()
+        if not addr:
+            continue
+        if len(addr) > 254 or not _DISPATCH_EMAIL_RE.match(addr):
+            return [], f'"{addr[:60]}" is not a valid email address'
+        if addr.lower() not in seen:
+            seen.add(addr.lower())
+            found.append(addr)
+    if not found:
+        return [], 'Please enter at least one recipient email address'
+    if len(found) > DISPATCH_MAX_RECIPIENTS:
+        return [], f'You can send to at most {DISPATCH_MAX_RECIPIENTS} recipients at a time'
+    return found, None
+
+
+# ---------------------------------------------------------------- the route
 # ---------------------------------------------------------------- the route
 @app.route('/api/dispatch-proposal', methods=['POST'])
 @login_required()
@@ -10396,9 +10424,13 @@ def dispatch_proposal():
         candidate_id = int(data.get('candidate_id'))
     except (TypeError, ValueError):
         return _dispatch_error('A valid candidate_id is required', 400)
-    recipient = str(data.get('recipient_email') or '').strip()
-    if len(recipient) > 254 or not _DISPATCH_EMAIL_RE.match(recipient):
-        return _dispatch_error('Please enter one valid recipient email address', 400)
+        recipients, rec_error = _dispatch_parse_recipients(data.get('recipient_email'))
+    if rec_error:
+        return _dispatch_error(rec_error, 400)
+    recipient = ', '.join(recipients)
+    reply_to_raw = str(data.get('reply_to_email') or '').strip()
+    if reply_to_raw and (len(reply_to_raw) > 254 or not _DISPATCH_EMAIL_RE.match(reply_to_raw)):
+        return _dispatch_error('The Reply-To address is not a valid email address', 400)
     mask = data.get('mask_contact_details') in (True, 'true', 'True', 1, '1', 'on')
     try:
         blank_projects = int(data.get('add_blank_projects') or 0)
@@ -10452,7 +10484,7 @@ def dispatch_proposal():
     current = get_current_user() or {}
     msg = _dispatch_compose_email(smtp_email, recipient, subject, table_html, table_plain, docx_bytes, filename,
                                   session.get('user_name') or current.get('full_name') or '',
-                                  current.get('email') if _DISPATCH_EMAIL_RE.match(str(current.get('email') or '')) else '')
+                                                                    reply_to_raw or (current.get('email') if _DISPATCH_EMAIL_RE.match(str(current.get('email') or '')) else ''))
     try:
         _dispatch_send_email(msg, smtp_email, smtp_password)
     except smtplib.SMTPAuthenticationError:
@@ -10461,14 +10493,21 @@ def dispatch_proposal():
         return _dispatch_error('The mail server rejected the login. Check SMTP_EMAIL and the App Password.', 502)
     except smtplib.SMTPRecipientsRefused:
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', 'recipient refused')
-        return _dispatch_error('The mail server refused that recipient address.', 400)
+                return _dispatch_error('The mail server refused all of the recipient addresses.', 400)
     except Exception as e:
         app.logger.exception('proposal dispatch: send failed')
         _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'failed', type(e).__name__)
         return _dispatch_error('Could not send the email. Please try again.', 502)
 
+        if refused:
+        bad = ', '.join(sorted(refused))
+        log_id = _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'partial', f'refused: {bad}')
+        return jsonify({'success': True, 'dispatch_id': log_id,
+                        'message': f'Sent, but the mail server refused: {bad}'})
     log_id = _dispatch_log(candidate_id, recipient, subject, mask, blank_projects, 'sent')
-    return jsonify({'success': True, 'message': f'Proposal sent to {recipient}', 'dispatch_id': log_id})
+    count = len(recipients)
+    return jsonify({'success': True, 'message': f'Proposal sent to {recipient}' if count <= 3 else f'Proposal sent to {count} recipients',
+                    'dispatch_id': log_id})
 @app.route('/api/candidates/<int:candidate_id>/projects', methods=['GET'])
 @login_required()
 def get_candidate_projects(candidate_id):
