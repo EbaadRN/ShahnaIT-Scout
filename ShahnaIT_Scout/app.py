@@ -3302,7 +3302,7 @@ def _dispatch_send_email(msg, smtp_email=None, smtp_password=None):
     resend.api_key = os.environ['RESEND_API_KEY']
     html_part, text_part = msg.get_body(('html',)), msg.get_body(('plain',))
     params = {
-        'from': os.environ.get('RESEND_FROM_EMAIL'),
+        'from': 'ShahnaIT <ibaadrn@shahnait.com>',
         'to': [a.strip() for a in msg['To'].split(',') if a.strip()],
         'subject': msg['Subject'],
         'html': html_part.get_content() if html_part else None,
