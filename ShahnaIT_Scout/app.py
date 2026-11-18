@@ -3834,20 +3834,6 @@ def reports_proposals():
     return resp
 
 
-@app.route('/api/reports/filter-options', methods=['GET'])
-@login_required()
-def reports_filter_options():
-    see_all = (session.get('role') or '').lower() in ('admin', 'manager')
-    conn = sqlite3.connect(DB_PATH)
-    try:
-        hrs = [r[0] for r in conn.execute("SELECT DISTINCT sent_by_name FROM proposal_dispatch_log WHERE sent_by_name <> '' ORDER BY 1")] if see_all else []
-        clients = [r[0] for r in conn.execute(
-            """SELECT name FROM (SELECT client_name AS name FROM requirements UNION SELECT proposed_client FROM candidates)
-               WHERE name IS NOT NULL AND TRIM(name) <> '' ORDER BY 1""")]
-    finally:
-        conn.close()
-    return jsonify({'hr': hrs, 'clients': clients, 'see_all': see_all})
-
 # ============ MASTER REPORTING ENGINE: proposals -> JSON / Excel / PDF ============
 # Paste this whole block into app.py directly AFTER the dispatch_proposal() route (before "@app.route('/api/candidates/<int:candidate_id>/projects'").
 import io
@@ -4194,41 +4180,6 @@ def _report_pdf(rows, label):
                Spacer(1, 10), table], onFirstPage=on_page, onLaterPages=on_page)
     buf.seek(0)
     return buf
-
-
-# ---------------------------------------------------------------- routes
-@app.route('/api/reports/proposals', methods=['GET'])
-@login_required()
-def reports_proposals():
-    """?range=day|week|month|custom &date=YYYY-MM-DD &start= &end= &hr= &skill= &client= &format=json|xlsx|pdf"""
-    fmt = (request.args.get('format') or 'json').strip().lower()
-    if fmt not in ('json', 'xlsx', 'pdf'):
-        return jsonify({'error': 'format must be json, xlsx or pdf'}), 400
-    see_all = (session.get('role') or '').lower() in ('admin', 'manager')       # recruiters only ever see their own proposals
-    try:
-        start, end, label, rows = _report_query(request.args, session.get('user_id'), see_all)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-    if fmt == 'json':
-        resp = jsonify({'range': {'start': start.isoformat(), 'end': end.isoformat(), 'label': label},
-                        'count': len(rows), 'columns': REPORT_COLUMNS, 'truncated': len(rows) >= REPORT_MAX_ROWS,
-                        'rows': rows, 'groups': [{'date': d, 'label': _report_day_label(_date.fromisoformat(d)),
-                                                  'count': sum(1 for x in rows if x['_date'] == d)}
-                                                 for d in sorted({x['_date'] for x in rows})]})
-    else:
-        stem = f"Proposals_{start.isoformat()}" + ('' if start == end else f"_to_{end.isoformat()}")
-        try:
-            if fmt == 'xlsx':
-                resp = send_file(_report_xlsx(rows, label), as_attachment=True, download_name=stem + '.xlsx',
-                                 mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            else:
-                resp = send_file(_report_pdf(rows, label), as_attachment=True, download_name=stem + '.pdf', mimetype='application/pdf')
-        except Exception:
-            app.logger.exception('proposal report export failed')
-            return jsonify({'error': 'Could not build the report file'}), 500
-    resp.headers['Cache-Control'] = 'no-store'                                    # contains phone numbers / emails
-    return resp
-
 
 @app.route('/api/reports/filter-options', methods=['GET'])
 @login_required()
