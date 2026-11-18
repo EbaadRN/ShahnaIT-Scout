@@ -1,0 +1,1122 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShahnaIT Scout</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+   <link rel="stylesheet" href="/static/css/style.css?v=1">
+
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/aeterna-theme.css?v=1">
+<link rel="stylesheet" href="/static/css/dispatch.css?v=1">
+
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:#1B2A4A;z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#FFFFFF;padding:40px;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="text-align:center;margin-bottom:30px;">
+            <h1 style="color:#1B2A4A;margin:0;font-size:28px;">🔍 ShahnaIT Scout</h1>
+            <p style="color:#64748B;margin:8px 0 0 0;">AI-Powered Recruitment Platform</p>
+        </div>
+        <div id="loginError" style="display:none;background:#FEE2E2;color:#991B1B;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:13px;"></div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group"><label>Email</label><input type="email" id="loginEmail" class="form-input" placeholder="ibaadrn@shahnait.com" required></div>
+            <div class="form-group"><label>Password</label><input type="password" id="loginPassword" class="form-input" placeholder="Enter password" required></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;padding:14px;font-size:16px;">🔐 Login</button>
+        </form>
+        <p style="text-align:center;margin-top:16px;font-size:12px;color:#94A3B8;">Default: ibaadrn@shahnait.com</p>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+<!-- Mobile Bottom Navigation -->
+<div id="mobileBottomNav" style="display:none;">
+    <button onclick="showPanel('dashboard'); loadDashboard();" class="mobile-nav-btn">📊<br><span>Dashboard</span></button>
+    <button onclick="showPanel('jobs'); loadJobs();" class="mobile-nav-btn">📋<br><span>Jobs</span></button>
+    <button onclick="showPanel('candidates'); loadCandidates();" class="mobile-nav-btn">👥<br><span>Candidates</span></button>
+    <button onclick="showPanel('interviews'); loadInterviews();" class="mobile-nav-btn">📅<br><span>Interviews</span></button>
+    <button onclick="openMobileMenu()" class="mobile-nav-btn">☰<br><span>More</span></button>
+</div>
+<div style="max-width: 1200px; margin: 0 auto;">
+    <div class="header">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div>
+            <h1>🎯 ShahnaIT Scout</h1>
+            <p>AI-Powered Recruitment Platform</p>
+        </div>
+        <button class="dark-mode-toggle" onclick="toggleDarkMode()" title="Toggle Dark Mode">🌙</button>
+    </div>
+</div>
+
+   <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+   <div class="sidebar-container" style="display: flex; gap: 20px; align-items: flex-start; margin-bottom: 20px;">
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰ Menu</button>
+    
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar" style="width: 220px; background: #1A4D4A; border-radius: 12px; padding: 20px 0; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <div style="padding: 0 20px 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 10px;">
+            <div style="color: #C9A96E; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Menu</div>
+        </div>
+                <!-- User Info -->
+        <div style="padding:10px 20px 12px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">👤</div>
+                <div style="flex:1;min-width:0;">
+                    <div id="userDisplayName" style="color:#FFFFFF;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">---</div>
+                    <div id="userDisplayRole" style="color:rgba(255,255,255,0.5);font-size:10px;">---</div>
+                </div>
+                <button onclick="logout()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;padding:5px 8px;border-radius:4px;cursor:pointer;font-size:11px;flex-shrink:0;" title="Logout">🚪</button>
+            </div>
+        </div>
+
+        <!-- 📋 Jobs -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📋 Jobs</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn active" id="tabJobs">📋 View Jobs</button>
+                <button class="tab-btn manager-only" id="tabCreateJob" style="display:none;">➕ Create Job</button>
+            </div>
+        </div>
+
+        <!-- 👥 Candidates -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>👥 Candidates</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabCandidates">👥 View Candidates</button>
+                <button class="tab-btn" id="tabUpload">📄 Upload Resume</button>
+            </div>
+        </div>
+
+        <!-- 📊 Insights -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📊 Insights</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabAnalyze">🔍 Analyze Match</button>
+                <button class="tab-btn" id="tabDashboard">📊 Dashboard</button>
+                <button class="tab-btn" id="tabKanban">📋 Kanban Board</button>
+                <button class="tab-btn" id="tabReports">📈 Daily Report</button>
+                <button class="tab-btn" id="tabProposalReports">📑 Proposal Reports</button>
+            </div>
+        </div>
+
+        <!-- 📅 Operations -->
+        <div class="sidebar-group">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📅 Operations</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabInterviews">📅 Interviews</button>
+            </div>
+        </div>
+
+        <!-- 💼 Management (Admin Only) -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>💼 Management</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabOnboarded">💼 Onboarded</button>
+            </div>
+        </div>
+
+        <!-- 💰 Finance (Admin Only) -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>💰 Finance</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabFinance">📊 Finance Dashboard</button>
+                <button class="tab-btn" id="tabInvoices">🧾 Invoices</button>
+                <button class="tab-btn" id="tabExpenses">💸 Expenses</button>
+            </div>
+        </div>
+
+        <!-- 📈 Reports (Admin Only) -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>📈 Reports</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabReportsFull">📈 Reports & Exports</button>
+            </div>
+        </div>
+
+        <!-- ⚙️ Admin -->
+        <div class="sidebar-group admin-only" style="display:none;">
+            <div class="sidebar-group-header" onclick="toggleSidebarGroup(this)">
+                <span>⚙️ Admin</span><i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="sidebar-group-items">
+                <button class="tab-btn" id="tabUsers">👥 Users</button> <button class="tab-btn" id="tabClients">🏢 Client Analytics</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Content Area -->
+    <div class="content-area" style="flex: 1; min-width: 0;">
+        <!-- Panel content goes here -->
+    
+    <div id="jobsPanel"><div id="jobsList"></div></div>
+    <div id="candidatesPanel" style="display:none;">
+    <!-- Static Dashboard Header - Stays at top while scrolling -->
+    <div class="candidate-inventory" style="position: sticky; top: 0; background: #F5F0E8; z-index: 10; padding-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <span style="font-size: 20px; font-weight: bold;">👥 Candidate Inventory</span>
+                <span id="candidateStats" style="font-size: 13px; color: #666; margin-left: 15px;"></span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="exportBtn" class="btn" style="background: #1A4D4A;">📥 Export CSV</button>
+                <button id="toggleViewBtn" class="btn" style="background: #6B7B7B;">📊 Grid/List</button>
+            </div>
+        </div>
+                <!-- Simple Stats Bar -->
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 10px 0 15px 0; background: white; padding: 12px 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #1A4D4A;">👥 Total:</span>
+                <span id="simple-total" style="font-weight: bold; color: #1A4D4A; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #4CAF50;">✅ Hired:</span>
+                <span id="simple-hired" style="font-weight: bold; color: #4CAF50; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #FF9800;">🟡 Pending:</span>
+                <span id="simple-pending" style="font-weight: bold; color: #FF9800; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #F44336;">❌ Rejected:</span>
+                <span id="simple-rejected" style="font-weight: bold; color: #F44336; font-size: 16px;">0</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+                <span style="font-weight: bold; color: #1A4D4A;">📊 Avg Score:</span>
+                <span id="simple-avg" style="font-weight: bold; color: #1A4D4A; font-size: 16px;">0%</span>
+            </div>
+        </div>
+        
+        <!-- Pipeline Stats -->
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 12px 0;">
+            <div id="stat-new" style="background: #2196F3; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-new-count">0</div>
+                <div style="font-size: 11px;">📥 New</div>
+            </div>
+            <div id="stat-screening" style="background: #FF9800; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-screening-count">0</div>
+                <div style="font-size: 11px;">🔍 Screening</div>
+            </div>
+            <div id="stat-interview" style="background: #FF5722; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-interview-count">0</div>
+                <div style="font-size: 11px;">🎤 Interview</div>
+            </div>
+            <div id="stat-offer" style="background: #9C27B0; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-offer-count">0</div>
+                <div style="font-size: 11px;">💼 Offer</div>
+            </div>
+            <div id="stat-hired" style="background: #4CAF50; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-hired-count">0</div>
+                <div style="font-size: 11px;">✅ Hired</div>
+            </div>
+            <div id="stat-rejected" style="background: #F44336; color: white; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer;">
+                <div style="font-size: 20px; font-weight: bold;" id="stat-rejected-count">0</div>
+                <div style="font-size: 11px;">❌ Rejected</div>
+            </div>
+        </div>
+        
+        <!-- Advanced Filters -->
+      <!-- Advanced Filters -->
+<div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <!-- Search Box -->
+        <input type="text" id="searchBox" placeholder="🔍 Search name, email, skills..." style="flex: 2; min-width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        
+<!-- Status Filter -->
+<select id="statusFilter" style="padding: 8px; border: 2px solid #D0D8E4; border-radius: 8px; font-weight:500;">
+    <option value="all">📋 All Status</option>
+    <option value="new">🆕 New</option>
+    <option value="proposed">📋 Proposed</option>
+    <option value="screening">🔍 Screening</option>
+    <option value="technical_l1">💻 Technical L1</option>
+    <option value="technical_l2">💻 Technical L2</option>
+    <option value="technical_l3">💻 Technical L3</option>
+    <option value="rejected">❌ Rejected</option>
+    <option value="shortlisted">⭐ Shortlisted</option>
+    <option value="offer_letter_shared">📄 Offer Shared</option>
+    <option value="onboarded">✅ Onboarded</option>
+</select>
+       
+        <!-- Score Filter -->
+        <select id="scoreFilter" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+            <option value="all">All Scores</option>
+            <option value="high">High (70%+)</option>
+            <option value="medium">Medium (40-69%)</option>
+            <option value="low">Low (<40%)</option>
+        </select>
+        
+        <!-- Uploader Filter -->
+        <input type="text" id="uploadedByFilter" placeholder="👤 Uploaded by..." style="min-width: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+        
+        <!-- Sort By -->
+        <select id="sortBy" style="padding: 8px; border: 1px solid #ccc; border-radius: 5px;">
+            <option value="score">Sort by Match Score</option>
+            <option value="name">Sort by Name</option>
+            <option value="date">Sort by Date Added</option>
+            <option value="status">Sort by Status</option>
+            <option value="uploader">Sort by Uploader</option>
+        </select>
+        
+        <!-- Clear Filters Button -->
+        <button id="clearFiltersBtn" class="btn" style="background: #6B7B7B; padding: 8px 16px; border: none; border-radius: 5px; color: white; cursor: pointer;">Clear Filters</button>
+      </div>
+   </div>
+</div>
+    
+    <!-- Candidates List - Updated with new card structure -->
+<div id="candidatesList" style="min-height: 400px;"></div>
+    
+    <!-- Pagination -->
+    <div id="pagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; flex-wrap: wrap; gap: 10px;">
+        <span id="paginationInfo" style="font-size: 13px; color: #666;"></span>
+        <div style="display: flex; gap: 5px; flex-wrap: wrap;" id="paginationControls"></div>
+    </div>
+    
+    <!-- Uploader Stats (Bar Chart) -->
+    <div id="uploaderStats" style="background: white; padding: 15px; border-radius: 8px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h4 style="margin: 0 0 10px 0;">👤 Uploader Stats</h4>
+        <div id="uploaderChart" style="display: flex; flex-direction: column; gap: 6px;"></div>
+    </div>
+</div>    
+    <div id="uploadPanel" style="display:none;">
+        <div class="card no-click">
+            <h3>📄 Single Resume Upload</h3>
+            <input type="file" id="resumeFile" accept=".pdf,.docx">
+<select id="uploaderSelect" class="form-input" style="margin:10px 0;">
+    <option value="">-- Select Uploader --</option>
+</select>
+<button id="parseBtn">🔍 Parse & Save</button>
+            <div id="parseResult"></div>
+        </div>
+        
+        <div class="card no-click" style="margin-top: 20px;">
+            <h3>📚 Bulk Resume Upload (Select Multiple Files)</h3>
+            <p>Hold Ctrl (or Cmd on Mac) to select multiple PDF/DOCX files</p>
+            <input type="file" id="multiResumeFiles" multiple accept=".pdf,.docx"> <select id="bulkUploaderSelect" class="form-input" style="margin:10px 0;">
+    <option value="">-- Select Uploader --</option>
+</select>
+            <div id="selectedFilesList" class="file-list" style="display:none;"></div>
+            <button id="bulkUploadBtn" class="btn">🚀 Upload & Parse All</button>
+            <div id="bulkUploadResult"></div>
+        </div>
+    </div>
+
+<div id="createJobPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>➕ Create Job / Requirement</h3>
+        
+        <!-- Upload JD File -->
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>📄 Upload JD File (PDF/DOCX)</strong>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+                <input type="file" id="jdFileInput" accept=".pdf,.docx" style="flex:1;">
+                <button id="parseJDBtn" class="btn btn-secondary" style="white-space:nowrap;">🔍 Parse JD</button>
+            </div>
+            <div id="jdParseStatus" style="margin-top:6px;font-size:12px;"></div>
+        </div>
+        
+        <div style="text-align:center;margin:10px 0;color:#94A3B8;">— OR enter manually —</div>
+        
+        <!-- Row 1: Title & Client -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Requirement Title *</label><input type="text" id="jobTitle" class="form-input" placeholder="e.g. Senior Python Developer"></div>
+            <div class="form-group"><label>Client / Company</label><input type="text" id="jobCompany" class="form-input" placeholder="e.g. TCS"></div>
+        </div>
+        
+        <!-- Row 2: Working Mode & Business Model -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+                <label>Working Mode</label>
+                <select id="jobWorkingMode" class="form-input">
+                    <option value="Not Specified">Not Specified</option>
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Business Model</label>
+                <select id="jobBusinessModel" class="form-input">
+                    <option value="Not Specified">Not Specified</option>
+                    <option value="C2C">C2C</option>
+                    <option value="C2H">C2H</option>
+                    <option value="Permanent">Permanent</option>
+                    <option value="Contract">Contract</option>
+                </select>
+            </div>
+        </div>
+        
+        <!-- Hybrid Days (shown conditionally) -->
+        <div class="form-group" id="hybridDaysGroup" style="display:none;">
+            <label>Hybrid Days (per week)</label>
+            <input type="number" id="jobHybridDays" class="form-input" value="0" min="0" max="7">
+        </div>
+
+             <div class="form-group" id="officeLocationGroup" style="display:none;">
+    <label>Office Location(s)</label>
+    <input type="text" id="jobOfficeLocation" class="form-input" placeholder="e.g. Bangalore, Mumbai (comma separated)">
+</div>
+        
+        <!-- Row 3: Payroll & End Client -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Payroll Company</label><input type="text" id="jobPayroll" class="form-input" placeholder="e.g. Randstad"></div>
+            <div class="form-group"><label>End Client</label><input type="text" id="jobEndClient" class="form-input" placeholder="e.g. Microsoft"></div>
+        </div>
+        
+        <!-- Row 4: Experience, Budget, Headcount -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Years of Experience</label><input type="number" id="jobExperience" class="form-input" value="0" min="0"></div>
+            <div class="form-group"><label>Budget</label><input type="text" id="jobBudget" class="form-input" placeholder="e.g. 15-20 LPA"></div> <div class="form-group"><label>Max Salary</label><input type="text" id="jobMaxSalary" class="form-input" placeholder="e.g. 200K per month"></div>
+            <div class="form-group"><label>Headcount</label><input type="number" id="jobHeadcount" class="form-input" value="1" min="1"></div>
+        </div>
+        
+        <!-- Roles & Responsibilities -->
+        <div class="form-group"><label>Roles & Responsibilities</label><textarea id="jobRoles" class="form-input" rows="4" placeholder="Key responsibilities..."></textarea></div>
+        
+        <!-- Row 5: Qualifications & Certifications -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group"><label>Qualifications</label><textarea id="jobQualifications" class="form-input" rows="3" placeholder="Required qualifications..."></textarea></div>
+            <div class="form-group"><label>Certifications Required</label><input type="text" id="jobCertifications" class="form-input" placeholder="e.g. AWS Certified, PMP..."></div>
+        </div>
+        
+        <!-- Skills & Description -->
+        <div class="form-group"><label>Required Skills (comma separated)</label><input type="text" id="jobSkills" class="form-input" placeholder="Python, AWS, Docker..."></div>
+        <div class="form-group"><label>Job Description</label><textarea id="jobDesc" class="form-input" rows="3" placeholder="Full job description..."></textarea></div>
+        
+                      <button id="createJobBtn" class="btn btn-primary">💾 Create Requirement</button>
+    </div>
+</div>   <!-- This closes createJobPanel -->
+
+
+<div id="interviewsPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>📅 Interview Tracker</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Schedule Interview</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Candidate ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span><input type="text" id="intCandidateSearch" class="form-input" placeholder="001" style="border:none;flex:1;" oninput="searchInterviewCandidate()" list="intCandidateList"></div><datalist id="intCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Date</label><input type="date" id="intDate" class="form-input"></div>
+                <div><label style="font-size:12px;">Time</label><input type="time" id="intTime" class="form-input"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Round</label><select id="intRound" class="form-input"><option value="L1">L1 - Technical</option><option value="L2">L2 - Technical</option><option value="L3">L3 - Architect</option><option value="Managerial">Managerial</option><option value="HR">HR Discussion</option><option value="Client">Client Round</option></select></div>
+                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="intOwner" class="form-input" placeholder="HR Name"></div>
+                <div><label style="font-size:12px;">Client Name</label><input type="text" id="intClient" class="form-input" placeholder="Client"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Client POC</label><input type="text" id="intPOC" class="form-input" placeholder="Client Contact Person"></div>
+                <div><label style="font-size:12px;">Requirement ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="intRequirement" class="form-input" placeholder="001" style="border:none;flex:1;" list="intReqList"></div><datalist id="intReqList"></datalist></div>
+            </div>
+            <button id="scheduleInterviewBtn" class="btn btn-primary" style="margin-top:12px;">📅 Schedule Interview</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+            <input type="date" id="intFilterDate" class="form-input" style="width:160px;" onchange="loadInterviews()">
+            <select id="intFilterRound" class="form-input" style="width:150px;" onchange="loadInterviews()">
+                <option value="">All Rounds</option><option value="L1">L1</option><option value="L2">L2</option><option value="L3">L3</option><option value="Managerial">Managerial</option><option value="HR">HR</option><option value="Client">Client</option>
+            </select>
+            <select id="intFilterVerdict" class="form-input" style="width:150px;" onchange="loadInterviews()">
+                <option value="">All Verdicts</option><option value="Scheduled">Scheduled</option><option value="Selected">Selected</option><option value="Rejected">Rejected</option><option value="Hold">On Hold</option><option value="No Show">No Show</option><option value="Rescheduled">Rescheduled</option>
+            </select>
+            <button class="btn btn-secondary" onclick="document.getElementById('intFilterDate').value='';document.getElementById('intFilterRound').value='';document.getElementById('intFilterVerdict').value='';loadInterviews();">🔄 Clear Filters</button>
+        </div>
+        <div id="interviewsList"></div>
+    </div>
+</div>
+
+<div id="analyzePanel" style="display:none;">
+    <div class="card no-click">
+        <h3>🔍 AI Match Analysis - Single Candidate</h3>
+        <div class="flex">
+            <div class="flex-1"><select id="jobSelect"></select></div>
+            <div class="flex-1"><select id="candidateSelect"></select></div>
+        </div>
+        <button id="analyzeBtn">🤖 Run Analysis</button>
+        <div id="analysisResult"></div>
+    </div>
+    
+    <div class="card no-click" style="margin-top: 20px;">
+        <h3>📊 Match JD Against ALL Candidates</h3>
+        <p>Select a Job to see how ALL candidates match (even 1% matches)</p>
+        <div class="flex">
+            <div class="flex-1"><select id="batchJobSelect"></select></div>
+        </div>
+        <button id="batchAnalyzeBtn">🎯 Match Against All Candidates</button>
+        <div id="batchAnalysisResult"></div>
+    </div>
+</div>
+</div>
+    <!-- Dashboard Panel -->
+    <div id="dashboardPanel" style="display:none;">
+        <div class="card no-click">
+        <div class="admin-only" style="display:none;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-sm btn-secondary" onclick="triggerBackup()">💾 Backup Now</button> <button class="btn btn-sm btn-secondary" onclick="testTelegram()">📱 Test Telegram</button>
+    <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
+    <button class="btn btn-sm btn-secondary" onclick="listBackups()">📂 View Backups</button>
+</div>
+<div id="backupStatus" style="font-size:12px;margin-bottom:10px;"></div>
+            <h3>📊 Recruitment Dashboard</h3>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-sm btn-secondary" onclick="window.open('/api/admin/export-pdf')">📄 Export PDF Report</button>
+</div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: #1A4D4A; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="totalCandidates">0</div>
+                    <div style="font-size: 12px;">Total Candidates</div>
+                </div>
+                <div style="background: #1B6B2E; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="matchedCandidates">0</div>
+                    <div style="font-size: 12px;">Matched (70%+)</div>
+                </div>
+                <div style="background: #2196F3; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="hiredCandidates">0</div>
+                    <div style="font-size: 12px;">Hired</div>
+                </div>
+                <div style="background: #F44336; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 28px; font-weight: bold;" id="rejectedCandidates">0</div>
+                    <div style="font-size: 12px;">Rejected</div>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Match Score Distribution</h4>
+                    <canvas id="matchChart" height="200"></canvas>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Pipeline Funnel</h4>
+                    <canvas id="pipelineChart" height="200"></canvas>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Top Skills</h4>
+                    <div id="skillsCloud" style="min-height: 100px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;"></div>
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <h4>Candidates Over Time</h4>
+                    <canvas id="trendChart" height="200"></canvas>
+                </div>
+                      </div>
+        </div>
+    </div>
+
+<div id="reportsPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>📈 Daily Activity Report</h3>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:15px;">
+            <input type="date" id="reportDate" class="form-input" style="width:200px;" onchange="loadDailyReport()">
+            <button class="btn btn-secondary" onclick="document.getElementById('reportDate').value = new Date().toISOString().split('T')[0]; loadDailyReport();">📅 Today</button>
+        </div>
+        <div id="dailyReportContent"></div>
+    </div>
+</div>
+<div id="proposalReportsPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>📑 Proposal Reports</h3>
+        <p class="rp-hint">Every proposal sent with <b>Dispatch</b>, grouped by date. Filter, then download as Excel or PDF.</p>
+
+        <div class="rp-filters">
+            <div class="rp-field">
+                <label>Period</label>
+                <div class="rp-seg" id="rpRangeSeg">
+                    <button type="button" data-range="day" class="active">Day</button>
+                    <button type="button" data-range="week">Week</button>
+                    <button type="button" data-range="month">Month</button>
+                    <button type="button" data-range="custom">Custom</button>
+                </div>
+            </div>
+            <div class="rp-field" id="rpDateWrap">
+                <label for="rpDate">Date</label>
+                <input type="date" id="rpDate" class="form-input">
+            </div>
+            <div class="rp-field" id="rpStartWrap" style="display:none;">
+                <label for="rpStart">From</label>
+                <input type="date" id="rpStart" class="form-input">
+            </div>
+            <div class="rp-field" id="rpEndWrap" style="display:none;">
+                <label for="rpEnd">To</label>
+                <input type="date" id="rpEnd" class="form-input">
+            </div>
+            <div class="rp-field" id="rpHrWrap">
+                <label for="rpHr">HR Name</label>
+                <input type="text" id="rpHr" class="form-input" list="rpHrList" placeholder="All HRs" autocomplete="off">
+                <datalist id="rpHrList"></datalist>
+            </div>
+            <div class="rp-field">
+                <label for="rpSkill">Skill Set</label>
+                <input type="text" id="rpSkill" class="form-input" placeholder="e.g. Java, SAP" autocomplete="off">
+            </div>
+            <div class="rp-field">
+                <label for="rpClient">Client Name</label>
+                <input type="text" id="rpClient" class="form-input" list="rpClientList" placeholder="All clients" autocomplete="off">
+                <datalist id="rpClientList"></datalist>
+            </div>
+        </div>
+
+        <div class="rp-actions">
+            <button class="btn btn-primary" onclick="rpLoad()">🔍 Apply filters</button>
+            <button class="btn btn-secondary" onclick="rpReset()">↺ Reset</button>
+            <span class="rp-spacer"></span>
+            <button class="btn btn-primary" id="rpXlsxBtn" onclick="rpDownload('xlsx')">📥 Download Excel</button>
+            <button class="btn btn-primary" id="rpPdfBtn" onclick="rpDownload('pdf')">📄 Download PDF</button>
+        </div>
+
+        <div class="rp-summary" id="rpSummary"></div>
+        <div class="rp-scroll"><table class="rp-table" id="rpTable"></table></div>
+    </div>
+</div>
+
+<div id="kanbanPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>📋 Kanban Board</h3>
+        <div id="kanbanBoard" style="display:flex;flex-direction:row;gap:10px;overflow-x:auto;padding:10px 0;max-height:70vh;"></div>
+    </div>
+</div>
+
+<div id="onboardedPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>💼 Onboarded Resources</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Onboard New Resource</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Candidate</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span><input type="text" id="onbCandidate" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbCandidateList" oninput="searchOnbCandidate()"></div><datalist id="onbCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Client</label><input type="text" id="onbClient" class="form-input" placeholder="Client name"></div>
+                <div><label style="font-size:12px;">DOJ</label><input type="date" id="onbDOJ" class="form-input"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Monthly Salary (₹)</label><input type="number" id="onbSalary" class="form-input" placeholder="50000"></div>
+                <div><label style="font-size:12px;">Billing Rate (₹)</label><input type="number" id="onbBilling" class="form-input" placeholder="75000"></div>
+                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="onbOwner" class="form-input" placeholder="HR Name"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Work Location</label><input type="text" id="onbLocation" class="form-input" placeholder="Remote/Hybrid/Onsite"></div>
+                <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Requirement ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()"></div><datalist id="onbReqList"></datalist></div>
+                <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
+            </div>
+            <div style="margin-top:10px;"><label style="font-size:12px;">Attach Documents (PO/SOW/Offer Letter)</label><input type="file" id="onbDocuments" multiple accept=".pdf,.docx,.doc" style="font-size:12px;"></div>
+            <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
+        </div>
+        <div id="onboardedList"></div>
+    </div>
+</div>
+
+<div id="financePanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>💰 Finance Dashboard</h3>
+        <!-- Summary Cards -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:20px;">
+            <div style="background:linear-gradient(135deg,#1B5E20,#43A047);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finTotalRevenue">₹0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Total Monthly Revenue</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#0D47A1,#1E88E5);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finTotalSalary">₹0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Total Monthly Salary</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#E65100,#F57C00);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finTotalProfit">₹0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Monthly Profit</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#4A148C,#7B1FA2);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finAvgMargin">0%</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Avg Profit Margin</div>
+            </div>
+            <div style="background:linear-gradient(135deg,#004D40,#00796B);color:#fff;padding:20px;border-radius:12px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.1);">
+                <div style="font-size:28px;font-weight:700;" id="finActiveResources">0</div>
+                <div style="font-size:12px;text-transform:uppercase;opacity:0.9;">Active Resources</div>
+            </div>
+        </div>
+        <div id="financeBreakdown"></div>
+    </div>
+</div>
+
+<div id="onboardedPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>💼 Onboarded Resources</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Onboard New Resource</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Candidate</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:14px;">SIT-C-</span><input type="text" id="onbCandidate" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbCandidateList" oninput="searchOnbCandidate()"></div><datalist id="onbCandidateList"></datalist></div>
+                <div><label style="font-size:12px;">Client</label><input type="text" id="onbClient" class="form-input" placeholder="Client name"></div>
+                <div><label style="font-size:12px;">DOJ</label><input type="date" id="onbDOJ" class="form-input"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Monthly Salary (₹)</label><input type="number" id="onbSalary" class="form-input" placeholder="50000"></div>
+                <div><label style="font-size:12px;">Billing Rate (₹)</label><input type="number" id="onbBilling" class="form-input" placeholder="75000"></div>
+                <div><label style="font-size:12px;">Resource Owner</label><input type="text" id="onbOwner" class="form-input" placeholder="HR Name"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Work Location</label><input type="text" id="onbLocation" class="form-input" placeholder="Remote/Hybrid/Onsite"></div>
+                <div><label style="font-size:12px;">Business Model</label><select id="onbModel" class="form-input"><option value="C2C">C2C</option><option value="C2H">C2H</option><option value="FTE">FTE</option><option value="Fixed Price">Fixed Price</option></select></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Requirement ID</label><div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;"><span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span><input type="text" id="onbRequirementId" class="form-input" placeholder="001" style="border:none;flex:1;" list="onbReqList" oninput="searchOnbRequirement()"></div><datalist id="onbReqList"></datalist></div>
+                <div><label style="font-size:12px;">PO Number</label><input type="text" id="onbPO" class="form-input" placeholder="PO-001"></div>
+            </div>
+            <div style="margin-top:10px;"><label style="font-size:12px;">Attach Documents (PO/SOW/Offer Letter)</label><input type="file" id="onbDocuments" multiple accept=".pdf,.docx,.doc" style="font-size:12px;"></div>
+            <button id="onboardBtn" class="btn btn-primary" style="margin-top:12px;">💼 Onboard Resource</button>
+        </div>
+        <div id="onboardedList"></div>
+    </div>
+</div>
+
+<div id="reportsFullPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>📈 Reports & Exports</h3>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
+            <div class="card">
+                <h4>📊 Candidate Reports</h4>
+                <button class="btn btn-primary" onclick="exportCandidatesCSV()">📥 Export Candidates CSV</button>
+                <button class="btn btn-primary" onclick="exportCandidatesPDF()">📄 Export Candidates PDF</button>
+            </div>
+            <div class="card">
+                <h4>💰 Finance Reports</h4>
+                <button class="btn btn-primary" onclick="exportFinancePDF()">📄 Finance Report PDF</button>
+                <button class="btn btn-primary" onclick="exportInvoicesCSV()">📥 Invoices CSV</button>
+                <button class="btn btn-primary" onclick="exportExpensesCSV()">📥 Expenses CSV</button>
+            </div>
+            <div class="card">
+                <h4>📅 Interview Reports</h4>
+                <button class="btn btn-primary" onclick="exportInterviewsCSV()">📥 Interviews CSV</button>
+            </div>
+            <div class="card admin-only" style="display:none;">
+                 <h4>💾 Backup</h4>
+                 <button class="btn btn-primary" onclick="triggerBackup()">💾 Backup Now</button>
+                 <button class="btn btn-secondary" onclick="listBackups()">📂 View Backups</button>
+                 <div id="backupStatus2" style="font-size:12px;margin-top:5px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="expensesPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>💸 Expenses</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Add Expense</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Date</label><input type="date" id="expDate" class="form-input"></div>
+                <div>
+                    <label style="font-size:12px;">Category</label>
+                    <select id="expCategory" class="form-input">
+                        <option value="Office Rent">Office Rent</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Internet">Internet</option>
+                        <option value="Software Subscription">Software Subscription</option>
+                        <option value="Recruitment">Recruitment</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Salary">Salary</option>
+                        <option value="Professional Services">Professional Services</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div><label style="font-size:12px;">Amount (₹)</label><input type="number" id="expAmount" class="form-input" placeholder="1000"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Vendor / Payee</label><input type="text" id="expVendor" class="form-input" placeholder="Vendor name"></div>
+                <div><label style="font-size:12px;">Paid By</label><input type="text" id="expPaidBy" class="form-input" placeholder="Name"></div>
+            </div>
+            <div style="margin-top:10px;"><label style="font-size:12px;">Description</label><textarea id="expDesc" class="form-input" rows="2" placeholder="What was this expense for?"></textarea></div> <div style="margin-top:10px;"><label style="font-size:12px;">Attach Bill (PDF/DOCX/JPG/PNG)</label><input type="file" id="expFile" accept=".pdf,.docx,.jpg,.jpeg,.png"></div> <div style="margin-top:10px;"><label style="font-size:12px;">Attach Bill (PDF/DOCX/JPG/PNG)</label><input type="file" id="expFile" accept=".pdf,.docx,.jpg,.jpeg,.png"></div>
+            <button id="addExpenseBtn" class="btn btn-primary" style="margin-top:12px;">💸 Add Expense</button>
+        </div>
+        <div id="expensesList"></div>
+    </div>
+</div>
+<div id="invoicesPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>🧾 Invoices <button class="btn btn-sm btn-secondary" onclick="openCompanySettings()" style="float:right;">⚙️ Company Settings</button></h3>
+        <div id="invoicesList"></div>
+    </div>
+</div>
+
+<div id="clientsPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>🏢 Client Analytics</h3>
+        <div id="clientsList"></div>
+    </div>
+</div>
+
+<div id="usersPanel" style="display:none;">
+    <div class="card no-click">
+        <h3>👥 User Management</h3>
+        <div style="background:#F0F4FA;padding:14px;border-radius:8px;margin-bottom:14px;border:2px dashed #D0D8E4;">
+            <strong>➕ Add New User</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:10px;">
+                <div><label style="font-size:12px;">Full Name</label><input type="text" id="newUserName" class="form-input" placeholder="John Doe"></div>
+                <div><label style="font-size:12px;">Email</label><input type="email" id="newUserEmail" class="form-input" placeholder="john@shahnait.com"></div>
+                <div><label style="font-size:12px;">Password</label><input type="password" id="newUserPassword" class="form-input" placeholder="Min 6 characters"></div>
+                <div><label style="font-size:12px;">Role</label><select id="newUserRole" class="form-input"><option value="admin">Admin</option><option value="manager">Manager</option><option value="recruiter">Recruiter</option></select></div>
+            </div>
+            <button id="addUserBtn" class="btn btn-primary" style="margin-top:12px;">➕ Add User</button>
+            <div id="addUserStatus" style="margin-top:6px;font-size:12px;"></div>
+        </div>
+        <div id="usersList"></div>
+    </div>
+</div>
+
+
+<!-- ============================================ -->
+<!-- MODALS - SHAHNAIT SCOUT                     -->
+<!-- ============================================ -->
+
+<!-- ============ PROPOSAL DISPATCH MODAL ============ -->
+
+
+<!-- ============ END OF PROPOSAL DISPATCH MODAL ============ -->
+
+<div id="dispatchModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="dpTitle">
+    <div class="modal-content modal-xl">
+        <div class="modal-header">
+            <h2 id="dpTitle">📤 Dispatch Proposal</h2>
+            <div style="display:flex;align-items:center;gap:15px;">
+                <span id="dpCandidateLabel" style="font-size:13px;opacity:0.9;"></span>
+                <span class="close" onclick="dpClose()" title="Close">&times;</span>
+            </div>
+        </div>
+        <div class="modal-body" style="padding:20px 24px;">
+            <div class="dp-toolbar">
+                <span class="dp-label">Tracker</span>
+                <button type="button" class="btn btn-secondary" onclick="dpAddRow()">+ Row</button>
+                <button type="button" class="btn btn-secondary" onclick="dpAddCol()">+ Column</button>
+            </div>
+            <p class="dp-hint">Prefilled from the saved profile. Click any cell to edit it; use ✕ to remove a row or column. Empty rows are skipped.</p>
+            <div class="dp-scroll"><table class="dp-table" id="dpTable"></table></div>
+
+            <div class="dp-grid">
+                <div>
+                    <label for="dpRecipient">Recipient email(s)</label>
+                    <input type="text" id="dpRecipient" class="form-input" inputmode="email" placeholder="client1@company.com, client2@company.com" autocomplete="off" maxlength="2000" style="width:100%;">
+                    <small style="color:var(--ae-muted,#5A6F8A);">Separate several addresses with commas (max 10). Everyone will see the other recipients.</small>
+                </div>
+                <div>
+                    <label for="dpReplyTo">Reply-To Email (Optional)</label>
+                    <input type="email" id="dpReplyTo" class="form-input" placeholder="you@shahnait.com" autocomplete="off" maxlength="254" style="width:100%;">
+                    <small style="color:var(--ae-muted,#5A6F8A);">Replies go here. Left blank, replies go to your own login email.</small>
+                </div>
+                <div>
+                    <label for="dpSubject">Email subject</label>
+                    <input type="text" id="dpSubject" class="form-input" maxlength="200" style="width:100%;">
+                </div>
+                <div class="dp-check">
+                    <input type="checkbox" id="dpMask">
+                    <label for="dpMask" style="margin:0;">Mask Contact Details
+                        <small>Leaves the phone and email blank in the resume and removes any in the tracker.</small></label>
+                </div>
+                <div>
+                    <label for="dpBlank">Add Blank Project Boxes</label>
+                    <input type="number" id="dpBlank" class="form-input" min="0" max="10" value="0" style="width:100%;">
+                    <small style="color:var(--ae-muted,#5A6F8A);">Empty project tables added to the end of the resume to fill in later in Word (0–10).</small>
+                </div>
+            </div>
+
+            <div id="dpStatus" class="dp-status" role="status" aria-live="polite"></div>
+            <div class="dp-footer">
+                <button type="button" class="btn btn-secondary" id="dpCancelBtn" onclick="dpClose()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="dpSendBtn" onclick="dpSend()">📤 Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/dispatch.js?v=1"></script>
+<!-- ============ CANDIDATE PROFILE MODAL ============ -->
+<div id="candidateModal" class="modal">
+    <div class="modal-content modal-xl">
+        <div class="modal-header">
+            <h2 id="modalCandidateName">Candidate Profile</h2>
+            <div style="display:flex;align-items:center;gap:15px;">
+                <span id="modalHRName" style="font-size:13px;opacity:0.9;"></span>
+                <button type="button" id="dispatchProposalBtn" class="btn btn-primary" onclick="openDispatchModal()" style="padding:7px 14px;font-size:13px;white-space:nowrap;background:#fff;color:#1B2A4A;border:1px solid rgba(255,255,255,.7);">📤 Dispatch Proposal</button>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+        </div>
+        <div class="modal-body" id="modalBody" style="padding:0;">
+            <!-- AI Summary Section -->
+            <div id="aiSummarySection" style="display:none;background:#F0F4FA;padding:14px 20px;border-bottom:2px solid #D0D8E4;margin:0;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <i class="fas fa-robot" style="color:#1B2A4A;font-size:16px;"></i>
+                    <strong style="color:#1B2A4A;">AI Analysis Summary</strong>
+                    <span id="aiMatchedJD" style="font-size:12px;background:#1B2A4A;color:#fff;padding:2px 10px;border-radius:12px;"></span>
+                </div>
+                <p id="aiSummaryText" style="margin:4px 0 0 0;font-size:14px;color:#0F1D33;line-height:1.7;max-height:300px;overflow-y:auto;white-space:pre-wrap;padding:8px 12px;background:#FFFFFF;border-radius:6px;border:1px solid #D0D8E4;"></p>
+            </div>
+            
+            <!-- Main Content Grid -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px;">
+                <!-- LEFT COLUMN -->
+                <div style="min-width:0;">
+                    <!-- Basic Info -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-user"></i> Basic Information</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>First Name</label><input type="text" id="edit_first_name" class="form-input"></div>
+                            <div class="form-group"><label>Last Name</label><input type="text" id="edit_last_name" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Email ID</label><input type="email" id="edit_email" class="form-input"></div>
+                            <div class="form-group"><label>Phone Number</label><input type="text" id="edit_phone" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Designation</label><input type="text" id="edit_designation" class="form-input"></div>
+                            <div class="form-group"><label>LinkedIn</label><input type="text" id="edit_linkedin" class="form-input"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label>Location</label><input type="text" id="edit_location" class="form-input"></div>
+                            <div class="form-group"><label>Years of Experience</label><input type="text" id="edit_years_exp" class="form-input"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Compensation -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-money-bill-wave"></i> Compensation</h3>
+                        <div class="form-row">
+                            <div class="form-group"><label>Current CTC</label><input type="text" id="edit_current_ctc" class="form-input"></div>
+                            <div class="form-group"><label>Expected CTC</label><input type="text" id="edit_expected_ctc" class="form-input"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Skills -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-code"></i> Skill Sets</h3>
+                        <div id="skillsContainer" style="display:flex;flex-wrap:wrap;gap:6px;min-height:30px;"></div>
+                        <div style="display:flex;gap:6px;margin-top:8px;">
+                            <input type="text" id="newSkillInput" class="form-input" placeholder="Add skill..." style="flex:1;">
+                            <button class="btn btn-sm" onclick="addSkillToCandidate()">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Projects -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-project-diagram"></i> Projects</h3>
+                        <div id="projectsContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addProjectEntry()" style="margin-top:6px;">+ Add Project</button>
+                    </div>
+
+                    <!-- Education -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-graduation-cap"></i> Education</h3>
+                        <div id="educationContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addEducationEntry()" style="margin-top:6px;">+ Add Education</button>
+                    </div>
+                </div>
+                
+                <!-- RIGHT COLUMN -->
+                <div style="min-width:0;">
+                    <!-- Proposed Info -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-building"></i> Proposed To</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Client</label>
+                                <div style="display:flex;gap:4px;align-items:center;">
+                                    <select id="edit_proposed_client" class="form-input" style="flex:1;min-width:0;" onchange="loadRequirementsForClient()">
+                                        <option value="">-- Select Client --</option>
+                                    </select>
+                                    <button class="btn btn-sm" onclick="addNewClient()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Requirement</label>
+                                <div style="display:flex;gap:4px;align-items:center;">
+                                    <div style="display:flex;align-items:center;background:#fff;border:1px solid #D0D8E4;border-radius:6px;flex:1;min-width:0;">
+                                        <span style="padding:8px 4px 8px 10px;color:#1B2A4A;font-weight:bold;font-size:13px;">SIT-R-</span>
+                                        <input type="text" id="edit_proposed_requirement" class="form-input" style="border:none;flex:1;" list="requirementList" placeholder="001" oninput="filterRequirementDropdown()" autocomplete="off">
+                                    </div>
+                                    <datalist id="requirementList"></datalist>
+                                    <button class="btn btn-sm" onclick="addNewRequirement()" style="white-space:nowrap;padding:8px 10px;flex-shrink:0;">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Candidate Stage -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-flag-checkered"></i> Candidate Stage</h3>
+                        <select id="edit_stage" class="form-input" onchange="updateStageColor()">
+                            <option value="new">🆕 New</option>
+                            <option value="proposed">📋 Proposed</option>
+                            <option value="screening">🔍 Screening</option>
+                            <option value="technical_l1">💻 Technical L1</option>
+                            <option value="technical_l2">💻 Technical L2</option>
+                            <option value="technical_l3">💻 Technical L3</option>
+                            <option value="rejected">❌ Rejected</option>
+                            <option value="shortlisted">⭐ Shortlisted</option>
+                            <option value="offer_letter_shared">📄 Offer Shared</option>
+                            <option value="onboarded">✅ Onboarded</option>
+                        </select>
+                        <div id="stageColorBar" style="height:6px;border-radius:3px;margin-top:6px;"></div>
+                    </div>
+                    
+                    <!-- Work History -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-briefcase"></i> Work History</h3>
+                        <div id="workHistoryContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addWorkEntry()" style="margin-top:6px;">+ Add</button>
+                    </div>
+
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-chart-line"></i> Relevant Experience</h3>
+                        <div id="relevantExperienceContainer"></div>
+                        <div style="display:flex;gap:6px;margin-top:8px;">
+                            <input type="text" id="relevantSkillInput" class="form-input" placeholder="Skill" style="flex:1;">
+                            <input type="number" id="relevantYearsInput" class="form-input" placeholder="Years" style="width:100px;">
+                            <button class="btn btn-sm" onclick="addRelevantExperience()">+</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Certifications -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-certificate"></i> Certifications</h3>
+                        <div id="certificationsContainer"></div>
+                        <button class="btn btn-sm btn-secondary" onclick="addCertification()" style="margin-top:6px;">+ Add</button>
+                    </div>
+                    
+                    <!-- Attachments -->
+                    <div class="modal-section">
+                        <h3 class="modal-section-title"><i class="fas fa-paperclip"></i> Attachments</h3>
+                        <div id="attachmentsList" style="margin-bottom:8px;"></div>
+                        <input type="file" id="attachmentFileInput" multiple style="display:none;" onchange="uploadAttachments()">
+                        <button class="btn btn-sm btn-secondary" onclick="document.getElementById('attachmentFileInput').click()">📎 Attach Files</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FULL WIDTH: Resume Section -->
+            <div style="padding:0 20px 20px 20px;">
+                <div class="modal-section">
+                    <h3 class="modal-section-title"><i class="fas fa-file-alt"></i> Resume</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button class="btn btn-sm" onclick="viewOriginalResume(currentCandidateId)"><i class="fas fa-external-link-alt"></i> View Original Resume</button>
+                        <button class="btn btn-sm btn-secondary" onclick="downloadOriginalResume(currentCandidateId)"><i class="fas fa-download"></i> Download Resume</button>
+                        <button class="btn btn-sm btn-secondary" onclick="copyResumeText()"><i class="fas fa-copy"></i> Copy Text</button>
+                    </div>
+                    <div id="resumeFullText" style="background:#F5F7FA;border:2px solid #D0D8E4;border-radius:8px;padding:16px;max-height:400px;overflow-y:auto;font-size:13px;line-height:1.6;white-space:pre-wrap;color:#0F1D33;font-family:'Times New Roman',serif;"></div>
+                </div>
+                
+                <!-- Notes -->
+                <div class="modal-section">
+                    <h3 class="modal-section-title"><i class="fas fa-sticky-note"></i> Notes</h3>
+                    <textarea id="edit_notes" class="form-input" rows="3" placeholder="Add notes about this candidate..."></textarea>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:15px;border-top:2px solid #E2E8F0;">
+                    <button class="btn btn-primary" onclick="saveCandidateChanges()"><i class="fas fa-save"></i> Save Changes</button>
+                    <button class="btn btn-secondary" onclick="generateCandidatePDF()"><i class="fas fa-file-pdf"></i> Generate PDF Report</button>
+                    <button class="btn btn-secondary" onclick="runAIAnalysis()"><i class="fas fa-robot"></i> Run AI Analysis</button>
+                    <button class="btn btn-danger" onclick="closeModal()" style="margin-left:auto;">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT JOB MODAL -->
+<div id="editJobModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header"><h2>✏️ Edit Job</h2><span class="close" onclick="closeEditJobModal()">&times;</span></div>
+        <div class="modal-body" id="editJobModalBody"></div>
+    </div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div id="previewModal" class="modal">
+    <div class="modal-content modal-xl">
+        <div class="modal-header"><h2>Preview</h2><span class="close" onclick="closePreviewModal()">&times;</span></div>
+        <div class="modal-body" id="previewBody"></div>
+    </div>
+</div>
+
+<script src="/static/js/app.js?v=1"></script>
+
+<!-- COMPANY SETTINGS & EDIT MODAL -->
+<div id="companySettingsModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:500px;">
+        <div class="modal-header"><h3>⚙️ Company Settings</h3><span class="close" onclick="closeCompanySettings()">&times;</span></div>
+        <div class="modal-body" style="padding:20px;">
+            <label>Bank Name</label><input id="setBankName" class="form-input">
+            <label>Account No</label><input id="setAccountNo" class="form-input">
+            <label>IFSC Code</label><input id="setIfsc" class="form-input">
+            <label>Branch</label><input id="setBranch" class="form-input">
+            <label>Authorized Signatory</label><input id="setSignatory" class="form-input">
+            <label>Company Logo (PNG/JPG)</label><input type="file" id="logoFile" accept=".png,.jpg,.jpeg">
+            <button class="btn btn-primary" onclick="saveCompanySettings()" style="margin-top:15px;">💾 Save Settings</button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT INVOICE MODAL -->
+<div id="editInvoiceModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header"><h3>📄 Edit Invoice</h3><span class="close" onclick="closeEditInvoice()">&times;</span></div>
+        <div class="modal-body" style="padding:20px;max-height:80vh;overflow-y:auto;">
+            <label>Client Name</label><input id="editInvClient" class="form-input">
+            <label>Client GSTIN</label><input id="editInvGstin" class="form-input">
+            <label>Client Address</label><textarea id="editInvAddress" class="form-input" rows="2"></textarea>
+            <label>Invoice Date</label><input type="date" id="editInvDate" class="form-input">
+            <label>Due Date</label><input type="date" id="editInvDueDate" class="form-input">
+            <label>Description</label><textarea id="editInvDesc" class="form-input" rows="2"></textarea>
+            <label>Amount (₹)</label><input type="number" id="editInvAmount" class="form-input">
+            <label>GST %</label><input type="number" id="editInvGst" class="form-input" value="18">
+            <label>Bank Name</label><input id="editInvBank" class="form-input">
+            <label>Account No</label><input id="editInvAcc" class="form-input">
+            <label>IFSC Code</label><input id="editInvIfsc" class="form-input">
+            <label>Branch</label><input id="editInvBranch" class="form-input">
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button class="btn btn-primary" onclick="saveEditedInvoice()">💾 Save & View</button>
+                <button class="btn btn-secondary" onclick="closeEditInvoice()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT PAYSLIP MODAL -->
+<div id="editPayslipModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:600px;">
+        <div class="modal-header"><h3>📄 Edit Payslip</h3><span class="close" onclick="closeEditPayslip()">&times;</span></div>
+        <div class="modal-body" style="padding:20px;max-height:80vh;overflow-y:auto;">
+            <label>Employee Name</label><input id="editPayName" class="form-input">
+            <label>Designation</label><input id="editPayDesignation" class="form-input">
+            <label>Pay Period</label><input id="editPayPeriod" class="form-input" placeholder="e.g., August 2026">
+            <label>Worked Days</label><input type="number" id="editPayDays" class="form-input" value="30">
+            <label>Basic Salary (₹)</label><input type="number" id="editPayBasic" class="form-input">
+            <label>HRA (₹)</label><input type="number" id="editPayHra" class="form-input">
+            <label>Conveyance (₹)</label><input type="number" id="editPayConveyance" class="form-input">
+            <label>Medical Allowance (₹)</label><input type="number" id="editPayMedical" class="form-input">
+            <label>Special Allowance (₹)</label><input type="number" id="editPaySpecial" class="form-input">
+            <label>Provident Fund (₹)</label><input type="number" id="editPayPf" class="form-input">
+            <label>Professional Tax (₹)</label><input type="number" id="editPayPt" class="form-input" value="200">
+            <div style="margin-top:15px;display:flex;gap:10px;">
+                <button class="btn btn-primary" onclick="saveEditedPayslip()">💾 Save & View</button>
+                <button class="btn btn-secondary" onclick="closeEditPayslip()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="/static/aeterna-enhance.js?v=1" defer></script>
+</body>
+</html>
