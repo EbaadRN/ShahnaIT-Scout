@@ -151,6 +151,7 @@
             </div>
             <div class="sidebar-group-items">
                 <button class="tab-btn" id="tabReportsFull">📈 Reports & Exports</button>
+                <button class="tab-btn" id="tabProposalReports">📑 Proposal Reports</button>
             </div>
         </div>
 
@@ -626,6 +627,12 @@
     </div>
 </div>
 
+       <div id="proposalReportsPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>📑 Proposal Reports & Exports</h3>
+        <!-- The JS will dynamically build the filters and table here -->
+    </div>
+</div>
 <div id="reportsFullPanel" style="display:none;">
     <div class="card no-click" style="max-width:100%;">
         <h3>📈 Reports & Exports</h3>
@@ -995,6 +1002,7 @@
 </div>
 
 <script src="/static/js/app.js?v=1"></script>
+<script src="/static/js/reports.js?v=1"></script>
 
 <!-- COMPANY SETTINGS & EDIT MODAL -->
 <div id="companySettingsModal" class="modal" style="display:none;">
