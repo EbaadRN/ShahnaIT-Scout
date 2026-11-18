@@ -3295,7 +3295,6 @@ def _dispatch_compose_email(sender, recipient, subject, table_html, table_plain,
                        subtype='vnd.openxmlformats-officedocument.wordprocessingml.document', filename=filename)
     return msg
 
-
 def _dispatch_send_email(msg, smtp_email=None, smtp_password=None):
     """Sends via the Resend HTTPS API (Railway blocks SMTP). Needs RESEND_API_KEY and RESEND_FROM_EMAIL."""
     import base64
@@ -3303,7 +3302,7 @@ def _dispatch_send_email(msg, smtp_email=None, smtp_password=None):
     resend.api_key = os.environ['RESEND_API_KEY']
     html_part, text_part = msg.get_body(('html',)), msg.get_body(('plain',))
     params = {
-        'from': msg['From'],
+        'from': os.environ.get('RESEND_FROM_EMAIL'),
         'to': [a.strip() for a in msg['To'].split(',') if a.strip()],
         'subject': msg['Subject'],
         'html': html_part.get_content() if html_part else None,
