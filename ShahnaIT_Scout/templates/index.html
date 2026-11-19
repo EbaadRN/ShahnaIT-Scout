@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/aeterna-theme.css?v=1">
 <link rel="stylesheet" href="/static/css/dispatch.css?v=1">
+<link rel="stylesheet" href="/static/css/panel.css?v=1">
 
 </head>
 <body>
@@ -109,6 +109,7 @@
                 <button class="tab-btn" id="tabDashboard">📊 Dashboard</button>
                 <button class="tab-btn" id="tabKanban">📋 Kanban Board</button>
                 <button class="tab-btn" id="tabReports">📈 Daily Report</button>
+                <button class="tab-btn" id="tabProposalReports">📑 Proposal Reports</button>
             </div>
         </div>
 
@@ -151,7 +152,6 @@
             </div>
             <div class="sidebar-group-items">
                 <button class="tab-btn" id="tabReportsFull">📈 Reports & Exports</button>
-                <button class="tab-btn" id="tabProposalReports">📑 Proposal Reports</button>
             </div>
         </div>
 
@@ -530,6 +530,62 @@
         <div id="dailyReportContent"></div>
     </div>
 </div>
+<div id="proposalReportsPanel" style="display:none;">
+    <div class="card no-click" style="max-width:100%;">
+        <h3>📑 Proposal Reports</h3>
+        <p class="rp-hint">Every proposal sent with <b>Dispatch</b>, grouped by date. Filter, then download as Excel or PDF.</p>
+
+        <div class="rp-filters">
+            <div class="rp-field">
+                <label>Period</label>
+                <div class="rp-seg" id="rpRangeSeg">
+                    <button type="button" data-range="day" class="active">Day</button>
+                    <button type="button" data-range="week">Week</button>
+                    <button type="button" data-range="month">Month</button>
+                    <button type="button" data-range="custom">Custom</button>
+                </div>
+            </div>
+            <div class="rp-field" id="rpDateWrap">
+                <label for="rpDate">Date</label>
+                <input type="date" id="rpDate" class="form-input">
+            </div>
+            <div class="rp-field" id="rpStartWrap" style="display:none;">
+                <label for="rpStart">From</label>
+                <input type="date" id="rpStart" class="form-input">
+            </div>
+            <div class="rp-field" id="rpEndWrap" style="display:none;">
+                <label for="rpEnd">To</label>
+                <input type="date" id="rpEnd" class="form-input">
+            </div>
+            <div class="rp-field" id="rpHrWrap">
+                <label for="rpHr">HR Name</label>
+                <input type="text" id="rpHr" class="form-input" list="rpHrList" placeholder="All HRs" autocomplete="off">
+                <datalist id="rpHrList"></datalist>
+            </div>
+            <div class="rp-field">
+                <label for="rpSkill">Skill Set</label>
+                <input type="text" id="rpSkill" class="form-input" placeholder="e.g. Java, SAP" autocomplete="off">
+            </div>
+            <div class="rp-field">
+                <label for="rpClient">Client Name</label>
+                <input type="text" id="rpClient" class="form-input" list="rpClientList" placeholder="All clients" autocomplete="off">
+                <datalist id="rpClientList"></datalist>
+            </div>
+        </div>
+
+        <div class="rp-actions">
+            <button class="btn btn-primary" onclick="rpLoad()">🔍 Apply filters</button>
+            <button class="btn btn-secondary" onclick="rpReset()">↺ Reset</button>
+            <span class="rp-spacer"></span>
+            <button class="btn btn-primary" id="rpXlsxBtn" onclick="rpDownload('xlsx')">📥 Download Excel</button>
+            <button class="btn btn-primary" id="rpPdfBtn" onclick="rpDownload('pdf')">📄 Download PDF</button>
+        </div>
+
+        <div class="rp-summary" id="rpSummary"></div>
+        <div class="rp-scroll"><table class="rp-table" id="rpTable"></table></div>
+    </div>
+</div>
+
 <div id="kanbanPanel" style="display:none;">
     <div class="card no-click">
         <h3>📋 Kanban Board</h3>
@@ -626,26 +682,6 @@
         <div id="onboardedList"></div>
     </div>
 </div>
-
-       
-/* ---------- Proposal Reports page ---------- */
-.rp-hint { font-size: 13px; color: var(--ae-muted, #5A6F8A); margin: 0 0 14px; }
-.rp-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 12px; align-items: end; }
-.rp-field label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
-.rp-field .form-input { width: 100%; box-sizing: border-box; }
-.rp-seg { display: flex; border: 1px solid var(--ae-line, #D0D8E4); border-radius: 10px; overflow: hidden; }
-.rp-seg button { flex: 1; border: none; background: transparent; padding: 9px 6px; white-space: nowrap; cursor: pointer; font-weight: 600; font-size: 13px; color: inherit; }
-.rp-seg button + button { border-left: 1px solid var(--ae-line, #D0D8E4); }
-.rp-seg button.active { background: #1B2A4A; color: #fff; }
-.rp-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0; }
-.rp-spacer { flex: 1; }
-.rp-summary { font-size: 14px; font-weight: 600; margin-bottom: 8px; min-height: 20px; }
-.rp-scroll { overflow: auto; max-height: 62vh; border: 1px solid var(--ae-line, #D0D8E4); border-radius: 10px; }
-.rp-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-.rp-table th, .rp-table td { border: 1px solid var(--ae-line, #D0D8E4); padding: 6px 9px; text-align: left; vertical-align: top; min-width: 90px; }
-.rp-table th { position: sticky; top: 0; background: #1B2A4A; color: #fff; z-index: 1; white-space: nowrap; }
-.rp-table td.rp-band { background: rgba(27, 42, 74, .09); font-weight: 700; min-width: 0; }
-.rp-empty { text-align: center; padding: 34px 10px; color: var(--ae-muted, #5A6F8A); }
 
 <div id="reportsFullPanel" style="display:none;">
     <div class="card no-click" style="max-width:100%;">
@@ -1083,5 +1119,7 @@
     </div>
 </div>
 <script src="/static/aeterna-enhance.js?v=1" defer></script>
+</div><!-- closes .sidebar-container (opened at the page header) -->
+</div><!-- closes the max-width page wrapper -->
 </body>
 </html>
