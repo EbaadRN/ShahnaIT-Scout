@@ -1496,3 +1496,22 @@ body.dark-mode .sidebar-group-items .tab-btn.active { color: #C9A96E !important;
     max-width: 100%;
     margin: 0 auto;
 }
+
+/* ---------- Proposal Reports page ---------- */
+.rp-hint { font-size: 13px; color: var(--ae-muted, #5A6F8A); margin: 0 0 14px; }
+.rp-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 12px; align-items: end; }
+.rp-field label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; }
+.rp-field .form-input { width: 100%; box-sizing: border-box; }
+.rp-seg { display: flex; border: 1px solid var(--ae-line, #D0D8E4); border-radius: 10px; overflow: hidden; }
+.rp-seg button { flex: 1; border: none; background: transparent; padding: 9px 6px; white-space: nowrap; cursor: pointer; font-weight: 600; font-size: 13px; color: inherit; }
+.rp-seg button + button { border-left: 1px solid var(--ae-line, #D0D8E4); }
+.rp-seg button.active { background: #1B2A4A; color: #fff; }
+.rp-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0; }
+.rp-spacer { flex: 1; }
+.rp-summary { font-size: 14px; font-weight: 600; margin-bottom: 8px; min-height: 20px; }
+.rp-scroll { overflow: auto; max-height: 62vh; border: 1px solid var(--ae-line, #D0D8E4); border-radius: 10px; }
+.rp-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.rp-table th, .rp-table td { border: 1px solid var(--ae-line, #D0D8E4); padding: 6px 9px; text-align: left; vertical-align: top; min-width: 90px; }
+.rp-table th { position: sticky; top: 0; background: #1B2A4A; color: #fff; z-index: 1; white-space: nowrap; }
+.rp-table td.rp-band { background: rgba(27, 42, 74, .09); font-weight: 700; min-width: 0; }
+.rp-empty { text-align: center; padding: 34px 10px; color: var(--ae-muted, #5A6F8A); }
