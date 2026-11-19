@@ -2773,7 +2773,7 @@ import html as _html
 import threading
 import time
 from email.message import EmailMessage
-from email.utils import formataddr
+from email.utils import formataddr, parseaddr
 from html.parser import HTMLParser
 
 import docx as _docx
@@ -3394,7 +3394,7 @@ def dispatch_proposal():
     except ValueError as e:
         return _dispatch_error(str(e), 400)
 
-    smtp_email = (os.environ.get('RESEND_FROM_EMAIL') or '').strip()
+    smtp_email = parseaddr((os.environ.get('RESEND_FROM_EMAIL') or '').strip().strip('"\''))[1]
     smtp_password = (os.environ.get('RESEND_API_KEY') or '').strip()
     if not smtp_email or not smtp_password:
         return _dispatch_error('Email is not configured on the server (RESEND_API_KEY / RESEND_FROM_EMAIL).', 503)
