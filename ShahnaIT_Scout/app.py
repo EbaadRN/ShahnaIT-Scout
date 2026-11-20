@@ -36,7 +36,8 @@ from fpdf import FPDF
 # ============================================
 # DOCUMENT PARSING
 # ============================================
-import PyPDF2
+import PyPDF2 
+import nlp_engine
 import docx
 
 # ============================================
