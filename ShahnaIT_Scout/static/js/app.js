@@ -1956,13 +1956,19 @@ async function loadNotes(candidateId) {
     try {
         const res = await fetch(`/api/candidates/${candidateId}/notes`);
         const notes = await res.json();
+        const cand = allCandidates.find(c => c.id == candidateId);
+        const profileNote = cand && cand.notes ? String(cand.notes).trim() : '';
         
-        if (notes.length === 0) {
+        if (notes.length === 0 && !profileNote) {
             container.innerHTML = '<p style="color: #999; font-style: italic; margin: 5px 0;">No notes yet. Add one above.</p>';
             return;
         }
         
-        let html = '';
+        let html = profileNote ? `
+                <div style="background: #FFF8E1; padding: 8px; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid #C9A96E;">
+                    <div style="font-size: 13px; white-space: pre-wrap;">${escapeHtml(profileNote)}</div>
+                    <small style="color: #666; font-size: 10px;">📝 Profile note</small>
+                </div>` : '';
         notes.forEach(note => {
             const date = new Date(note.created_at).toLocaleString();
             html += `
