@@ -935,6 +935,7 @@ def ensure_schema():
         ('candidates', 'pan_number', 'TEXT'),
         ('candidates', 'cgpa', 'TEXT'),
         ('candidates', 'pincode', 'TEXT'),
+        ('candidates', 'current_company', "TEXT DEFAULT ''"),
         # --- Master Reporting Engine: the 18 report columns that did not exist yet ---
         ('candidates', 'relevant_exp', "TEXT DEFAULT ''"),
         ('candidates', 'work_mode', "TEXT DEFAULT ''"),            # Onsite / Hybrid / Remote
