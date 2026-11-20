@@ -4681,7 +4681,7 @@ def analyze_match():
                 'detailed_analysis': match_result.get('detailed_analysis', ''),
                 'executive_summary': match_result.get('detailed_analysis', match_result.get('executive_summary', '')),
                 'pre_screening_questions': match_result.get('pre_screening_questions', []),
-                ''ai_used': False
+                'ai_used': False
             }
             
             # Add genuineness data
