@@ -149,6 +149,7 @@ except Exception as e:
 
 def extract_skills_with_spacy(text):
     """Extract skills using spaCy NER and pattern matching"""
+    return nlp_engine.extract_skills(text)
     if not nlp:
         return []
     
@@ -4635,12 +4636,12 @@ def parse_resume():
         os.remove(stored_path)
         return jsonify({'error': 'Could not extract text'}), 400
 
-    ai_parsed = parse_resume_with_groq(text)
+    ai_parsed = nlp_engine.parse_resume(text)
 
-    if ai_parsed:
+    if ai_parsed and not ai_parsed.get('error'):
         parsed = cross_validate_resume(ai_parsed, text)
         parsed['resume_text'] = text[:8000]
-        parsed['ai_used'] = True
+        parsed['ai_used'] = False
         print(f"AI parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')} - {len(parsed.get('core_skills', []))} skills")
     else:
         parsed = fallback_parse_resume(text)
@@ -4667,11 +4668,9 @@ def analyze_match():
     result = None
     
     # Try AI analysis first
-    if GROQ_ENABLED:
-        # Run match analysis
-        match_result = analyze_match_with_groq(resume_text, jd_text)
-        # Run genuineness check
-        genuineness_result = analyze_genuineness(resume_text, candidate_name)
+     match_result = nlp_engine.analyze_match(resume_text, jd_text)
+     if not match_result.get('error'):
+        genuineness_result = analyze_genuineness(resume_text, candidate_name) if GROQ_ENABLED else None
         
         if match_result:
             result = {
@@ -4685,7 +4684,7 @@ def analyze_match():
                 'detailed_analysis': match_result.get('detailed_analysis', ''),
                 'executive_summary': match_result.get('detailed_analysis', match_result.get('executive_summary', '')),
                 'pre_screening_questions': match_result.get('pre_screening_questions', []),
-                'ai_used': True
+                ''ai_used': False
             }
             
             # Add genuineness data
