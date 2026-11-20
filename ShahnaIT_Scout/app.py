@@ -150,8 +150,6 @@ except Exception as e:
 def extract_skills_with_spacy(text):
     """Extract skills using spaCy NER and pattern matching"""
     return nlp_engine.extract_skills(text)
-    if not nlp:
-        return []
     
     # Common tech skills keywords
     tech_skills = [
