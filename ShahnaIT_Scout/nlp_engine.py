@@ -270,7 +270,8 @@ def _education(text):
         if not m or len(ln) > 220:
             continue
         nx = lines[i + 1] if i + 1 < len(lines) and not _DEG.search(lines[i + 1]) else ""
-        seg, win = re.split(r"\s[|\-–—]\s|,|\|", ln[m.start():]), f"{ln} {nx} {lines[i - 1] if i and not nx and not _DEG.search(lines[i - 1]) and not re.search(r'20\d{2}', ln) else ''}"
+        pv = lines[i - 1] if i and not nx and not _DEG.search(lines[i - 1]) and not re.search(r"20\d{2}", ln) else ""
+        seg, win = re.split(r"\s[|\-–—]\s|,|\|", ln[m.start():]), " ".join((ln, nx, pv))
         inst = next((p.strip() for p in seg[1:] if _INST.search(p)), "") or next((x for x in lines[i + 1:i + 3] + lines[max(0, i - 1):i] if _INST.search(x) and not _DEG.search(x)), "")
         yrs = sorted({int(y) for y in re.findall(r"\b(?:19[89]\d|20[0-4]\d)\b", win)})
         g = re.search(r"\d(?:\.\d+)?\s*/\s*10|(?:CGPA|GPA)\s*[:\-]?\s*\d(?:\.\d+)?|\d(?:\.\d+)?\s*(?:CGPA|GPA)|\d{2}(?:\.\d+)?\s*%", win, re.I)
