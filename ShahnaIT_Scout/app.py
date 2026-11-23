@@ -2009,8 +2009,12 @@ def save_candidate_to_db(candidate_data, resume_path='', resume_original_name=''
         try:
             c.execute('UPDATE candidates SET pincode = ? WHERE id = ?', (candidate_data['pincode'], candidate_id))
         except: pass
+   if candidate_data.get('current_company'):
+        try:
+            c.execute('UPDATE candidates SET current_company = ? WHERE id = ?', (str(candidate_data['current_company']), candidate_id))
+        except: pass
 
-    # Save relevant_experience
+# Save relevant_experience
     rel_exp = candidate_data.get('relevant_experience', [])
     if isinstance(rel_exp, list) and rel_exp:
         c.execute('UPDATE candidates SET relevant_experience = ? WHERE id = ?',
