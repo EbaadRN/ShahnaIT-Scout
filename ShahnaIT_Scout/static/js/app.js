@@ -1672,7 +1672,7 @@ function filterCandidates() {
     } else if (scoreFilter === 'medium') {
         filtered = filtered.filter(c => (c.match_score || 0) >= 40 && (c.match_score || 0) < 70);
     } else if (scoreFilter === 'low') {
-        filtered = filtered.filter(c => (c.match_score || 0) < 40);
+        filtered = filtered.filter(c => (c.match_score || 0) > 0 && (c.match_score || 0) < 40);
     }
     
     // 4. Uploader filter
@@ -2370,7 +2370,7 @@ function copyPreviewText() {
                 address: document.getElementById('editAddress').value, linkedin: document.getElementById('editLinkedin').value,
                 current_role: document.getElementById('editRole').value, employment_status: document.getElementById('editStatus').value,
                 notice_period_days: parseInt(document.getElementById('editNoticeDays').value) || 0, education: document.getElementById('editEducation').value,
-                notes: document.getElementById('editNotes').value, core_skills: JSON.stringify(skillsArray), certifications: JSON.stringify(certsArray)
+                notes: document.getElementById('editNotes').value, core_skills: skillsArray, certifications: certsArray
             };
             const res = await fetch(`/api/candidates/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
            if (res.ok) { toastSuccess('Updated!'); closeEditModal(); loadCandidates(); viewCandidate(id); }
