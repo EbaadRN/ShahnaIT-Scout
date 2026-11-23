@@ -64,7 +64,7 @@ def _doc(text):
 def _clean(text):
     t = unicodedata.normalize("NFKC", text or "")
     t = re.sub(r"[​-‏­﻿⁠]", "", t).replace("\r\n", "\n").replace("\r", "\n").replace("\x0c", "\n").replace("\t", "  ")
-    t = re.sub(r"[●■□▪◦○➢➤✓✔►]", "•", re.sub(r"(?<=\w)-\n(?=[a-z])", "", t))      # unify bullets, de-hyphenate PDF line wraps
+    t = re.sub(r"[●■□▪◦○➢➤✓✔►\uf0b7\uf0a7\uf0d8\uf076\uf0fc]", "•", re.sub(r"(?<=\w)-\n(?=[a-z])", "", t))      # unify bullets, de-hyphenate PDF line wraps
     return re.sub(r"[  ]+\n", "\n", re.sub(r"\n{3,}", "\n\n", re.sub(r"[  ]{2,}", "  ", t))).strip()
 # ---------------------------------------------------------------- skills: exact n-grams + spaCy-guided fuzzy (Damerau-Levenshtein)
 def _fuzzy(cand, listed=False):
@@ -182,6 +182,7 @@ _CITIES = ("Bangalore,Bengaluru,Hyderabad,Secunderabad,Pune,Chennai,Mumbai,Navi 
            "Vancouver,Sydney,Melbourne,Singapore,Dubai,Abu Dhabi,Doha,Riyadh,Kuala Lumpur,Berlin,Munich,Amsterdam,Paris,Zurich,Tokyo").split(",")
 _CITY_RE = re.compile(r"\b(" + "|".join(sorted(_CITIES, key=len, reverse=True)) + r")\b(?:\s*,\s*(Karnataka|Telangana|Maharashtra|Tamil Nadu|Andhra Pradesh|Kerala|Delhi|NCR|Haryana|Uttar Pradesh|Gujarat|"
                       r"West Bengal|Rajasthan|Madhya Pradesh|Punjab|Odisha|India|USA|UK|UAE|Canada|Australia|Germany|Singapore|Ireland))?")
+_cl = lambda x: re.sub(r"^[^\w(]+|[\s,;|:\-–]+$", "", re.sub(r"(?i)[\s,;|]*\b(?:from|since|till|until|during|between)\s*$", "", x or "")).strip()
 def _email(text):
     t = re.sub(r"(?i)\s*[\[(]at[\])]\s*", "@", re.sub(r"(?i)\s*[\[(]dot[\])]\s*", ".", text)).replace("mailto:", " ")
     for m in re.finditer(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}", t):         # aggressive fallback pattern from the spec
@@ -254,7 +255,7 @@ def _entries(exp, today):
         comp = next((p for p in pieces if p != role and _COMP.search(p) and len(p) < 70), "") or next(
             (p for p in pieces if p != role and not _CITY_RE.fullmatch(p) and len(p.split()) <= 6 and not re.search(r"\d", p) and p[:1].isupper()), "")
         comp = re.sub(r"[,\-–]\s*(?:%s)\W*$" % "|".join(map(re.escape, _CITIES)), "", comp)
-        comp = "" if comp.lower().strip(" .") in ("working", "present", "current", "currently", "employed", "experience", "company", "organization", "client", "project", "projects", "role", "till date", "summary") else comp
+        role, comp = _cl(role), _cl(comp); comp = "" if re.search(r"(?i)business use only|confidential|proprietary|^(?:pvt|private|ltd|limited|inc|llc|technologies|solutions|services)\.?(?:\s+(?:ltd|limited|pvt))?\.?$", comp) or comp.lower().strip(" .") in ("working", "present", "current", "currently", "employed", "experience", "company", "organization", "client", "project", "projects", "role", "till date", "summary") else comp
         nxt = hits[k + 1][0] if k + 1 < len(hits) else len(lines)
         nb = k + 1 < len(hits) and hits[k + 1][4] == "" and hits[k + 1][0] != i
         end = max(i + 1 + used_next, nxt - 2) if nb else nxt
