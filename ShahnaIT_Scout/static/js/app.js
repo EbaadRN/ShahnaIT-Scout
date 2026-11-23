@@ -778,6 +778,7 @@ async function saveCandidateChanges() {
         email: document.getElementById('edit_email').value,
         phone: document.getElementById('edit_phone').value,
         designation: document.getElementById('edit_designation').value,
+        current_company: document.getElementById('edit_current_company').value,
         linkedin: document.getElementById('edit_linkedin').value,
         location: document.getElementById('edit_location').value,
         years_of_experience: document.getElementById('edit_years_exp').value,
