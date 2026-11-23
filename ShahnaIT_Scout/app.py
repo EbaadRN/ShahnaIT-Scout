@@ -4320,7 +4320,7 @@ def update_candidate(candidate_id):
             'current_role', 'current_ctc', 'expected_ctc', 'designation', 'location', 'years_of_experience',
             'employment_status', 'notice_period_days', 'education', 'notes',
             'proposed_client', 'proposed_requirement', 'stage', 'analysis_summary', 'matched_jd', 'uploaded_by_name',
-            'relevant_exp', 'work_mode', 'freelancing', 'engagement_type', 'last_working_day'
+            'relevant_exp', 'work_mode', 'freelancing', 'engagement_type', 'last_working_day', 'current_company'
         ]
         
         json_fields = ['work_experience', 'certifications', 'core_skills', 'attachments', 'relevant_experience']
