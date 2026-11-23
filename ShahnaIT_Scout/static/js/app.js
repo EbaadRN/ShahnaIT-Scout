@@ -4395,3 +4395,12 @@ const tabProposalReports = document.getElementById('tabProposalReports');
 if (tabProposalReports) tabProposalReports.onclick = function () { showPanel('proposalReports'); rpOpen(); };
 window.rpLoad = rpLoad; window.rpReset = rpReset; window.rpDownload = rpDownload; window.rpOpen = rpOpen;
 })();
+// Type-to-search for the candidate dropdown on the match analysis page
+function filterCandidateSelect(q) {
+    q = (q || '').toLowerCase().trim();
+    const sel = document.getElementById('candidateSelect');
+    if (!sel) return;
+    const list = allCandidates.filter(c => ((c.first_name || '') + ' ' + (c.last_name || '')).toLowerCase().includes(q));
+    sel.innerHTML = '<option value="">-- Select Candidate --</option>' + list.map(c => `<option value="${c.id}">${escapeHtml((c.first_name || '') + ' ' + (c.last_name || '') || 'Unknown')}</option>`).join('');
+    if (q && list.length === 1) sel.value = list[0].id;
+}
