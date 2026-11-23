@@ -4328,7 +4328,7 @@ def update_candidate(candidate_id):
                 updates.append(f"{field} = ?")
                 values.append(data[field])
         
-                for field in json_fields:
+        for field in json_fields:
             if field in data:
                 v = data[field]
                 if isinstance(v, str):
