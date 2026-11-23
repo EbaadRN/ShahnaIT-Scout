@@ -1974,7 +1974,7 @@ def save_candidate_to_db(candidate_data, resume_path='', resume_original_name=''
          str(candidate_data.get('expected_ctc') or ''),
          str(candidate_data.get('designation') or ''),
          str(candidate_data.get('location') or ''),
-         str(candidate_data.get('years_of_experience') or ''),
+         (lambda v: float(v) if str(v).replace('.', '', 1).isdigit() else 0)(candidate_data.get('years_of_experience') or 0),
          str(candidate_data.get('employment_status') or ''),
          candidate_data.get('notice_period_days', 0),
          work_exp, certs, skills,
