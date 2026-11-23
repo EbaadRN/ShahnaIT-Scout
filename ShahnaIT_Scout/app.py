@@ -4734,8 +4734,8 @@ def analyze_match():
         detailed_json = json.dumps(result, indent=2)
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
-        c.execute('UPDATE candidates SET match_score = ?, recommendation = ?, detailed_analysis = ? WHERE id = ?',
-                  (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, candidate_id))
+        c.execute('UPDATE candidates SET match_score = ?, recommendation = ?, detailed_analysis = ?, matched_jd = COALESCE((SELECT requirement_id FROM jobs WHERE id = ?), matched_jd) WHERE id = ?',
+                  (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, data.get('job_id'), candidate_id))
         conn.commit()
         conn.close()
     
