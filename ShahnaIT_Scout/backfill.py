@@ -17,9 +17,14 @@ def backfill_candidates():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT id, first_name, last_name, resume_text, current_company, designation, current_role FROM candidates "
-              "WHERE id > ? AND (COALESCE(current_company,'')='' OR COALESCE(designation,'')='') AND COALESCE(resume_text,'')<>'' "
-              "ORDER BY id LIMIT ?", (after, limit))
+    ids = [int(x) for x in (request.args.get('ids') or '').split(',') if x.strip().isdigit()]
+    if ids:  # redo mode: re-parse exactly these candidates and overwrite their company/designation
+        c.execute("SELECT id, first_name, last_name, resume_text, current_company, designation, current_role FROM candidates "
+                  "WHERE id IN (%s) AND COALESCE(resume_text,'')<>'' ORDER BY id" % ",".join("?" * len(ids)), ids)
+    else:
+        c.execute("SELECT id, first_name, last_name, resume_text, current_company, designation, current_role FROM candidates "
+                  "WHERE id > ? AND (COALESCE(current_company,'')='' OR COALESCE(designation,'')='') AND COALESCE(resume_text,'')<>'' "
+                  "ORDER BY id LIMIT ?", (after, limit))
     rows = c.fetchall()
     updated, skipped, preview = 0, 0, []
     for r in rows:
@@ -30,9 +35,9 @@ def backfill_candidates():
         if p.get('error'):
             skipped += 1
             continue
-        company = r['current_company'] or p.get('current_company') or ''
-        desig = r['designation'] or p.get('designation') or ''
-        role = r['current_role'] or p.get('current_role') or ''
+        company = (p.get('current_company') or '') if ids else (r['current_company'] or p.get('current_company') or '')
+        desig = (p.get('designation') or '') if ids else (r['designation'] or p.get('designation') or '')
+        role = (p.get('current_role') or '') if ids else (r['current_role'] or p.get('current_role') or '')
         if (company, desig, role) == ((r['current_company'] or ''), (r['designation'] or ''), (r['current_role'] or '')):
             continue
         updated += 1
@@ -45,7 +50,7 @@ def backfill_candidates():
     conn.close()
     nxt = f"/api/admin/backfill-candidates?after={last_id}" + ("&dry=1" if dry else "")
     return jsonify({'dry_run': dry, 'checked': len(rows), 'updated': updated, 'skipped': skipped, 'preview': preview,
-                    'finished': len(rows) < limit, 'next_page': None if len(rows) < limit else nxt})
+                    'finished': bool(ids) or len(rows) < limit, 'next_page': None if ids or len(rows) < limit else nxt})
     dry = request.args.get('dry') == '1'
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -62,9 +67,9 @@ def backfill_candidates():
         if p.get('error'):
             skipped += 1
             continue
-        company = r['current_company'] or p.get('current_company') or ''
-        desig = r['designation'] or p.get('designation') or ''
-        role = r['current_role'] or p.get('current_role') or ''
+        company = (p.get('current_company') or '') if ids else (r['current_company'] or p.get('current_company') or '')
+        desig = (p.get('designation') or '') if ids else (r['designation'] or p.get('designation') or '')
+        role = (p.get('current_role') or '') if ids else (r['current_role'] or p.get('current_role') or '')
         if (company, desig, role) == ((r['current_company'] or ''), (r['designation'] or ''), (r['current_role'] or '')):
             continue
         updated += 1
