@@ -246,7 +246,7 @@ def _entries(exp, today):
     for k, (i, a, b, m, before) in enumerate(hits):
         prev = [x.strip(" •") for x in lines[max(0, i - 2):i] if x.strip() and not _RANGE.search(x)]
         nxt_line = lines[i + 1].strip(" •") if i + 1 < len(lines) and not _RANGE.search(lines[i + 1]) else ""
-        pieces = [re.sub(r"(?i)^(?:(?:and|worked|working)\s+)*(?:(?:at|with|for)\s+)?|\s+(?:from|since|during|between|in)$", "", p).strip(" ,.") for blk in ([before] if before else []) + prev[::-1] + [nxt_line] * (not before and not prev)
+        pieces = [re.sub(r"(?i)^(?:(?:and|worked|working|currently|as|at|with|for|in)\s+)+|\s+(?:from|since|during|between|in)$", "", p).strip(" ,.") for blk in ([before] if before else []) + prev[::-1] + [nxt_line] * (not before and not prev)
                   for p in re.split(r"\s[|•·@\-–—]\s|\s+at\s+|\s{2,}", blk) if p.strip(" ,.")]
         role = next((p for p in pieces if _ROLE.search(p) and len(p) < 70), "")
         used_next = not role and bool(_ROLE.search(nxt_line)) and len(nxt_line) < 70 and not _COMP.search(nxt_line)
@@ -254,6 +254,7 @@ def _entries(exp, today):
         comp = next((p for p in pieces if p != role and _COMP.search(p) and len(p) < 70), "") or next(
             (p for p in pieces if p != role and not _CITY_RE.fullmatch(p) and len(p.split()) <= 6 and not re.search(r"\d", p) and p[:1].isupper()), "")
         comp = re.sub(r"[,\-–]\s*(?:%s)\W*$" % "|".join(map(re.escape, _CITIES)), "", comp)
+        comp = "" if comp.lower().strip(" .") in ("working", "present", "current", "currently", "employed", "experience", "company", "organization", "client", "project", "projects", "role", "till date", "summary") else comp
         nxt = hits[k + 1][0] if k + 1 < len(hits) else len(lines)
         nb = k + 1 < len(hits) and hits[k + 1][4] == "" and hits[k + 1][0] != i
         end = max(i + 1 + used_next, nxt - 2) if nb else nxt
