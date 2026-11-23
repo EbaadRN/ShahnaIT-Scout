@@ -449,7 +449,10 @@
         <h3>🔍 AI Match Analysis - Single Candidate</h3>
         <div class="flex">
             <div class="flex-1"><select id="jobSelect"></select></div>
-            <div class="flex-1"><select id="candidateSelect"></select></div>
+            <div class="flex-1">
+                <input type="text" id="candidateSearch" placeholder="🔎 Type candidate name to search..." oninput="filterCandidateSelect(this.value)" autocomplete="off" style="width:100%;margin-bottom:8px;">
+                <select id="candidateSelect"></select>
+            </div>
         </div>
         <button id="analyzeBtn">🤖 Run Analysis</button>
         <div id="analysisResult"></div>
