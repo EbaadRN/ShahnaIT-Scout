@@ -4673,13 +4673,13 @@ def analyze_match():
     result = None
     
     # Try AI analysis first
-            match_result = nlp_engine.analyze_match(resume_text, jd_text)
-        if match_result.get('error'):
-            return jsonify({'error': match_result['error']}), 422
-        if not match_result.get('error'):
-            genuineness_result = analyze_genuineness(resume_text, candidate_name) if GROQ_ENABLED else None
-            if match_result:
-                result = {
+    match_result = nlp_engine.analyze_match(resume_text, jd_text)
+    if match_result.get('error'):
+        return jsonify({'error': match_result['error']}), 422
+    if not match_result.get('error'):
+        genuineness_result = analyze_genuineness(resume_text, candidate_name) if GROQ_ENABLED else None
+        if match_result:
+            result = {
                 'match_score': match_result.get('match_score', 0),
                 'recommendation': match_result.get('recommendation', 'review'),
                 'category_scores': match_result.get('category_scores', {}),
