@@ -4318,7 +4318,7 @@ def update_candidate(candidate_id):
             'relevant_exp', 'work_mode', 'freelancing', 'engagement_type', 'last_working_day'
         ]
         
-        json_fields = ['work_experience', 'certifications', 'core_skills', 'attachments']
+        json_fields = ['work_experience', 'certifications', 'core_skills', 'attachments', 'relevant_experience']
         
         updates = []
         values = []
@@ -4328,10 +4328,16 @@ def update_candidate(candidate_id):
                 updates.append(f"{field} = ?")
                 values.append(data[field])
         
-        for field in json_fields:
+                for field in json_fields:
             if field in data:
+                v = data[field]
+                if isinstance(v, str):
+                    try:
+                        v = json.loads(v)
+                    except Exception:
+                        pass
                 updates.append(f"{field} = ?")
-                values.append(json.dumps(data[field]))
+                values.append(json.dumps(v))
         
         if not updates:
             return jsonify({"success": False, "error": "No fields to update"}), 400
