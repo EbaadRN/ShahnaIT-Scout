@@ -4974,6 +4974,7 @@ def delete_uploader(name):
     return jsonify({'message': 'Uploader deleted'})
     
 @app.route('/test-drive')
+@login_required('admin')
 def test_drive():
     service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
     return jsonify({
@@ -4982,6 +4983,7 @@ def test_drive():
     })
 
 @app.route('/test-drive-list')
+@login_required('admin')
 def test_drive_list():
     service_account_json = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
     try:
