@@ -474,6 +474,8 @@ def _load_secret_key():
 
 
 app.secret_key = _load_secret_key()
+from backfill import bp as _backfill_bp
+app.register_blueprint(_backfill_bp)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
