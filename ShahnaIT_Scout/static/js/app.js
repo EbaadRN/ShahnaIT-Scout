@@ -4406,3 +4406,62 @@ function filterCandidateSelect(q) {
     sel.innerHTML = '<option value="">-- Select Candidate --</option>' + list.map(c => `<option value="${c.id}">${escapeHtml((c.first_name || '') + ' ' + (c.last_name || '') || 'Unknown')}</option>`).join('');
     if (q && list.length === 1) sel.value = list[0].id;
 }
+// Resume viewer: shows the ORIGINAL file (PDF as-is, Word converted with formatting) instead of truncated plain text
+function renderResumeViewer(candidate) {
+    const textBox = document.getElementById('resumeFullText');
+    if (!textBox || !candidate) return;
+    let box = document.getElementById('resumeViewer');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'resumeViewer';
+        textBox.parentNode.insertBefore(box, textBox);
+    }
+    box.innerHTML = '';
+    textBox.style.display = '';
+    const name = (candidate.resume_original_filename || '').toLowerCase();
+    const url = '/api/candidates/' + candidate.id + '/view-resume';
+    const frameStyle = 'width:100%;height:780px;border:1px solid #D0D8E4;border-radius:8px;background:#fff;';
+    const toggle = '<div style="margin:0 0 8px;"><a href="#" id="resumeToggle" style="font-size:12px;">Show extracted text</a></div>';
+    function wire() {
+        const t = document.getElementById('resumeToggle');
+        if (!t) return;
+        t.onclick = function (e) {
+            e.preventDefault();
+            const showText = textBox.style.display === 'none';
+            textBox.style.display = showText ? '' : 'none';
+            const f = box.querySelector('iframe');
+            if (f) f.style.display = showText ? 'none' : '';
+            t.textContent = showText ? 'Show original resume' : 'Show extracted text';
+        };
+    }
+    if (name.endsWith('.pdf')) {
+        box.innerHTML = toggle + '<iframe src="' + url + '" style="' + frameStyle + '"></iframe>';
+        textBox.style.display = 'none';
+        wire();
+    } else if (name.endsWith('.docx')) {
+        box.innerHTML = '<div style="padding:12px;color:#666;">Loading resume...</div>';
+        const run = function () {
+            fetch(url).then(function (r) { return r.arrayBuffer(); })
+                .then(function (buf) { return window.mammoth.convertToHtml({ arrayBuffer: buf }); })
+                .then(function (res) {
+                    const css = 'body{font-family:Calibri,Arial,sans-serif;font-size:14px;line-height:1.5;color:#111;padding:24px;max-width:820px;margin:0 auto}table{border-collapse:collapse}td,th{border:1px solid #ccc;padding:4px 8px}img{max-width:100%}';
+                    const f = document.createElement('iframe');
+                    f.setAttribute('sandbox', '');
+                    f.style.cssText = frameStyle;
+                    f.srcdoc = '<style>' + css + '</style>' + res.value;
+                    box.innerHTML = toggle;
+                    box.appendChild(f);
+                    textBox.style.display = 'none';
+                    wire();
+                })
+                .catch(function () { box.innerHTML = ''; textBox.style.display = ''; });
+        };
+        if (window.mammoth) { run(); } else {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js';
+            s.onload = run;
+            s.onerror = function () { box.innerHTML = ''; textBox.style.display = ''; };
+            document.head.appendChild(s);
+        }
+    }
+}
