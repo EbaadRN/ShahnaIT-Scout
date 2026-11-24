@@ -1,8 +1,10 @@
 """One-time backfill: fills EMPTY current_company / designation / current_role from each candidate's stored resume text."""
 import json
 import os
+import re
 import sqlite3
-from flask import Blueprint, jsonify, request, session
+from datetime import datetime
+from flask import Blueprint, jsonify, request, send_file, session
 import nlp_engine
 
 bp = Blueprint('backfill', __name__)
@@ -145,3 +147,53 @@ def drive_check():
             out['problem'] = ('Service accounts have no storage of their own, so they cannot create files in a normal My Drive folder. '
                               'Use a folder inside a Shared Drive (service account added as a member), or have the service account act as a real user.')
     return jsonify(out)
+
+
+_SECRET_COL = re.compile(r'(?i)pass|token|secret|hash|api_key')
+
+
+def build_excel_backup(path):
+    """Writes a readable .xlsx of every table (users table and secret-looking columns left out; long text trimmed)."""
+    import pandas as pd
+    conn = sqlite3.connect(DB_PATH)
+    tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")]
+    bad = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f]')
+    with pd.ExcelWriter(path, engine='openpyxl') as xw:
+        for t in tables:
+            if t.lower() in ('users', 'sessions'):
+                continue
+            df = pd.read_sql_query('SELECT * FROM "%s"' % t, conn)
+            df = df[[c for c in df.columns if not _SECRET_COL.search(c)]]
+            df = df.astype(object).apply(lambda col: col.map(lambda v: bad.sub('', v)[:30000] if isinstance(v, str) else (None if isinstance(v, bytes) else v)))
+            df.to_excel(xw, sheet_name=t[:31], index=False)
+            ws = xw.sheets[t[:31]]
+            ws.freeze_panes = 'A2'
+            for i, c in enumerate(df.columns, 1):
+                ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = min(40, max(10, len(str(c)) + 2))
+    conn.close()
+    return path
+
+
+def excel_backup(upload_fn=None):
+    """Called after every .db backup: builds the Excel copy and uploads it to Drive. Never raises."""
+    try:
+        import tempfile
+        name = 'shahnai_backup_%s.xlsx' % datetime.now().strftime('%Y-%m-%d_%H%M')
+        path = build_excel_backup(os.path.join(tempfile.gettempdir(), name))
+        res = upload_fn(path, name) if upload_fn else None
+        os.unlink(path)
+        return res
+    except Exception as e:
+        print('Excel backup error:', e)
+        return str(e)
+
+
+@bp.route('/api/admin/backup-excel', methods=['GET'])
+def backup_excel_download():
+    """Admin: download a readable Excel copy of the database right now."""
+    if (session.get('role') or '').lower() != 'admin':
+        return jsonify({'error': 'Admin only'}), 403
+    import tempfile
+    name = 'shahnai_data_%s.xlsx' % datetime.now().strftime('%Y-%m-%d_%H%M')
+    path = build_excel_backup(os.path.join(tempfile.gettempdir(), name))
+    return send_file(path, as_attachment=True, download_name=name)
