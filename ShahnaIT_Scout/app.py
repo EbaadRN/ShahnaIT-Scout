@@ -5099,10 +5099,10 @@ def upload_to_drive(filepath, filename):
         drive_service = build('drive', 'v3', credentials=creds)
         
                 # Use the shared folder in your Drive
-        folder_id = '1yMZ4QmG_9PCdC4ulQtRXJsELmeAcwXeb'
+        folder_id = '0ANhiqKbE7xeZUk9PVA'
         
         media = MediaFileUpload(filepath, mimetype='application/octet-stream', resumable=True)
-        uploaded_file = drive_service.files().create(body={'name': filename, 'parents': [folder_id]}, media_body=media).execute()
+        uploaded_file = drive_service.files().create(body={'name': filename, 'parents': [folder_id]}, media_body=media, supportsAllDrives=True).execute()
         
         try:
             drive_service.permissions().create(
