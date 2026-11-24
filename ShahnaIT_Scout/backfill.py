@@ -110,7 +110,7 @@ def drive_check():
     except ImportError as e:
         out['problem'] = 'Google libraries are missing: ' + str(e) + '. Add google-api-python-client and google-auth to requirements.txt.'
         return jsonify(out)
-    folder_id = os.environ.get('GOOGLE_DRIVE_FOLDER_ID') or '1yMZ4QmG_9PCdC4ulQtRXJsELmeAcwXeb'
+    folder_id = os.environ.get('GOOGLE_DRIVE_FOLDER_ID') or '0ANhiqKbE7xeZUk9PVA'
     out['folder_id'] = folder_id
     try:
         creds = service_account.Credentials.from_service_account_info(sa, scopes=['https://www.googleapis.com/auth/drive'])
