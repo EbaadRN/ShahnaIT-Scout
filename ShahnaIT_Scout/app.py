@@ -5070,7 +5070,7 @@ def perform_backup():
     if len(all_backups) > 30:
         for old_file in all_backups[:-30]:
             os.remove(os.path.join(backup_dir, old_file))
-    drive_result = upload_to_drive(backup_path, backup_filename)
+    drive_result = upload_to_drive(backup_path, backup_filename); __import__('backfill').excel_backup(upload_to_drive)
     return {
         'success': True,
         'filename': backup_filename,
