@@ -248,7 +248,7 @@ window.viewCandidate = function(id) {
     
     // Resume - FULL TEXT, NO TRUNCATION
     const resumeText = candidate.resume_text || '';
-    document.getElementById('resumeFullText').textContent = resumeText;
+    document.getElementById('resumeFullText').textContent = resumeText; renderResumeViewer(candidate);
     
     // Notes
     document.getElementById('edit_notes').value = candidate.notes || '';
