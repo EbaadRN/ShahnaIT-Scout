@@ -1,4 +1,6 @@
 """One-time backfill: fills EMPTY current_company / designation / current_role from each candidate's stored resume text."""
+import json
+import os
 import sqlite3
 from flask import Blueprint, jsonify, request, session
 import nlp_engine
@@ -81,3 +83,61 @@ def backfill_candidates():
         conn.commit()
     conn.close()
     return jsonify({'dry_run': dry, 'checked': len(rows), 'updated': updated, 'skipped': skipped, 'preview': preview})
+
+
+@bp.route('/api/admin/drive-check', methods=['GET'])
+def drive_check():
+    """Diagnoses the Google Drive backup: env var, libraries, folder access, and a real 1-byte upload (deleted right after)."""
+    if (session.get('role') or '').lower() != 'admin':
+        return jsonify({'error': 'Admin only'}), 403
+    out = {}
+    raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT', '')
+    out['env_set'] = bool(raw)
+    if not raw:
+        out['problem'] = 'GOOGLE_SERVICE_ACCOUNT is not set on Railway.'
+        return jsonify(out)
+    try:
+        sa = json.loads(raw)
+        out['service_account_email'] = sa.get('client_email')
+    except Exception as e:
+        out['problem'] = 'GOOGLE_SERVICE_ACCOUNT is not valid JSON: ' + str(e)[:150]
+        return jsonify(out)
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.errors import HttpError
+        from googleapiclient.http import MediaInMemoryUpload
+    except ImportError as e:
+        out['problem'] = 'Google libraries are missing: ' + str(e) + '. Add google-api-python-client and google-auth to requirements.txt.'
+        return jsonify(out)
+    folder_id = os.environ.get('GOOGLE_DRIVE_FOLDER_ID') or '1yMZ4QmG_9PCdC4ulQtRXJsELmeAcwXeb'
+    out['folder_id'] = folder_id
+    try:
+        creds = service_account.Credentials.from_service_account_info(sa, scopes=['https://www.googleapis.com/auth/drive'])
+        svc = build('drive', 'v3', credentials=creds, cache_discovery=False)
+    except Exception as e:
+        out['problem'] = 'Could not sign in with the service account key: ' + str(e)[:200]
+        return jsonify(out)
+    try:
+        f = svc.files().get(fileId=folder_id, fields='id,name,mimeType,driveId,owners(emailAddress),capabilities(canAddChildren)', supportsAllDrives=True).execute()
+        out['folder'] = {'name': f.get('name'), 'is_folder': f.get('mimeType') == 'application/vnd.google-apps.folder',
+                         'in_shared_drive': bool(f.get('driveId')), 'owner': [o.get('emailAddress') for o in f.get('owners', [])],
+                         'service_account_can_add_files': (f.get('capabilities') or {}).get('canAddChildren')}
+    except HttpError as e:
+        out['problem'] = 'The service account cannot see this folder (wrong folder ID, or the folder is not shared with the service account email above): ' + str(e)[:200]
+        return jsonify(out)
+    except Exception as e:
+        out['problem'] = 'Folder lookup failed: ' + str(e)[:200]
+        return jsonify(out)
+    try:
+        media = MediaInMemoryUpload(b'drive check', mimetype='text/plain')
+        made = svc.files().create(body={'name': 'drive-check.txt', 'parents': [folder_id]}, media_body=media, supportsAllDrives=True, fields='id').execute()
+        svc.files().delete(fileId=made['id'], supportsAllDrives=True).execute()
+        out['upload'] = 'OK - test file uploaded and removed'
+    except Exception as e:
+        msg = str(e)
+        out['upload_error'] = msg[:400]
+        if 'storage quota' in msg.lower() or 'storagequotaexceeded' in msg.lower():
+            out['problem'] = ('Service accounts have no storage of their own, so they cannot create files in a normal My Drive folder. '
+                              'Use a folder inside a Shared Drive (service account added as a member), or have the service account act as a real user.')
+    return jsonify(out)
