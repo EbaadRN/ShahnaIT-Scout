@@ -476,6 +476,15 @@ def _load_secret_key():
 app.secret_key = _load_secret_key()
 from backfill import bp as _backfill_bp
 app.register_blueprint(_backfill_bp)
+@app.errorhandler(Exception)
+def _json_errors(e):
+    from werkzeug.exceptions import HTTPException, InternalServerError
+    if isinstance(e, HTTPException):
+        return e
+    app.logger.exception(e)
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Server error: ' + str(e)[:200]}), 500
+    return InternalServerError()
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
@@ -661,6 +670,11 @@ def resolve_resume_upload(upload_id):
 
 # ============ DATABASE SETUP ============
 DB_PATH = '/data/shahnai.db'
+_orig_sqlite_connect = sqlite3.connect
+def _connect_with_timeout(*args, **kwargs):
+    kwargs.setdefault('timeout', 30)
+    return _orig_sqlite_connect(*args, **kwargs)
+sqlite3.connect = _connect_with_timeout
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
