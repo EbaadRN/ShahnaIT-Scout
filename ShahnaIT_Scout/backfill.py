@@ -132,8 +132,12 @@ def drive_check():
     try:
         media = MediaInMemoryUpload(b'drive check', mimetype='text/plain')
         made = svc.files().create(body={'name': 'drive-check.txt', 'parents': [folder_id]}, media_body=media, supportsAllDrives=True, fields='id').execute()
-        svc.files().delete(fileId=made['id'], supportsAllDrives=True).execute()
-        out['upload'] = 'OK - test file uploaded and removed'
+        out['upload'] = 'OK - the service account can upload to this folder'
+        try:
+            svc.files().delete(fileId=made['id'], supportsAllDrives=True).execute()
+            out['cleanup'] = 'test file removed'
+        except Exception as ce:
+            out['cleanup'] = 'could not auto-delete the test file (delete drive-check.txt by hand): ' + str(ce)[:120]
     except Exception as e:
         msg = str(e)
         out['upload_error'] = msg[:400]
