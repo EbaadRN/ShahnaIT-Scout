@@ -474,6 +474,8 @@ def _load_secret_key():
 
 
 app.secret_key = _load_secret_key()
+import access_control
+access_control.init_access(app)
 from backfill import bp as _backfill_bp
 app.register_blueprint(_backfill_bp)
 @app.errorhandler(Exception)
