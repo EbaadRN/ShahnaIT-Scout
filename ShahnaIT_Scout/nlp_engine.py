@@ -50,7 +50,7 @@ def _build():
     return alias, canon, [k for k in alias if len(k) >= 5 and k.isalpha() or len(k) >= 8]
 _ALIAS, _CANON, _FUZZY_KEYS = _build()
 _NAME_STOP = set("resume curriculum vitae cv profile summary objective contact address email phone page career personal details information technical skills experience education work history "
-                 "professional declaration references".split())
+                 "professional declaration references having around over about years year yrs months total overall with seeking looking worked working currently possess strong good excellent hands".split())
 @lru_cache(maxsize=1)
 def _nlp():
     try:
@@ -218,7 +218,8 @@ def _name(text, header):
         w = re.sub(r"(?i)^(?:mr|mrs|ms|miss|dr|prof|shri|smt|sri)\.?\s+", "", c.strip(" .,-:")).split()
         ok = lo <= len(w) <= 4 and all(re.fullmatch(r"[A-Za-z][A-Za-z.'\-]*", x) for x in w) and sum(map(len, w)) >= 3
         bad = any(x.lower().strip(".") in _NAME_STOP or _ROLE.fullmatch(x) or (_k(x) in _ALIAS and len(x) > 2) for x in w) or _CITY_RE.fullmatch(" ".join(w))
-        return " ".join(w) if ok and not bad else None
+        mixed = any(x[0].islower() for x in w) and any(x[0].isupper() for x in w)
+        return " ".join(w) if ok and not bad and not mixed else None
     def title(n):
         return " ".join(w if re.fullmatch(r"(?:[A-Za-z]\.)+", w) else w.title() if w[0].islower() or w.isupper() else w for w in n.split())
     for lo in (2, 1):
@@ -226,7 +227,7 @@ def _name(text, header):
             if (v := valid(c, lo)) and (lo == 2 or src != "header"):
                 return title(v), ["name via spaCy NER"] * (src == "spacy")
         parts = [p for p in re.split(r"[._\-+\d]+", _email(text).split("@")[0]) if len(p) > 1]
-        if lo == 2 and len(parts) >= 2:
+        if len(parts) >= (2 if lo == 2 else 1):
             return title(" ".join(parts[:3])), ["name derived from e-mail address"]
     return "", ["name not found"]
 def _location(text, header):
