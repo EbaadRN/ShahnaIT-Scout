@@ -1033,16 +1033,43 @@ console.log('✅ loadCandidates defined');
 loadCandidates();
 
 async function loadUploaderDropdown() {
-    const res = await fetch('/api/uploaders');
-    const uploaders = await res.json();
     const select = document.getElementById('uploaderSelect');
     const bulkSelect = document.getElementById('bulkUploaderSelect');
-    const options = '<option value="">-- Select Uploader --</option>' + 
-        uploaders.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
-    if (select) select.innerHTML = options;
-    if (bulkSelect) bulkSelect.innerHTML = options;
-}
+    const selects = [select, bulkSelect].filter(Boolean);
+    const isAdmin = currentUser && currentUser.role === 'admin';
 
+    // Recruiters and managers always upload under their own name (the server enforces this too).
+    if (!isAdmin && currentUser) {
+        const me = currentUser.full_name || currentUser.email || '';
+        selects.forEach(function (s) {
+            s.innerHTML = '<option value="' + escapeHtml(me) + '">' + escapeHtml(me) + '</option>';
+            s.value = me;
+            s.disabled = true;
+            s.title = 'Uploads are recorded under your name';
+        });
+        return;
+    }
+
+    // Admin: pick any uploader, remembering the last choice.
+    const res = await fetch('/api/uploaders');
+    const uploaders = await res.json();
+    const options = '<option value="">-- Select Uploader --</option>' +
+        uploaders.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+    let preferred = '';
+    try { preferred = localStorage.getItem('lastUploader') || ''; } catch (e) {}
+    if (!uploaders.includes(preferred)) {
+        preferred = (currentUser && uploaders.includes(currentUser.full_name)) ? currentUser.full_name : '';
+    }
+    selects.forEach(function (s) {
+        s.disabled = false;
+        s.innerHTML = options;
+        s.value = preferred;
+        s.onchange = function () {
+            try { localStorage.setItem('lastUploader', s.value); } catch (e) {}
+            selects.forEach(function (o) { if (o !== s) o.value = s.value; });
+        };
+    });
+}
 // Open first sidebar group by default
 document.querySelector('.sidebar-group-header').classList.add('open');
 document.querySelector('.sidebar-group-items').classList.add('open');
