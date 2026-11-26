@@ -4492,3 +4492,23 @@ function renderResumeViewer(candidate) {
         }
     }
 }
+// ============================================
+// ROLE HELPERS (recruiter / manager access)
+// ============================================
+// True when the logged-in user may change this candidate (admin, or the person who uploaded it).
+function canModify(c) {
+    if (!currentUser) return false;
+    if (currentUser.role === 'admin') return true;
+    const me = (currentUser.full_name || '').trim();
+    return !!me && [(c.uploaded_by_name || '').trim(), (c.uploaded_by || '').trim()].includes(me);
+}
+
+// If the server says the session is no longer valid (account disabled, logged out elsewhere), go back to login.
+(function () {
+    const _origFetch = window.fetch;
+    window.fetch = async function (...args) {
+        const res = await _origFetch.apply(this, args);
+        if (res.status === 401 && currentUser) { currentUser = null; location.reload(); }
+        return res;
+    };
+})();
