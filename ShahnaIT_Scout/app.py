@@ -4678,86 +4678,88 @@ def parse_resume():
 
 @app.route('/api/analyze-match', methods=['POST'])
 def analyze_match():
-    data = request.json
-    resume_text = data.get('resume_text', '')
-    jd_text = data.get('jd_text', '')
+    data = request.json or {}
+    resume_text = data.get('resume_text', '') or ''
+    jd_text = data.get('jd_text', '') or ''
     candidate_id = data.get('candidate_id')
     candidate_name = data.get('candidate_name', '')
-    job_title = data.get('job_title', '')
-    
+    job_id = data.get('job_id')
+    resume_filename = None
+    jd_meta = {}
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    # Full JD = title + description + responsibilities + qualifications + required skills + years (not just the description)
+    if job_id:
+        c.execute('SELECT * FROM jobs WHERE id = ?', (job_id,))
+        job = c.fetchone()
+        if job:
+            keys = job.keys()
+            col = lambda k: str(job[k] or '') if k in keys else ''
+            raw_skills = col('required_skills').strip()
+            try:
+                skills_list = json.loads(raw_skills) if raw_skills.startswith('[') else []
+            except Exception:
+                skills_list = []
+            if not skills_list:
+                skills_list = [s.strip() for s in re.split(r'[,\n;|]', raw_skills.strip('[]')) if s.strip().strip('"\'')]
+            skills_list = [str(s).strip().strip('"\'') for s in skills_list if str(s).strip()]
+            parts = [col('title'), col('description'), col('roles_responsibilities'), col('qualifications')]
+            if skills_list:
+                parts.append('Required Skills: ' + ', '.join(skills_list))
+            if col('certifications_required').strip():
+                parts.append('Certifications: ' + col('certifications_required'))
+            try:
+                yrs_needed = float(col('years_of_experience') or 0)
+            except ValueError:
+                yrs_needed = 0
+            if yrs_needed:
+                parts.append('Experience: %g+ years' % yrs_needed)
+                jd_meta['min_years'] = yrs_needed
+            jd_meta['required_skills'] = skills_list
+            full_jd = '\n'.join(p for p in parts if p.strip())
+            if len(full_jd) > len(jd_text):
+                jd_text = full_jd
+    # Use the full stored resume text and the original file name
+    if candidate_id:
+        c.execute('SELECT resume_text, resume_original_filename FROM candidates WHERE id = ?', (candidate_id,))
+        cand = c.fetchone()
+        if cand:
+            if cand['resume_text'] and len(cand['resume_text']) > len(resume_text):
+                resume_text = cand['resume_text']
+            resume_filename = cand['resume_original_filename']
+    conn.close()
+
     if not resume_text or not jd_text:
-        return jsonify({'error': 'Missing text'}), 400
-    
-    result = None
-    
-    # Try AI analysis first
-    match_result = nlp_engine.analyze_match(resume_text, jd_text)
-    if match_result.get('error'):
-        return jsonify({'error': match_result['error']}), 422
-    if not match_result.get('error'):
-        genuineness_result = analyze_genuineness(resume_text, candidate_name) if GROQ_ENABLED else None
-        if match_result:
-            result = {
-                'match_score': match_result.get('match_score', 0),
-                'recommendation': match_result.get('recommendation', 'review'),
-                'category_scores': match_result.get('category_scores', {}),
-                'matching_skills': match_result.get('matching_skills', []),
-                'missing_skills': match_result.get('missing_skills', []),
-                'strengths': match_result.get('strengths', []),
-                'weaknesses': match_result.get('weaknesses', []),
-                'detailed_analysis': match_result.get('detailed_analysis', ''),
-                'executive_summary': match_result.get('detailed_analysis', match_result.get('executive_summary', '')),
-                'pre_screening_questions': match_result.get('pre_screening_questions', []),
-                'ai_used': False
-            }
-            
-            # Add genuineness data
-            if genuineness_result:
-                result['genuineness_score'] = genuineness_result.get('genuineness_score', 50)
-                result['ai_generated_probability'] = genuineness_result.get('ai_generated_probability', 50)
-                result['red_flags'] = genuineness_result.get('red_flags', [])
-                result['genuineness_verdict'] = genuineness_result.get('verdict', '')
-                result['genuineness_analysis'] = genuineness_result.get('detailed_analysis', '')
-            
-            # Add skill gap
-            skill_gap = analyze_skill_gap(resume_text, jd_text)
-            result['skill_gap'] = skill_gap
-            
-            # Generate interview questions
-            missing_skills = skill_gap.get('missing_skills', [])
-            interview_questions = generate_interview_questions(jd_text, resume_text, missing_skills)
-            result['interview_questions'] = interview_questions
-    
-    # Fallback to local analysis if AI failed
-    if not result:
-        result = analyze_resume_locally(resume_text, jd_text)
-        result['ai_used'] = False
-        
-        # Add skill gap
-        skill_gap = analyze_skill_gap(resume_text, jd_text)
-        result['skill_gap'] = skill_gap
-        
-        # Add interview questions
-        missing_skills = skill_gap.get('missing_skills', [])
-        interview_questions = generate_interview_questions(jd_text, resume_text, missing_skills)
-        result['interview_questions'] = interview_questions
-    
-    # Save to database if candidate_id provided
-    if result and candidate_id:
-        detailed_json = json.dumps(result, indent=2)
+        return jsonify({'error': 'Missing resume or job description text'}), 400
+
+    result = nlp_engine.analyze_match(resume_text, jd_text, resume_filename=resume_filename, jd_meta=jd_meta)
+    if result.get('error'):
+        return jsonify({'error': result['error']}), 422
+    result['ai_used'] = False
+
+    if GROQ_ENABLED:
+        try:
+            g = analyze_genuineness(resume_text, candidate_name)
+            if g:
+                result['genuineness_score'] = g.get('genuineness_score', 50)
+                result['ai_generated_probability'] = g.get('ai_generated_probability', 50)
+                result['red_flags'] = g.get('red_flags', [])
+                result['genuineness_verdict'] = g.get('verdict', '')
+                result['genuineness_analysis'] = g.get('detailed_analysis', '')
+        except Exception as e:
+            print(f"Genuineness check skipped: {e}")
+
+    if candidate_id:
         conn = sqlite3.connect(DB_PATH)
         c = conn.cursor()
         c.execute('UPDATE candidates SET match_score = ?, recommendation = ?, detailed_analysis = ?, matched_jd = COALESCE((SELECT requirement_id FROM jobs WHERE id = ?), matched_jd) WHERE id = ?',
-                  (result.get('match_score', 0), result.get('recommendation', 'review'), detailed_json, data.get('job_id'), candidate_id))
+                  (result.get('match_score', 0), result.get('recommendation', 'review'), json.dumps(result, indent=2), job_id, candidate_id))
         conn.commit()
         conn.close()
-    
-    if result:
-        return jsonify(result)
-    
-    return jsonify({'error': 'Analysis failed'}), 500
 
-    return jsonify({'error': 'Analysis failed'}), 500
+    return jsonify(result)
 
 # ============================================
 # INTERVIEW TRACKER ROUTES
