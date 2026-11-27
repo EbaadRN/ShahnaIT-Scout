@@ -5947,8 +5947,9 @@ def batch_analyze():
     conn.close()
     
     results = []
+    batch_started = time.time()
     for cand in candidates:
-        name = (cand.get('first_name', '') + ' ' + cand.get('last_name', '')).strip() or 'Unknown'
+        name = ((cand.get('first_name') or '') + ' ' + (cand.get('last_name') or '')).strip() or 'Unknown'
         resume_text = cand.get('resume_text', '') or ''
         
         if not resume_text:
@@ -5962,7 +5963,13 @@ def batch_analyze():
             continue
         
         # Use the SAME analysis as single match
-        result = analyze_resume_locally(resume_text, jd_text)
+        if time.time() - batch_started > 24:
+            results.append({'candidate_id': cand['id'], 'name': name, 'email': cand.get('email', ''), 'match_score': 0,
+                            'recommendation': 'Not analysed (time limit) - run again with fewer candidates', 'rank': 0})
+            continue
+        result = nlp_engine.analyze_match(resume_text, jd_text)
+        if result.get('error'):
+            result = {'match_score': 0, 'recommendation': result['error']}
         
         # Calculate rank position
         rank = 0
