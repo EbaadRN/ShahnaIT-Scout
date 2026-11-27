@@ -69,7 +69,36 @@ _TOK_OK = re.compile(r"[A-Za-z][A-Za-z.'\-]*$")
 
 
 def _tc(s):
-    return " ".join(w[:1].upper() + w[1:].lower() if (w.isupper() or w.islower()) and len(w) > 1 else w.upper() if len(w) == 1 else w for w in s.split())
+    out = []
+    for w in s.split():
+        if re.fullmatch(r"[A-Za-z]{2,}", w) and (w.isupper() or w.islower()):
+            out.append(w[0].upper() + w[1:].lower())
+        elif len(w) <= 2 or "." in w:
+            out.append(w.upper())                         # initials: 'N.S', 'B.R.', 'K'
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
+def _dedupe(tokens):
+    out = []
+    for t in tokens:
+        if t and t.lower().strip(".") not in [x.lower().strip(".") for x in out]:
+            out.append(t)
+    return out
+
+
+def _evidence(tokens, text, extra):
+    """How many name tokens (3+ letters) are confirmed by the resume's top lines or the e-mail / LinkedIn / file name."""
+    name_lines = [ln.lower() for ln in text.split("\n")[:40] if 0 < len(ln.split()) <= 6]   # names sit on short lines
+    head = " | ".join(name_lines)
+    blob = re.sub(r"[^a-z]", "", extra.lower())
+    hits = 0
+    for t in tokens:
+        w = t.lower().strip(".")
+        if len(w) >= 3 and (re.search(r"\b" + re.escape(w) + r"\b", head) or w in blob):
+            hits += 1
+    return hits
 
 
 def _salvage_old_name(first, middle, last):
@@ -99,22 +128,46 @@ def _process(r, cols, mode, text):
         if p.get('error'):
             p = None
     name_fix, review = None, False
-    if mode == 'auto' and broken and 'first_name' in cols:
-        name_fix = _salvage_old_name(r['first_name'], r['middle_name'] if 'middle_name' in cols else '', r['last_name'])
-        if not name_fix and p and p.get('first_name') and p.get('name_confidence') in ('high', 'medium') \
-                and not name_is_broken(p.get('first_name'), p.get('middle_name'), p.get('last_name')):
-            name_fix = {'first_name': p.get('first_name'), 'middle_name': p.get('middle_name') or '', 'last_name': p.get('last_name') or ''}
-        if not name_fix:
-            review = True
+    if mode == 'auto' and 'first_name' in cols:
+        extra = ' '.join(str(x or '') for x in ((p or {}).get('email'), (p or {}).get('linkedin'), r['email'] if 'email' in cols else '',
+                                                r['resume_original_filename'] if 'resume_original_filename' in cols else ''))
+        pt = [x for x in ((p or {}).get('first_name'), (p or {}).get('middle_name'), (p or {}).get('last_name')) if x]
+        p_ok = bool(pt) and not name_is_broken(*(pt + ['', ''])[:1], ' '.join(pt[1:-1]) if len(pt) > 2 else '', pt[-1] if len(pt) > 1 else '')
+        p_ev = _evidence(pt, text, extra) if p_ok else 0
+        if broken:
+            salv = _salvage_old_name(r['first_name'], r['middle_name'] if 'middle_name' in cols else '', r['last_name'])
+            ot = [x for x in (salv or {}).values() if x]
+            o_ev = _evidence(ot, text, extra) if salv else 0
+            if salv and o_ev >= 1 and o_ev >= p_ev:
+                name_fix = salv
+            elif p_ok and p_ev >= 1:
+                name_fix = {'first_name': p.get('first_name'), 'middle_name': p.get('middle_name') or '', 'last_name': p.get('last_name') or ''}
+            if not name_fix:
+                review = True
         else:
+            # valid single-word name -> add the surname only when the e-mail / LinkedIn / file name confirms it
+            cur = [x for x in (r['first_name'], r['middle_name'] if 'middle_name' in cols else '', r['last_name']) if str(x or '').strip()]
+            cur_l = [str(x).strip().lower() for x in cur]
+            all_toks = ' '.join(str(x) for x in cur).split()
+            if len(_dedupe(all_toks)) < len(all_toks):        # 'Srinivas Mogili Mogili' -> 'Srinivas Mogili'
+                name_fix = {'first_name': all_toks[0], 'middle_name': ' '.join(all_toks[1:-1]), 'last_name': all_toks[-1] if len(all_toks) > 1 else ''}
+            elif p_ok and len(cur) == 1 and len(pt) >= 2 and pt[0].lower() == cur_l[0]:
+                added = [t for t in pt[1:] if len(t) >= 3]
+                blob = re.sub(r"[^a-z]", "", extra.lower())
+                if added and all(t.lower() in blob for t in added):
+                    name_fix = {'first_name': r['first_name'], 'middle_name': p.get('middle_name') or '', 'last_name': p.get('last_name') or ''}
+        if name_fix:
+            toks = _dedupe(' '.join(str(name_fix[k] or '') for k in ('first_name', 'middle_name', 'last_name')).split())
+            name_fix = {'first_name': _tc(toks[0]) if toks else '', 'last_name': _tc(toks[-1]) if len(toks) > 1 else '',
+                        'middle_name': _tc(' '.join(toks[1:-1])) if len(toks) > 2 else ''}
             for k, v in name_fix.items():
                 if k in cols and str(v) != str(r[k] or ''):
                     updates[k] = v
     if p:
         overwrite = mode == 'redo'
         for k in _BASIC:
-            if name_fix and k in ('first_name', 'middle_name', 'last_name'):
-                continue
+            if k in ('first_name', 'middle_name', 'last_name') and mode != 'redo':
+                continue                                  # names change only through the checked name logic above
             v = p.get(k)
             if k not in cols or _empty(v):
                 continue
