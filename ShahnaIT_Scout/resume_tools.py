@@ -65,6 +65,27 @@ def name_is_broken(first, middle, last):
     return not nlp_engine._valid_name(toks)
 
 
+_TOK_OK = re.compile(r"[A-Za-z][A-Za-z.'\-]*$")
+
+
+def _tc(s):
+    return " ".join(w[:1].upper() + w[1:].lower() if (w.isupper() or w.islower()) and len(w) > 1 else w.upper() if len(w) == 1 else w for w in s.split())
+
+
+def _salvage_old_name(first, middle, last):
+    """Old first/last look like a real name -> keep them (title-cased) and drop a junk middle name. Else None."""
+    def ok(t):
+        parts = t.split()
+        return bool(parts) and len(parts) <= 2 and all(_TOK_OK.match(x) and x.lower().strip(".") not in nlp_engine._NAME_STOP for x in parts)
+    f, m, l = (str(x or "").strip() for x in (first, middle, last))
+    if not ok(f) or (l and not ok(l)):
+        return None
+    if l and l.lower() == f.lower():
+        l = ""
+    mid = m if (m and ok(m) and m.lower() not in (f.lower(), l.lower())) else ""
+    return {"first_name": _tc(f), "middle_name": _tc(mid) if mid else "", "last_name": _tc(l) if l else ""}
+
+
 def _process(r, cols, mode, text):
     """Return (updates dict, report item) for one candidate row."""
     updates = {}
@@ -77,10 +98,23 @@ def _process(r, cols, mode, text):
         p = nlp_engine.parse_resume(text, filename=r['resume_original_filename'] if 'resume_original_filename' in cols else None)
         if p.get('error'):
             p = None
+    name_fix, review = None, False
+    if mode == 'auto' and broken and 'first_name' in cols:
+        name_fix = _salvage_old_name(r['first_name'], r['middle_name'] if 'middle_name' in cols else '', r['last_name'])
+        if not name_fix and p and p.get('first_name') and p.get('name_confidence') in ('high', 'medium') \
+                and not name_is_broken(p.get('first_name'), p.get('middle_name'), p.get('last_name')):
+            name_fix = {'first_name': p.get('first_name'), 'middle_name': p.get('middle_name') or '', 'last_name': p.get('last_name') or ''}
+        if not name_fix:
+            review = True
+        else:
+            for k, v in name_fix.items():
+                if k in cols and str(v) != str(r[k] or ''):
+                    updates[k] = v
     if p:
-        overwrite = mode == 'redo' or (mode == 'auto' and broken and bool(p.get('first_name'))
-                                       and not name_is_broken(p.get('first_name'), p.get('middle_name'), p.get('last_name')))
+        overwrite = mode == 'redo'
         for k in _BASIC:
+            if name_fix and k in ('first_name', 'middle_name', 'last_name'):
+                continue
             v = p.get(k)
             if k not in cols or _empty(v):
                 continue
@@ -94,8 +128,11 @@ def _process(r, cols, mode, text):
                 updates[k] = json.dumps(v)
     item = {'id': r['id'], 'name': ' '.join(str(r[k] or '') for k in ('first_name', 'last_name')).strip(),
             'text_chars_before': len(old), 'text_chars_after': len(text), 'filled': [k for k in updates if k != 'resume_text']}
-    if p and any(k in updates for k in ('first_name', 'last_name')):
+    if any(k in updates for k in ('first_name', 'middle_name', 'last_name')):
+        item['old_name'] = ' '.join(str(r[k] or '') for k in ('first_name', 'middle_name', 'last_name') if k in cols).strip()
         item['new_name'] = ' '.join(str(updates.get(k, r[k] if k in cols else '') or '') for k in ('first_name', 'middle_name', 'last_name')).replace('  ', ' ').strip()
+    if review:
+        item['needs_review'] = True
     return updates, item
 
 
@@ -123,7 +160,7 @@ def _write_status(st):
 def _run_all(dry):
     st = {'state': 'running', 'dry_run': dry, 'started_at': time.strftime('%Y-%m-%d %H:%M:%S'), 'heartbeat': time.time(),
           'done': 0, 'total': 0, 'text_updated': 0, 'names_fixed': 0, 'fields_filled': 0, 'no_file': 0, 'unreadable': [],
-          'tiny_text': [], 'fixed_names': [], 'errors': []}
+          'tiny_text': [], 'fixed_names': [], 'names_need_review': [], 'errors': []}
     try:
         conn = sqlite3.connect(DB_PATH, timeout=30)
         conn.row_factory = sqlite3.Row
@@ -157,7 +194,9 @@ def _run_all(dry):
                         if item.get('new_name'):
                             st['names_fixed'] += 1
                             if len(st['fixed_names']) < 400:
-                                st['fixed_names'].append([cid, item['name'], item['new_name']])
+                                st['fixed_names'].append([cid, item.get('old_name', item['name']), item['new_name']])
+                        if item.get('needs_review') and len(st['names_need_review']) < 400:
+                            st['names_need_review'].append([cid, ' '.join(str(r[k] or '') for k in ('first_name', 'middle_name', 'last_name') if k in cols).strip()])
                         st['fields_filled'] += len(item['filled'])
                         if updates and not dry:
                             _apply(c, cid, updates)
