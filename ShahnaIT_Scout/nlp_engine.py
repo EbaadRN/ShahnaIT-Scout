@@ -199,14 +199,14 @@ def extract_text(path, filename=None):
 # =====================================================================================
 # 2. NORMALISATION
 # =====================================================================================
-_BULLETS = "●•▪■□◦○◆◇►▸▶➢➤➣➔→✓✔✗❖❑❒⦿⚫⚬∙·◉◘"
+_BULLETS = "●•▪■□◦○◆◇►▸▶➢➤➣➔→✓✔✗❖❑❒⦿⚫⚬∙·◉◘\uf0b7\uf0a7\uf0d8\uf076\uf0fc\uf0a8\uf02d\uf0e0\uf0f0\uf0de\uf097\uf06e\uf06c\uf075\uf0b2"
 _BULLET_RE = re.compile("[" + re.escape(_BULLETS) + "]")
 
 
 def _clean(text):
     t = unicodedata.normalize("NFKC", text or "")
     t = t.replace("\r\n", "\n").replace("\r", "\n").replace("\x0c", "\n").replace("\t", "  ")
-    t = re.sub(r"[​-‏­﻿⁠‪-‮]", "", t)
+    t = re.sub(r"[\u200b-\u200f\u00ad\ufeff\u2060\u202a-\u202e]", "", t)
     t = t.replace(" ", " ").replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
     t = _BULLET_RE.sub("•", t)
     t = re.sub(r"(?m)^[ \t]*[\-\*o][ \t]+(?=[A-Z])", "• ", t)          # '- Did X' / 'o Did X' bullets
@@ -894,7 +894,11 @@ _NAME_STOP = set(("resume curriculum vitae cv bio data biodata profile summary o
                   "retrieval augmented platform modernization using fabric technologies solutions services flows validation rules vault veeva "
                   "certification certifications training internship role roles responsibilities languages known hobbies interests declaration "
                   "objective reference contact phone mobile tel cell telephone summary profile email id mail linkedin github "
-                  "worked working organization company employer database databases sql oracle python java testing tools").split())
+                  "worked working organization company employer database databases sql oracle python java testing tools engineering engineer "
+                  "telecommunication inventory procurement purchase lists records source curriculm curriculam vita vitae resume ltd pvt limited "
+                  "solutions digital tech softech technologies joiner immediate operations telugu hindi kannada tamil english marathi malayalam "
+                  "bengali gujarati punjabi urdu creative aspirants specialises specializes specialist concepts university college school institute "
+                  "link links trailhead bring-up exposure area skill skills set expertise competencies key classic git bitbucket within demand").split())
 
 
 def _name_tokens(s):
@@ -918,7 +922,7 @@ def _valid_name(toks):
             return False
         if len(t.rstrip(".")) == 1:
             continue                                    # initials ('Siddarth A', 'V. Aishwarya')
-        if t.lower() in _NAME_STOP or _CITY_RE.fullmatch(t) or _k(t) in _ALIAS and len(t) > 3 and _k(t) not in ("ray", "rust", "swift", "flask", "spring", "chef", "lean", "dash"):
+        if t.lower() in _NAME_STOP or _CITY_RE.fullmatch(t) or _k(t) in _ALIAS and len(t) >= 3 and _k(t) not in ("ray", "rust", "swift", "flask", "spring", "chef", "lean", "dash", "ruby", "julia", "sage", "basis", "unity", "jade"):
             return False
     caps = [t for t in toks if len(t) > 1]
     if not caps:
