@@ -115,7 +115,7 @@
     <button onclick="showPanel('jobs'); loadJobs();" class="mobile-nav-btn">📋<br><span>Jobs</span></button>
     <button onclick="showPanel('candidates'); loadCandidates();" class="mobile-nav-btn">👥<br><span>Candidates</span></button>
     <button onclick="showPanel('interviews'); loadInterviews();" class="mobile-nav-btn">📅<br><span>Interviews</span></button>
-    <button onclick="openMobileMenu()" class="mobile-nav-btn">☰<br><span>More</span></button>
+    <button onclick="event.stopPropagation(); openMobileMenu()()" class="mobile-nav-btn">☰<br><span>More</span></button>
 </div>
 <div style="max-width: 1200px; margin: 0 auto;">
     <div class="header">
@@ -1197,5 +1197,36 @@
 <script src="/static/aeterna-enhance.js?v=1" defer></script>
 </div><!-- closes .sidebar-container (opened at the page header) -->
 </div><!-- closes the max-width page wrapper -->
+<script>
+/* MOBILE-ONLY helpers (phones / small tablets). Does nothing on desktop. */
+(function () {
+    if (window.innerWidth > 768) return;
+
+    // 1) Dashboard charts: fixed-height boxes + maintainAspectRatio:false (needed for a stable phone layout)
+    ['matchChart', 'pipelineChart', 'trendChart'].forEach(function (id) {
+        var c = document.getElementById(id);
+        if (!c || (c.parentNode && c.parentNode.classList.contains('m-chart-box'))) return;
+        var box = document.createElement('div');
+        box.className = 'm-chart-box';
+        c.parentNode.insertBefore(box, c);
+        box.appendChild(c);
+    });
+    if (window.Chart && Chart.register) {
+        Chart.register({ id: 'mobileFixedHeight', beforeInit: function (chart) { chart.options.maintainAspectRatio = false; } });
+    }
+
+    // 2) Proposal Reports: label each cell so the stacked-card layout can show "Column: value"
+    var t = document.getElementById('rpTable');
+    if (t && window.MutationObserver) {
+        new MutationObserver(function () {
+            var heads = [].map.call(t.querySelectorAll('thead th'), function (h) { return h.textContent; });
+            [].forEach.call(t.querySelectorAll('tbody tr'), function (tr) {
+                if (tr.firstElementChild && (tr.firstElementChild.classList.contains('rp-band') || tr.firstElementChild.classList.contains('rp-empty'))) return;
+                [].forEach.call(tr.cells, function (td, i) { if (!td.hasAttribute('data-label')) td.setAttribute('data-label', heads[i] || ''); });
+            });
+        }).observe(t, { childList: true, subtree: true });
+    }
+})();
+</script>
 </body>
 </html>
