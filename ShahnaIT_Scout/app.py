@@ -478,6 +478,8 @@ import access_control
 access_control.init_access(app)
 from backfill import bp as _backfill_bp
 app.register_blueprint(_backfill_bp)
+from resume_tools import bp as _resume_tools_bp
+app.register_blueprint(_resume_tools_bp)
 @app.errorhandler(Exception)
 def _json_errors(e):
     from werkzeug.exceptions import HTTPException, InternalServerError
