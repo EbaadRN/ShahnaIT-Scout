@@ -4658,17 +4658,18 @@ def parse_resume():
         os.remove(stored_path)
         return jsonify({'error': 'Could not extract text'}), 400
 
-    ai_parsed = nlp_engine.parse_resume(text)
+    ai_parsed = nlp_engine.parse_resume(text, filename=file.filename)
 
     if ai_parsed and not ai_parsed.get('error'):
-        parsed = cross_validate_resume(ai_parsed, text)
-        parsed['resume_text'] = text[:8000]
+        parsed = ai_parsed
+        parsed['resume_text'] = text[:60000]
         parsed['ai_used'] = False
-        print(f"AI parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')} - {len(parsed.get('core_skills', []))} skills")
+        print(f"Parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')} - {len(parsed.get('core_skills', []))} skills")
     else:
         parsed = fallback_parse_resume(text)
-        parsed['resume_text'] = text[:8000]
+        parsed['resume_text'] = text[:60000]
         parsed['ai_used'] = False
+        parsed['parse_warning'] = (ai_parsed or {}).get('error', '')
         print(f"Fallback parsed: {parsed.get('first_name', '')} {parsed.get('last_name', '')}")
 
     parsed['upload_id'] = upload_id
