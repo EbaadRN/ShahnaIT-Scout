@@ -65,18 +65,36 @@ def name_is_broken(first, middle, last):
     return not nlp_engine._valid_name(toks)
 
 
-_TOK_OK = re.compile(r"[A-Za-z][A-Za-z.'\-]*$")
+_TOK_OK = re.compile(r"(?:[A-Za-z]\.)+[A-Za-z]?\.?$|[A-Za-z][A-Za-z'\-]*\.?$")   # 'B.R.', 'K', 'Pavan', "D'Souza" - never 'SAP.MALLI...COM'
+_HONORIFIC = re.compile(r"(?i)^(?:mr|mrs|ms|miss|dr|prof|shri|smt|sri|kum|er)\.?$")
+
+
+def _split_tokens(s):
+    """Clean raw name text into tokens: 'CH.SIVAKRISHNA' -> ['CH.', 'SIVAKRISHNA'], 'AyeshaTabassumN' -> ['Ayesha', 'Tabassum', 'N'], drops '.', 'DR.'."""
+    out = []
+    for w in str(s or "").split():
+        m = re.fullmatch(r"((?:[A-Za-z]{1,2}\.)+)([A-Za-z]{3,}\.?)", w)          # 'A.NAGA', 'CH.SIVAKRISHNA'
+        parts = [m.group(1), m.group(2)] if m else [w]
+        for x in parts:
+            if re.fullmatch(r"[A-Z]?[a-z]{2,}(?:[A-Z][a-z]+)+[A-Z]?", x):       # glued camel case
+                out += re.findall(r"[A-Z][a-z]+|[a-z]+|[A-Z]$", x)
+            elif x.strip(".-'") and not _HONORIFIC.match(x):
+                out.append(x)
+    return out
 
 
 def _tc(s):
     out = []
-    for w in s.split():
-        if re.fullmatch(r"[A-Za-z]{2,}", w) and (w.isupper() or w.islower()):
-            out.append(w[0].upper() + w[1:].lower())
-        elif len(w) <= 2 or "." in w:
-            out.append(w.upper())                         # initials: 'N.S', 'B.R.', 'K'
+    for w in _split_tokens(s):
+        core = w.rstrip(".")
+        if re.fullmatch(r"(?:[A-Za-z]\.)+[A-Za-z]?\.?|[A-Za-z]\.?", w):
+            out.append(w.upper())                         # initials: 'B.R.', 'K', 'M.'
+        elif len(core) <= 2 and core.isalpha() and w.endswith("."):
+            out.append(core.upper() + ".")                # 'CH.'
+        elif re.fullmatch(r"[A-Za-z'\-]+", core) and (core.isupper() or core.islower() or core[0].isupper()):
+            out.append("-".join(x[:1].upper() + x[1:].lower() for x in core.split("-")) if (core.isupper() or core.islower()) else core)
         else:
-            out.append(w)
+            out.append(core)
     return " ".join(out)
 
 
@@ -88,31 +106,74 @@ def _dedupe(tokens):
     return out
 
 
-def _evidence(tokens, text, extra):
-    """How many name tokens (3+ letters) are confirmed by the resume's top lines or the e-mail / LinkedIn / file name."""
-    name_lines = [ln.lower() for ln in text.split("\n")[:40] if 0 < len(ln.split()) <= 6]   # names sit on short lines
+def _clean_middle(toks):
+    """Drop middle tokens that are fragments of / glued to another token: 'Nandini B Ini C' -> 'Nandini B C', 'Sumanth Psumanth P S' -> 'Sumanth P S'."""
+    if len(toks) <= 2:
+        return toks
+    low = [t.lower().strip(".") for t in toks]
+    keep = [toks[0]]
+    for i in range(1, len(toks) - 1):
+        w = low[i]
+        others = [low[j] for j in range(len(toks)) if j != i and len(low[j]) >= 3]
+        if len(w) >= 3 and any(w in o or o in w for o in others):
+            continue
+        keep.append(toks[i])
+    return keep + [toks[-1]]
+
+
+def _blob(extra):
+    return re.sub(r"[^a-z]", "", (extra or "").lower())
+
+
+def _evidence(tokens, text, extra, exclude=()):
+    """(strong, weak): name tokens (3+ letters) found in the e-mail / LinkedIn / file name (strong) or on the resume's short top lines (weak)."""
+    name_lines = [ln.lower() for ln in text.split("\n")[:40] if 0 < len(ln.split()) <= 6]
     head = " | ".join(name_lines)
-    blob = re.sub(r"[^a-z]", "", extra.lower())
-    hits = 0
+    blob = _blob(extra)
+    for e in exclude:
+        e = re.sub(r"[^a-z]", "", str(e).lower())
+        if len(e) >= 3:
+            blob = blob.replace(e, " ")
+    strong = weak = 0
     for t in tokens:
         w = t.lower().strip(".")
-        if len(w) >= 3 and (re.search(r"\b" + re.escape(w) + r"\b", head) or w in blob):
-            hits += 1
-    return hits
+        if len(w) < 3:
+            continue
+        if w in blob:
+            strong += 1
+        elif re.search(r"\b" + re.escape(w) + r"\b", head):
+            weak += 1
+    return strong, weak
+
+
+def _name_ok(toks):
+    toks = [t for t in toks if t]
+    return bool(toks) and all(_TOK_OK.match(t) for t in toks) and nlp_engine._valid_name([t.strip(".-'") or t for t in toks])
 
 
 def _salvage_old_name(first, middle, last):
-    """Old first/last look like a real name -> keep them (title-cased) and drop a junk middle name. Else None."""
-    def ok(t):
-        parts = t.split()
-        return bool(parts) and len(parts) <= 2 and all(_TOK_OK.match(x) and x.lower().strip(".") not in nlp_engine._NAME_STOP for x in parts)
-    f, m, l = (str(x or "").strip() for x in (first, middle, last))
-    if not ok(f) or (l and not ok(l)):
+    """Old first/last look like a real name -> keep them, drop junk. Else None."""
+    f, m, l = (_split_tokens(x) for x in (first, middle, last))
+    if not f or len(f) > 2 or len(l) > 2 or not _name_ok(f) or (l and not _name_ok(l)):
         return None
-    if l and l.lower() == f.lower():
-        l = ""
-    mid = m if (m and ok(m) and m.lower() not in (f.lower(), l.lower())) else ""
-    return {"first_name": _tc(f), "middle_name": _tc(mid) if mid else "", "last_name": _tc(l) if l else ""}
+    if [x.lower() for x in l] == [x.lower() for x in f]:
+        l = []
+    m = [x for x in m if _name_ok([x])] if m and len(m) <= 2 else []
+    toks = _clean_middle(_dedupe(f + m + l))
+    if not _name_ok(toks):
+        return None
+    return toks
+
+
+def _toks_to_fields(toks):
+    toks = _clean_middle(_dedupe([t for t in toks if t]))
+    if toks and len(toks[0].rstrip(".")) == 1 and any(len(t.rstrip(".")) > 1 for t in toks):   # 'M Pavan Kumar' -> 'Pavan Kumar M'
+        lead = []
+        while len(toks[0].rstrip(".")) == 1:
+            lead.append(toks.pop(0))
+        toks = toks + lead
+    return {'first_name': _tc(toks[0]) if toks else '', 'middle_name': _tc(' '.join(toks[1:-1])) if len(toks) > 2 else '',
+            'last_name': _tc(toks[-1]) if len(toks) > 1 else ''}
 
 
 def _process(r, cols, mode, text):
@@ -129,37 +190,56 @@ def _process(r, cols, mode, text):
             p = None
     name_fix, review = None, False
     if mode == 'auto' and 'first_name' in cols:
-        extra = ' '.join(str(x or '') for x in ((p or {}).get('email'), (p or {}).get('linkedin'), r['email'] if 'email' in cols else '',
+        extra = ' '.join(str(x or '') for x in ((p or {}).get('email'), (p or {}).get('alternate_email'), (p or {}).get('linkedin'),
+                                                r['email'] if 'email' in cols else '',
                                                 r['resume_original_filename'] if 'resume_original_filename' in cols else ''))
-        pt = [x for x in ((p or {}).get('first_name'), (p or {}).get('middle_name'), (p or {}).get('last_name')) if x]
-        p_ok = bool(pt) and not name_is_broken(*(pt + ['', ''])[:1], ' '.join(pt[1:-1]) if len(pt) > 2 else '', pt[-1] if len(pt) > 1 else '')
-        p_ev = _evidence(pt, text, extra) if p_ok else 0
+        pt = _split_tokens(' '.join(str((p or {}).get(k) or '') for k in ('first_name', 'middle_name', 'last_name')))
+        p_ok = _name_ok(pt)
+        old_toks = _split_tokens(' '.join(str(r[k] or '') for k in ('first_name', 'middle_name', 'last_name') if k in cols))
+        old_low = {re.sub(r"[^a-z]", "", t.lower()) for t in old_toks}
         if broken:
             salv = _salvage_old_name(r['first_name'], r['middle_name'] if 'middle_name' in cols else '', r['last_name'])
-            ot = [x for x in (salv or {}).values() if x]
-            o_ev = _evidence(ot, text, extra) if salv else 0
-            if salv and o_ev >= 1 and o_ev >= p_ev:
-                name_fix = salv
-            elif p_ok and p_ev >= 1:
-                name_fix = {'first_name': p.get('first_name'), 'middle_name': p.get('middle_name') or '', 'last_name': p.get('last_name') or ''}
+            s_str, s_weak = _evidence(salv or [], text, extra)
+            p_str, p_weak = _evidence(pt, text, extra) if p_ok else (0, 0)
+            p_old = sum(1 for t in pt if len(t) >= 3 and t.lower().strip('.') in old_low) if p_ok else 0
+            p_conf = (p or {}).get('name_confidence')
+            if p_ok and (p_str >= 1 or p_old >= 1) and p_str >= s_str and (p_str + p_old) >= 1 and (not salv or p_str > s_str or p_old >= 1):
+                name_fix = pt                                         # parsed name confirmed by e-mail / file name / old record
+            elif salv and s_str + s_weak >= 1:
+                name_fix = salv                                       # old name is fine once the junk is removed
+            elif p_ok and p_conf == 'high' and p_weak + p_str >= 1:
+                name_fix = pt
             if not name_fix:
                 review = True
         else:
-            # valid single-word name -> add the surname only when the e-mail / LinkedIn / file name confirms it
-            cur = [x for x in (r['first_name'], r['middle_name'] if 'middle_name' in cols else '', r['last_name']) if str(x or '').strip()]
-            cur_l = [str(x).strip().lower() for x in cur]
-            all_toks = ' '.join(str(x) for x in cur).split()
-            if len(_dedupe(all_toks)) < len(all_toks):        # 'Srinivas Mogili Mogili' -> 'Srinivas Mogili'
-                name_fix = {'first_name': all_toks[0], 'middle_name': ' '.join(all_toks[1:-1]), 'last_name': all_toks[-1] if len(all_toks) > 1 else ''}
-            elif p_ok and len(cur) == 1 and len(pt) >= 2 and pt[0].lower() == cur_l[0]:
-                added = [t for t in pt[1:] if len(t) >= 3]
-                blob = re.sub(r"[^a-z]", "", extra.lower())
-                if added and all(t.lower() in blob for t in added):
-                    name_fix = {'first_name': r['first_name'], 'middle_name': p.get('middle_name') or '', 'last_name': p.get('last_name') or ''}
+            cur = old_toks
+            raw_toks = ' '.join(str(r[k] or '') for k in ('first_name', 'middle_name', 'last_name') if k in cols).split()
+            cl = lambda ts: [t.lower().strip('.') for t in ts]
+            p_conf = (p or {}).get('name_confidence')
+            o_str, _ = _evidence(cur, text, extra)
+            p_str, _ = _evidence(pt, text, extra) if p_ok else (0, 0)
+            shared = {t for t in cl(pt) if len(t) >= 3} & {t for t in cl(cur) if len(t) >= 3}
+            tidy = _split_tokens(_toks_to_fields(cur)['first_name'] + ' ' + _toks_to_fields(cur)['middle_name'] + ' ' + _toks_to_fields(cur)['last_name'])
+            if len(_dedupe(cur)) < len(cur) or _clean_middle(cur) != cur:          # 'Srinivas Mogili Mogili' -> 'Srinivas Mogili'
+                name_fix = _clean_middle(_dedupe(cur))
+            elif p_ok and p_conf == 'high' and len(pt) == len(cur) >= 2 and sorted(cl(pt)) == sorted(cl(cur)) and cl(pt) != cl(cur):
+                name_fix = pt                                 # same name, wrong order: 'Kumar Pavan M' -> 'Pavan Kumar M'
+            elif p_ok and p_conf == 'high' and len(pt) >= 2 and shared and p_str > o_str and p_str >= 2:
+                name_fix = pt                                 # 'Mahle Chavan' (employer) -> 'Shruti Chavan' (e-mail agrees)
+            elif tidy and [t.lower() for t in tidy] != [t.lower() for t in raw_toks]:
+                name_fix = tidy                               # 'Atafurrab .', 'AyeshaTabassumN', 'Jayaram GOUDU.'
+            elif p_ok and len(cur) == 1 and len(pt) >= 2 and pt[0].lower() == cur[0].lower():
+                added = [t for t in pt[1:] if len(t.rstrip('.')) >= 3]
+                blob = _blob(extra)
+                c0 = re.sub(r"[^a-z]", "", cur[0].lower())
+                blob = blob.replace(c0, " ")                  # 'muthukumar' must not confirm 'Kumar'
+                if added and all(t.lower().strip('.') in blob for t in added):
+                    name_fix = [cur[0]] + pt[1:]
         if name_fix:
-            toks = _dedupe(' '.join(str(name_fix[k] or '') for k in ('first_name', 'middle_name', 'last_name')).split())
-            name_fix = {'first_name': _tc(toks[0]) if toks else '', 'last_name': _tc(toks[-1]) if len(toks) > 1 else '',
-                        'middle_name': _tc(' '.join(toks[1:-1])) if len(toks) > 2 else ''}
+            name_fix = _toks_to_fields(name_fix)
+            if not name_fix['first_name']:
+                name_fix, review = None, True
+        if name_fix:
             for k, v in name_fix.items():
                 if k in cols and str(v) != str(r[k] or ''):
                     updates[k] = v
