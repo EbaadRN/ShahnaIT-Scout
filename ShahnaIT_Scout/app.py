@@ -1577,20 +1577,14 @@ RESUME:
 # ============ RESUME PARSING HELPERS ============
 def extract_text_from_pdf(file_path):
     try:
-        text = ""
-        with open(file_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
-            for page in reader.pages:
-                text += page.extract_text()
-        return text
-    except:
+        return nlp_engine.extract_text(file_path)
+    except Exception:
         return ""
 
 def extract_text_from_docx(file_path):
     try:
-        doc = docx.Document(file_path)
-        return "\n".join([p.text for p in doc.paragraphs])
-    except:
+        return nlp_engine.extract_text(file_path)
+    except Exception:
         return ""
 
 def extract_email(text):
