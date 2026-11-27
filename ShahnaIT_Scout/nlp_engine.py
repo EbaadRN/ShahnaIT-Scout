@@ -888,7 +888,13 @@ _NAME_STOP = set(("resume curriculum vitae cv bio data biodata profile summary o
                   "senior junior lead principal staff associate trainee fresher certified salesforce sap oracle microsoft azure aws google java python developer engineer "
                   "consultant analyst manager architect tester designer administrator specialist executive intern director head officer team cloud data devops frontend "
                   "backend fullstack full stack software hardware network web mobile application applications project projects key core competencies expertise areas "
-                  "the and of for in at to a an my our is are be on as by from").split())
+                  "the and of for in at to a an my our is are be on as by from experienced motivated dedicated passionate skilled results driven dynamic "
+                  "detail oriented hardworking aspiring accomplished overview highlights synopsis goal goals snapshot achievements about me abilities "
+                  "strengths hiring urgent client clients dear sir madam present current programming scripting processing performance improve generation "
+                  "retrieval augmented platform modernization using fabric technologies solutions services flows validation rules vault veeva "
+                  "certification certifications training internship role roles responsibilities languages known hobbies interests declaration "
+                  "objective reference contact phone mobile tel cell telephone summary profile email id mail linkedin github "
+                  "worked working organization company employer database databases sql oracle python java testing tools").split())
 
 
 def _name_tokens(s):
@@ -917,7 +923,9 @@ def _valid_name(toks):
     caps = [t for t in toks if len(t) > 1]
     if not caps:
         return False
-    if any(t[0].islower() for t in caps) and not all(t.islower() for t in caps):
+    if caps[0][0].islower() and not all(t.islower() for t in caps):
+        return False                                    # 'having Around' is not a name; 'Rajasekhar chandrala' is
+    if _KNOWN_RE.fullmatch(" ".join(toks)):
         return False
     return True
 
@@ -1038,6 +1046,7 @@ def _pick_name(lines, labels, text, filename, emails, linkedin_slug):
                 break
     best = max(cands, key=lambda c: c[0]) if cands else None
     notes = []
+    _pick_name.last_score = best[0] if best else 0
     toks = list(best[1]) if best and best[0] >= 15 else []
     if not toks and fn_toks and _valid_name(fn_toks) and len(fn_toks) >= 2:
         toks, notes = list(fn_toks), ["name taken from the file name"]
@@ -1514,7 +1523,12 @@ def parse_resume(text, today=None, filename=None):
     li_m = re.search(r"(?i)(?:https?://)?(?:[a-z]{2,3}\.)?linkedin\.com/(?:in|pub)/([A-Za-z0-9\-_%.]+)", t.replace(" -\n", "-").replace("-\n", "-"))
     linkedin = ("https://www.linkedin.com/in/" + li_m.group(1).rstrip("./-")) if li_m else ""
     gh = re.search(r"(?i)(?:https?://)?(?:www\.)?(?:github\.com|gitlab\.com|behance\.net|dribbble\.com)/[\w\-./]+", t)
+    _pick_name.last_score = 0
     name_toks, name_notes = _pick_name(lines, labels, t, filename, emails, li_m.group(1) if li_m else "")
+    nscore = getattr(_pick_name, "last_score", 0)
+    name_conf = "high" if nscore >= 40 else "medium" if nscore >= 25 else "low"
+    if name_notes and any("file name" in n or "e-mail" in n for n in name_notes):
+        name_conf = "low"
     notes += name_notes
     name_idx = []
     if name_toks:
@@ -1637,7 +1651,7 @@ def parse_resume(text, today=None, filename=None):
     if not work:
         notes.append("no dated work history found")
     return {
-        "first_name": first, "middle_name": middle, "last_name": last, "full_name": " ".join(x for x in (first, middle, last) if x),
+        "first_name": first, "middle_name": middle, "last_name": last, "full_name": " ".join(x for x in (first, middle, last) if x), "name_confidence": name_conf,
         "email": emails[0] if emails else "", "alternate_email": emails[1] if len(emails) > 1 else "",
         "phone": phones[0][0] if phones else "", "alternate_phone": phones[1][0] if len(phones) > 1 else "",
         "address": (re.search(r"(?im)^\s*address\s*[:\-]\s*([^\n]{5,150})", t) or [None, ""])[1].strip(), "location": loc, "pincode": pin,
