@@ -207,7 +207,7 @@ def _clean(text):
     t = unicodedata.normalize("NFKC", text or "")
     t = t.replace("\r\n", "\n").replace("\r", "\n").replace("\x0c", "\n").replace("\t", "  ")
     t = re.sub(r"[\u200b-\u200f\u00ad\ufeff\u2060\u202a-\u202e]", "", t)
-    t = t.replace(" ", " ").replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
+    t = t.replace("\u00a0", " ").replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
     t = _BULLET_RE.sub("•", t)
     t = re.sub(r"(?m)^[ \t]*[\-\*o][ \t]+(?=[A-Z])", "• ", t)          # '- Did X' / 'o Did X' bullets
     t = re.sub(r"(?i)(linkedin\.com/(?:in|pub)/[\w\-%]*-)\s*\n\s*(?=\w)", r"\1", t)   # keep hyphens in wrapped LinkedIn URLs
@@ -900,6 +900,95 @@ _NAME_STOP = set(("resume curriculum vitae cv bio data biodata profile summary o
                   "bengali gujarati punjabi urdu creative aspirants specialises specializes specialist concepts university college school institute "
                   "link links trailhead bring-up exposure area skill skills set expertise competencies key classic git bitbucket within demand").split())
 
+_COMMON_WORDS = set((
+    "abilities ability about accelerate accelerated accelerating acceptance access accomplishments account accounts accuracy accurate accurately "
+    "achieve achieved achieving across actionable actions activation active activities activity adaptations adding additional addressed "
+    "addressing adherence adhering admin administration admins adoption advanced after against agency agents agile agreed agreement agreements "
+    "alerts align aligned aligning alignment allocation also alternative always analysis analysts analytical analytics analyze analyzed ansible "
+    "apex application applications apply appointments approval approved approx approximately apps architects architectural architecture areas "
+    "arise arrangements articles asset assets assigned assigning assignment assignments assisted assisting associated audit authored authoring "
+    "authorisation authorisations authorized automate automated automating automation automotive availability available avoided avoiding award "
+    "awards backbone backend background backlog balancer balancers bandwidth banking based baseline bases basics basketball batch been before "
+    "best between blockers blueprint blueprinting boarded booking books boosting both bottlenecks brand brands bridge bridged brief browser "
+    "budget build building builds built business businesses cache calls campaigns capabilities capture capturing cards care career cart "
+    "cartridge cartridges case cases cash catalogs cause ceremonies certificate certificates certification certifications certified challenging "
+    "change changes channel channels characteristics chart charts check checklist checkout checks choosing claims clarifications classes clean "
+    "cleansing clearings client clients closely cloud cloudbased clusters code codes coding collaborating collaboration collaborative collected "
+    "combined combines commands commerce commercial commitment committed committee communication company compatibility compatible complaints "
+    "complete completed completeness completion complex compliance component components comprehensive concurrent conducted conducting config "
+    "configurable configuration configurations configure configured configuring conglomerate conjunction connected connectivity consistency "
+    "consistently constraints constructed construction consultancy consultant consultants consuming consumption contacts container "
+    "containerization containerized containing contains content continue continuity continuous contracts contribute contributing control "
+    "controllers conventions conversion converted coordinated core corporate cost course coverage covering create created creating creation "
+    "creativity criteria critical cross current custom customer customers customisation customization customizations customize customized "
+    "customizing cutover cycle cycles daily dashboard dashboards data database date days deactivating deactivation dealer debugging decision "
+    "decisionmaking decisions decreased deed defect defects deleting deliver deliverables delivered delivering delivery departments dependencies "
+    "dependency deployed deploying deployment deployments design designed designers designing designs detailed details detection determination "
+    "determinations developed developer developers developing development developments diagrams dialog different direct directional directly "
+    "disaster discovery discussed display distinct distribution distributions diverse divisions document documentation documented documenting "
+    "documents doing domains done downtime drafted drive driven driving during dynamic early ecommerce effective effectively efficiency "
+    "efficient efficiently element elicit eliminated email emails employee employees enable enabled enabling enforcement engagements engineer "
+    "enhance enhanced enhancement enhancements enhancing ensure ensured ensuring entered enterprise entry environment environments equipping "
+    "errors escalated establishing estimated event events every evolving exchange exec execute executed executing execution executive existing "
+    "exits expectations experience experienced experiences expert expertise expiries explicit export expose exposing exposure extending "
+    "extensions external facilitated facing failover failures fast feature features feedback fetch field fields figures filed files finance "
+    "financial financing fine finical firm first fixes flexibility flow flowcharts flows focus focusing folders follow followed force "
+    "forecasting form format forms formulas foundation four framework frameworks freezing friendly from front frontend full fully function "
+    "functional functionalities functionality future gaps gateways gather gathered gathering generate generating generation getting gift giving "
+    "global goal goals good governance government graphics grasp grow growth guaranteed guidance guided guidelines handle handled handling "
+    "handover hands hardening hardworking have health healthy help helped helping hierarchies hierarchy high highly historical holders hours "
+    "house hyper hypercare identify identifying image images immediately impact impediments implement implementation implementations implemented "
+    "implementing implicit import improve improved improvement improvements improving incident incidents including increase increasing "
+    "individual industry inform information informed infrastructure ingress initiatives innovation innovative input inputs insight insights "
+    "inspect insurance integrate integrated integrating integration integrations integrity interaction interactions interactive interface "
+    "interfaces intermittent internal interpersonal intervention into introduction investment investments invoice involves involving issue "
+    "issues items jobs join junior keep keeping kernel keys kinds knowledge kube label landscape language large largest launch layer layers "
+    "layout layouts lead leaders leadership leading leads learned learner lease leasing legacy lending less lessons level leveraged leveraging "
+    "library lifecycle like line list lists live load loader loading loan logging logic login logo logs looking loop loss machines made maintain "
+    "maintained maintaining maintenance making manage managed management managing manipulation manual mapping maps market marketing mashups "
+    "master match matched material materials mechanisms media meet meeting meetings members mentored merge message methodologies methodology "
+    "methods meticulously metrics microservices middleware migrating migration migrations minimal minimized ministry mirror misconfigurations "
+    "mobile model modeling modified module modules monitor monitoring monolith monthly motivated movement multi multinational multiple "
+    "multiregion name naming nationwide native navigation need needs network networking newer night notifications number object objectives "
+    "objects observability obtain obtained occur occurrence offs offshore ongoing onsite open operational operations operators opportunities "
+    "opportunity optimal optimised optimising optimization optimizations optimize optimized optimizing option orchestrated orchestration order "
+    "orders ordinated ordinating organisation organisational organization organizational organizations oriented other others outputs outstanding "
+    "over overall overrides oversight packages packaging page pages parallel part participated participating particular particularly parties "
+    "partner party passionate patches patching pathbased payload payment payments peer perform performance performed performing permanent "
+    "permission permissions persistent personal personalized personally personas pharmacy phase phases pick pipeline pipelines planning plans "
+    "platform player pleasing policies policy pool portfolios position post practices precise prepared preparing presence presenter primarily "
+    "printing prior priorities proactive proactively problem problems procedures process processes processing product production productivity "
+    "products professional professionally profiles program programming programs progress progression progressive project projects promote "
+    "promotion promotions promptly proper properties property protocols prototypes provide provided providing provisioning proxies proxy pull "
+    "puram purchase purposes push qualification qualities quality quantitative quarterly queries query queue queues quick quotations quote "
+    "quotes raised range rates readability ready real receipts received record recovery recurring redesign reduce reduced reducing reduction "
+    "refine region regional regression regular related relations relationship release releases reliability reliable removing rent replacing "
+    "replication report reported reporting reports repository represent representative reps reputed request requests required requirement "
+    "requirements requisitions research resident residents resistance resolution resolve resolved resolving resource resources response "
+    "responsive responsiveness restoration restricted restricting result resulted resulting results retail retrieval retrospectives reusable "
+    "revenue reviewed reviews right robust role roles roll rollback rollout rollouts root routine routing rules runtime sales salesforce "
+    "salesman same satisfaction satisfied save scalable scaling scanning scenarios schedule scheduled scheduling school scope scoped scoping "
+    "scores screen screens script scripting scripts seamless search secondary secret secrets section sector secure security self sell sending "
+    "senior sensitive sent served server service services sessions sets setting setup several sharing sheet showing side sign signature signed "
+    "significantly signoff single site sites size skilled skills smooth social software solution solutions solving source sources specialization "
+    "specific specifications sprint stabilise stability stable stack stage stages stakeholders stand standard standardisation standardise "
+    "standardising standardized standards start state status steering steps storage storefront storefronts stories strategies strategy "
+    "streamline streamlined streamlining street strengthening strict strong structure structured structures submitted successful successfully "
+    "such sufficient suites supervising suppliers support supported supporting surveys switch sync synchronisation synchronised syntax system "
+    "systems table tables tabs tailored tailoring take target targeted task tasks team teams teamwork tech technical techniques technologies "
+    "technology templates tenant territory test tested testing tests that their them then third thorough those through throughout ticket tickets "
+    "time timeline timelines timely timeouts times titles tools tournament traceability track tracking traditional traffic trained training "
+    "transactional transactions transfer transferring transfers transformation transformations transition transitions translate translating "
+    "translation transportation travel trends trigger triggers troubleshooting truly trust tuned tuning type types unavailability under "
+    "understand understanding unfreezing uninterrupted unit units universal unlocking unmanaged upcoming update updates updating upgrade upload "
+    "uploads uptime usability usable used user users using usual utility utilize utilized validate validating validation validations value "
+    "variety various vendors verified verifying version virtual visibility visualize visually volume volumes vulnerability waiver walkthroughs "
+    "warranty wavier website websites weekly weeks well were when where whether which while will windows winner wireframes with within without "
+    "work workarounds worked workflow workflows working workshops workstreams would write writing years zero zone "
+).split())
+_NAME_STOP |= set("location business support job jobs recruitment recruiter sr jr care program automation following higher secondary results order management driven gmail yahoo hotmail outlook rediffmail email".split())
+_GLUED = ("experience", "technical", "skills", "career", "summary", "profile", "objective", "education", "curriculum", "resume", "contact")
+
 
 def _name_tokens(s):
     s = re.sub(r"(?i)^(?:mr|mrs|ms|miss|dr|prof|shri|smt|sri|kum|er)\.?\s+", "", s.strip())
@@ -922,6 +1011,11 @@ def _valid_name(toks):
             return False
         if len(t.rstrip(".")) == 1:
             continue                                    # initials ('Siddarth A', 'V. Aishwarya')
+        tl = t.lower().rstrip(".")
+        if any(part in _NAME_STOP or part in _COMMON_WORDS for part in tl.split("-") if part):
+            return False                                # 'Results-driven', 'Business', 'Automation'
+        if len(tl) > 8 and any(g in tl and g != tl for g in _GLUED):
+            return False                                # 'Experiencetechnical', 'Skillscareer'
         if t.lower() in _NAME_STOP or _CITY_RE.fullmatch(t) or _k(t) in _ALIAS and len(t) >= 3 and _k(t) not in ("ray", "rust", "swift", "flask", "spring", "chef", "lean", "dash", "ruby", "julia", "sage", "basis", "unity", "jade"):
             return False
     caps = [t for t in toks if len(t) > 1]
@@ -1545,8 +1639,16 @@ def parse_resume(text, today=None, filename=None):
     first = name_toks[0] if name_toks else ""
     last = name_toks[-1] if len(name_toks) > 1 else ""
     middle = " ".join(name_toks[1:-1]) if len(name_toks) > 2 else ""
-    if first and len(first) == 1 and len(name_toks) > 1:                 # 'K Ramesh' -> first Ramesh, last K
-        first, last, middle = name_toks[-1], name_toks[0], " ".join(name_toks[1:-1])
+    if first and len(first.rstrip(".")) == 1 and len(name_toks) > 1:     # 'K Ramesh' -> Ramesh K; 'M. Pavan Kumar' -> Pavan Kumar M
+        lead = []
+        rest = list(name_toks)
+        while rest and len(rest[0].rstrip(".")) == 1:
+            lead.append(rest.pop(0))
+        if rest:
+            name_toks = rest + lead
+            first = name_toks[0]
+            last = name_toks[-1] if len(name_toks) > 1 else ""
+            middle = " ".join(name_toks[1:-1]) if len(name_toks) > 2 else ""
 
     work, extra_projects = _work_entries(lines, labels, today, set(name_idx))
     computed = _union_months([w["_iv"] for w in work]) / 12.0 if work else 0.0
