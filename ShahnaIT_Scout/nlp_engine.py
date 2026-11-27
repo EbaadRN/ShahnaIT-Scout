@@ -910,6 +910,8 @@ def _valid_name(toks):
     for t in toks:
         if not re.fullmatch(r"[A-Za-z][A-Za-z'\-]*\.?|[A-Za-z]", t):
             return False
+        if len(t.rstrip(".")) == 1:
+            continue                                    # initials ('Siddarth A', 'V. Aishwarya')
         if t.lower() in _NAME_STOP or _CITY_RE.fullmatch(t) or _k(t) in _ALIAS and len(t) > 3 and _k(t) not in ("ray", "rust", "swift", "flask", "spring", "chef", "lean", "dash"):
             return False
     caps = [t for t in toks if len(t) > 1]
