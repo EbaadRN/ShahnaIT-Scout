@@ -103,6 +103,12 @@
 
 <!-- Toast Container -->
 <div id="toastContainer" class="toast-container"></div>
+<!-- MOBILE TOP BAR (hidden on desktop; shown by the mobile CSS) -->
+<div id="mTopbar" style="display:none;">
+    <button type="button" class="m-btn" aria-label="Open menu" onclick="event.stopPropagation(); toggleSidebar();">☰</button>
+    <div class="m-logo">ShahnaIT<span>Scout</span></div>
+    <button type="button" class="m-btn" aria-label="Toggle dark mode" onclick="toggleDarkMode()">🌙</button>
+</div>
 <!-- Mobile Bottom Navigation -->
 <div id="mobileBottomNav" style="display:none;">
     <button onclick="showPanel('dashboard'); loadDashboard();" class="mobile-nav-btn">📊<br><span>Dashboard</span></button>
